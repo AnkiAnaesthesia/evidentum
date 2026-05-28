@@ -2761,9 +2761,11 @@ function fetchEuropePMC(query, maxResults, sourceLabel) {
   // format=json placed FIRST so it survives any proxy that truncates trailing params.
   // (Europe PMC defaults to XML when format is unspecified — a dropped &format=json
   //  is the root cause of the "hitCount: undefined" silent failure through proxies.)
+  // NOTE: do NOT add &sort=relevance — Europe PMC rejects a bare "relevance" sort
+  // value and returns an empty {"version":...} stub. Relevance is the default anyway.
   var url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?format=json' +
     '&resultType=core&pageSize=' + maxResults +
-    '&sort=relevance&query=' + encodeURIComponent(epQuery);
+    '&query=' + encodeURIComponent(epQuery);
 
   return fetchWithFallback(url).then(function(r) {
     // Read as text first so we can handle three proxy failure modes:
