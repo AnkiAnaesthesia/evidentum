@@ -2617,27 +2617,62 @@ function showToast(msg, colour) {
 // PUBMED API — with automatic CORS fallback
 // ══════════════════════════════════════════════
 
-// Proxies tried in order — allorigins works on iOS Safari
+// CORS proxies — fallback ONLY. On an https origin most scholarly APIs work
+// via direct fetch (see fetchWithFallback), so these are rarely hit. Note:
+// corsproxy.io became paywalled (returns {"error":...}); codetabs needs a
+// trailing-slash path. These are best-effort and may change over time.
 var PROXIES = [
-  { url: 'https://api.allorigins.win/raw?url=', wrap: false },
-  { url: 'https://corsproxy.io/?url=',          wrap: false },
-  { url: 'https://api.codetabs.com/v1/proxy?quest=', wrap: false }
+  { url: 'https://api.allorigins.win/raw?url=' },
+  { url: 'https://api.codetabs.com/v1/proxy/?quest=' },
+  { url: 'https://thingproxy.freeboard.io/fetch/' }
 ];
 
 function fetchWithFallback(url) {
-  return fetch(url).then(function(r) {
+  // 1. Try a direct fetch first. On an https origin (e.g. GitHub Pages) most
+  //    scholarly APIs (Europe PMC, NCBI, OpenAlex, Crossref, ClinicalTrials)
+  //    send permissive CORS headers and work directly with NO proxy.
+  //    We read the body as text and hand back a synthetic Response-like object
+  //    so callers can still do .json()/.text() exactly once.
+  function wrapText(text) {
+    return {
+      ok: true,
+      _text: text,
+      text: function () { return Promise.resolve(text); },
+      json: function () { return Promise.resolve(JSON.parse(text)); }
+    };
+  }
+  // A proxy body that is actually an error envelope (paywall / "not a valid
+  // resource" / allorigins {contents}) must be REJECTED so the chain continues,
+  // instead of being accepted and silently parsed into an empty result set.
+  function looksLikeProxyError(text) {
+    var t = (text || '').slice(0, 300).toLowerCase();
+    return t.indexOf('"error"') !== -1 ||           // codetabs / corsproxy
+           t.indexOf('free usage is limited') !== -1 ||
+           t.indexOf('is not a valid resource') !== -1 ||
+           t.indexOf('<!doctype') !== -1 || t.indexOf('<html') !== -1;
+  }
+
+  return fetch(url).then(function (r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r;
-  }).catch(function() {
+    return r.text().then(function (t) { return wrapText(t); });
+  }).catch(function () {
     var chain = Promise.reject(new Error('no proxy yet'));
-    PROXIES.forEach(function(proxy) {
-      chain = chain.catch(function() {
-        return fetch(proxy.url + encodeURIComponent(url)).then(function(r) {
+    PROXIES.forEach(function (proxy) {
+      chain = chain.catch(function () {
+        return fetch(proxy.url + encodeURIComponent(url)).then(function (r) {
           if (!r.ok) throw new Error('proxy HTTP ' + r.status);
-          // Reject HTML error pages from proxies so chain tries next proxy
-          var ct = r.headers.get('content-type') || '';
-          if (ct.indexOf('text/html') !== -1) throw new Error('proxy returned HTML');
-          return r;
+          return r.text();
+        }).then(function (t) {
+          if (looksLikeProxyError(t)) throw new Error('proxy returned error body');
+          // allorigins /raw normally returns the raw upstream body, but its
+          // /get endpoint wraps as {contents:"..."}. Unwrap if present.
+          if (t.charAt(0) === '{' && t.indexOf('"contents"') !== -1) {
+            try {
+              var env = JSON.parse(t);
+              if (typeof env.contents === 'string') t = env.contents;
+            } catch (e) { /* leave as-is */ }
+          }
+          return wrapText(t);
         });
       });
     });
