@@ -172,6 +172,10 @@ input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
 .alert-error { background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 12px 16px; color: #fca5a5; font-size: 13px; margin-top: 12px; }
 .alert-success { background: #0d1a2d; border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px 18px; color: #60a5fa; font-size: 13px; margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 .info-box { background: #0a1220; border: 1px solid #1e2d4a; border-radius: 7px; padding: 10px 14px; font-size: 11px; color: #4b5563; line-height: 1.65; margin-bottom: 14px; }
+.adv-only, .db-search-row.adv-only { display: none !important; }
+body.mode-advanced .adv-only { display: flex !important; }
+body.mode-advanced .info-box.adv-only,
+body.mode-advanced .adv-block { display: block !important; }
 .info-box b { color: #60a5fa; }
 .empty { text-align: center; padding: 70px 0; color: #4b5563; }
 .empty-icon { font-size: 44px; margin-bottom: 14px; }
@@ -526,22 +530,69 @@ input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
       </div>
 
       <div class="info-box" id="cochrane-info" style="display:none;border-color:#22c55e44;color:#4ade80;background:#0a1a10">
-        &#128218; <b style="color:#4ade80">Cochrane Reviews</b> searches Europe PMC filtered to the <i>Cochrane Database of Systematic Reviews</i> journal. Results are merged and deduplicated with other selected databases.
+        &#128218; <b style="color:#4ade80">Cochrane Reviews</b> searches Europe PMC filtered to the <i>Cochrane Database of Systematic Reviews</i> journal. It is driven by your <b>primary (MeSH)</b> query and merged/deduplicated with other sources.
       </div>
       <div class="info-box" id="scopus-info" style="display:none;border-color:#f59e0b44;color:#fbbf24;background:#1a1200">
-        &#128083; <b style="color:#fbbf24">Scopus</b> requires an Elsevier API key and institutional token. Get a free API key at <a href="https://dev.elsevier.com" target="_blank" style="color:#fbbf24">dev.elsevier.com</a>, then request an InstToken from <a href="/cdn-cgi/l/email-protection#593829302a2c2929362b2d193c352a3c2f303c2b773a3634" style="color:#fbbf24"><span class="__cf_email__" data-cfemail="5534253c262025253a27211530392630233c30277b363a38">[email&#160;protected]</span></a> using your institutional email. Enter both below.
+        &#128083; <b style="color:#fbbf24">Scopus</b> needs an Elsevier API key, entered in Settings (&#9881; top right). Get one free at <a href="https://dev.elsevier.com" target="_blank" style="color:#fbbf24">dev.elsevier.com</a>.<br><br>The key works on your institution's network. Off-campus, you also need an InstToken — request one from <a href="https://service.elsevier.com/app/contact/supporthub/researchproductsapis/" target="_blank" style="color:#fbbf24">Elsevier API Support</a> using your institutional email.<br><br><span style="opacity:0.85">Note: Scopus returns up to <b>25 results</b> per search regardless of the per-database limit, due to Elsevier API restrictions.</span>
       </div>
       <div class="info-box" id="clinicaltrials-info" style="display:none;border-color:#f4725644;color:#fda57d;background:#1f100a">
         &#129514; <b style="color:#fda57d">ClinicalTrials.gov</b> searches the AACT (Aggregate Analysis of ClinicalTrials.gov) public API for <i>registered and unpublished clinical trials</i>. Results include ongoing, completed, and terminated trials that may not yet appear in PubMed. Useful for identifying grey literature and publication bias. No API key required.
       </div>
 
-      <!-- Query input + button -->
+      <!-- ══ SEARCH MODE TOGGLE ══ -->
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;background:#0d1220;border:1px solid #1e293b;border-radius:8px;padding:3px;width:fit-content">
+        <button id="mode-simple-btn" onclick="setSearchMode('simple')" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s">Simple</button>
+        <button id="mode-advanced-btn" onclick="setSearchMode('advanced')" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-weight:600;transition:all 0.15s">Advanced</button>
+      </div>
+
+      <!-- ══ PRIMARY: PubMed/MEDLINE MeSH strategy (source of truth) ══ -->
+      <div class="info-box adv-only" style="border-color:#3b82f644;color:#93c5fd;background:#0a1020;margin-bottom:12px">
+        &#8505;&#65039; <b>Two-stream search.</b> The <b style="color:#60a5fa">primary</b> bar takes your full PubMed MeSH/boolean strategy and drives the MEDLINE-indexed sources (PubMed, Europe PMC, Cochrane). The <b style="color:#a78bfa">secondary</b> bar is auto-derived as a plain-keyword version (MeSH tags stripped) for the natural-language engines that don't understand MeSH. Edit the secondary freely &mdash; it won't be overwritten unless you click <b>Re-derive</b>.
+      </div>
+      <div class="adv-only" style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span class="sec-label" style="margin:0">&#128300; Primary search &mdash; PubMed / MEDLINE (MeSH &amp; boolean)</span>
+        <span style="font-size:10px;color:#64748b;font-family:'IBM Plex Mono',monospace">source of truth &middot; drives PubMed, Europe PMC, Cochrane</span>
+      </div>
       <div class="db-search-row">
         <div style="position:relative;flex:1;min-width:0;">
           <input type="text" id="query-input" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' onkeydown="if(event.key==='Enter') doSearch()" oninput="var b=document.getElementById('query-clear-btn');b.style.display=this.value?'flex':'none';" />
           <button id="query-clear-btn" onclick="document.getElementById('query-input').value='';this.style.display='none';document.getElementById('query-input').focus();" title="Clear" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:#374151;color:#9ca3af;font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
         </div>
         <button id="search-btn" onclick="doSearch()">&#8594; Search</button>
+      </div>
+
+      <!-- ══ SECONDARY: keyword query for natural-language engines ══ -->
+      <div class="adv-only" style="display:flex;align-items:center;gap:8px;margin:12px 0 5px">
+        <span class="sec-label" style="margin:0">&#129504; Secondary search &mdash; keyword (no MeSH)</span>
+        <span style="font-size:10px;color:#64748b;font-family:'IBM Plex Mono',monospace">drives Semantic Scholar, OpenAlex, Scopus, ClinicalTrials.gov</span>
+        <button id="rederive-btn" onclick="rederiveSecondary()" title="Re-derive the keyword query from the primary MeSH strategy. This overwrites the secondary field." style="margin-left:auto;font-size:10px;padding:4px 9px;border-radius:6px;border:1px solid #334155;background:#0d1220;color:#7dd3fc;cursor:pointer;font-family:'IBM Plex Mono',monospace;white-space:nowrap">&#8635; Re-derive from primary</button>
+      </div>
+      <div class="db-search-row adv-only">
+        <div style="position:relative;flex:1;min-width:0;">
+          <input type="text" id="query-input-secondary" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;color:#cbd5e1" placeholder="auto-derived from primary on search &mdash; edit freely, then it stays as you set it" onkeydown="if(event.key==='Enter') doSearch()" oninput="secondaryEdited=true;var b=document.getElementById('query-clear-btn2');b.style.display=this.value?'flex':'none';" />
+          <button id="query-clear-btn2" onclick="document.getElementById('query-input-secondary').value='';secondaryEdited=true;this.style.display='none';document.getElementById('query-input-secondary').focus();" title="Clear" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:#374151;color:#9ca3af;font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
+        </div>
+      </div>
+
+      <!-- ══ PUBMED SET HISTORY (build & combine numbered sets) ══ -->
+      <div class="adv-only adv-block" style="margin-top:16px;background:#0a0f1c;border:1px solid #1e293b;border-radius:10px;padding:13px 15px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:12px;font-weight:600;color:#e2e8f0">&#129516; PubMed search history (numbered sets)</span>
+          <button id="add-set-btn" onclick="addPubmedSet()" title="Run the primary (MeSH) query as a new numbered set on PubMed's History server" style="margin-left:auto;font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid #1e3a5f;background:#0a1530;color:#7dd3fc;cursor:pointer;font-weight:600;white-space:nowrap">&#43; Add to history</button>
+          <button onclick="clearPubmedSets()" title="Clear all sets (also clears the PubMed session)" style="font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid #334155;background:#0d1220;color:#94a3b8;cursor:pointer;white-space:nowrap">Clear</button>
+        </div>
+        <div style="font-size:9.5px;color:#64748b;font-family:'IBM Plex Mono',monospace;margin-bottom:10px">authentic NCBI History server &middot; counts are uncapped, server-side &middot; PubMed only</div>
+        <div id="set-history-panel" style="margin-bottom:11px"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="sec-label" style="margin:0">Combine sets</span>
+          <span style="font-size:10px;color:#64748b;font-family:'IBM Plex Mono',monospace">e.g. (#1 OR #2) AND #3 NOT #4</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" id="combo-input" placeholder="#1 AND #2" oninput="document.getElementById('combo-preview').innerHTML='';" onkeydown="if(event.key==='Enter') previewCombo()" style="flex:1;min-width:160px;box-sizing:border-box;padding:10px 13px;font-size:13px;font-family:'IBM Plex Mono',monospace;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#e2e8f0" />
+          <button onclick="previewCombo()" title="Resolve the combination on PubMed and show the count (no retrieval yet)" style="font-size:12px;padding:9px 14px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#cbd5e1;cursor:pointer;font-weight:600;white-space:nowrap">Preview count</button>
+          <button onclick="executeCombo()" title="Run the combined strategy across all selected databases" style="font-size:12px;padding:9px 14px;border-radius:7px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">&#8594; Execute &amp; fan out</button>
+        </div>
+        <div id="combo-preview" style="margin-top:9px;min-height:8px"></div>
       </div>
 
       <div class="grid4" style="margin-top:12px">
@@ -671,6 +722,8 @@ input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
   <div class="tab-panel" id="tab-results">
     <!-- Per-database status pills — shown during/after search -->
     <div class="db-status-bar" id="db-status-bar" style="display:none"></div>
+
+    <div id="provenance-panel" style="display:none"></div>
 
     <div id="empty-results" class="empty">
       <div class="empty-icon">&#128300;</div>
@@ -1114,9 +1167,20 @@ function safeUrl(url) {
 
 var papers = [];
 var currentQuery = '';
+var currentSecondaryQuery = '';      // keyword query used for natural-language engines
+var secondaryEdited = false;          // true once user manually edits secondary bar
+var lastSearchProvenance = null;      // PRISMA-style identification record of last search
 var expandedCards = new Set();
 var searchHistory = [];
 var savedAlerts = [];
+
+// ── PubMed set-history (Advanced mode) ──
+// Session-scoped numbered sets built on NCBI's History server. Each set stores
+// the query string (for fan-out to other DBs) plus NCBI WebEnv/queryKey + count.
+var pubmedSets = {};        // { 1: {query, count, queryKey, webEnv, label}, ... }
+var pubmedSetCounter = 0;   // last assigned set number
+var pubmedWebEnv = null;    // shared WebEnv threaded through the session
+var _comboHistoryCtx = null; // set by executeCombo: {queryKey, webEnv} — used once by fetchPubMed then cleared
 
 // Scan criteria — what the document scanner checks
 var scanCriteria = [
@@ -2312,6 +2376,24 @@ function doSearch() {
   var q = document.getElementById('query-input').value.trim();
   if (!q) return;
   currentQuery = q;
+
+  // SECONDARY query for natural-language engines (Semantic Scholar, OpenAlex,
+  // Scopus, ClinicalTrials). If the user hasn't manually edited the secondary
+  // bar, auto-derive it from the primary MeSH strategy and reflect it in the UI.
+  // If they HAVE edited it, respect their version (manual edits are never
+  // silently overwritten — re-derivation is deliberate via the button).
+  var secEl = document.getElementById('query-input-secondary');
+  var secQ = secEl.value.trim();
+  // Simple mode: the single bar drives everything — always derive fresh,
+  // ignoring any stale secondary value left over from Advanced mode.
+  if (searchMode === 'simple' || !secEl.value.trim() || !secondaryEdited) {
+    secQ = deriveSecondaryQuery(q);
+    secEl.value = secQ;
+    document.getElementById('query-clear-btn2').style.display = secQ ? 'flex' : 'none';
+  }
+  if (!secQ) secQ = q; // ultimate fallback so NL engines still get something
+  currentSecondaryQuery = secQ;
+
   var dateFrom  = document.getElementById('date-from').value;
   var dateTo    = document.getElementById('date-to').value;
   var maxResults = parseInt(document.getElementById('max-results').value);
@@ -2348,6 +2430,8 @@ function doSearch() {
   var bar = document.getElementById('db-status-bar');
   bar.style.display = 'flex';
   bar.innerHTML = '';
+  var provPanel = document.getElementById('provenance-panel');
+  if (provPanel) { provPanel.style.display = 'none'; provPanel.innerHTML = ''; }
 
   function makePill(id, label) {
     var pill = document.createElement('div');
@@ -2412,7 +2496,7 @@ function doSearch() {
   if (useSemantic) {
     makePill('semantic', '&#129504; Semantic Scholar');
     promises.push(
-      fetchSemanticScholar(q, maxResults, dateFrom, dateTo)
+      fetchSemanticScholar(secQ, maxResults, dateFrom, dateTo)
         .then(function(r) { setPill('semantic', '&#129504; Semantic Scholar — ' + r.length + ' results', 'done'); return r; })
         .catch(function(e) { setPill('semantic', '&#129504; Semantic Scholar — ' + (e.message || 'failed'), 'error'); console.error('Semantic:', e); return []; })
     );
@@ -2421,7 +2505,7 @@ function doSearch() {
   if (useOpenAlex) {
     makePill('openalex', '&#127760; OpenAlex');
     promises.push(
-      fetchOpenAlex(q, maxResults, dateFrom, dateTo)
+      fetchOpenAlex(secQ, maxResults, dateFrom, dateTo)
         .then(function(r) { setPill('openalex', '&#127760; OpenAlex — ' + r.length + ' results', 'done'); return r; })
         .catch(function(e) { setPill('openalex', '&#127760; OpenAlex — ' + (e.message || 'failed'), 'error'); console.error('OpenAlex:', e); return []; })
     );
@@ -2430,7 +2514,7 @@ function doSearch() {
   if (useScopus) {
     makePill('scopus', '&#128083; Scopus');
     promises.push(
-      fetchScopus(q, maxResults, dateFrom, dateTo)
+      fetchScopus(secQ, maxResults, dateFrom, dateTo)
         .then(function(r) { setPill('scopus', '&#128083; Scopus — ' + r.length + ' results', 'done'); return r; })
         .catch(function(e) { setPill('scopus', '&#128083; Scopus — ' + (e.message || 'failed'), 'error'); console.error('Scopus:', e); return []; })
     );
@@ -2439,7 +2523,7 @@ function doSearch() {
   if (useClinicalTrials) {
     makePill('clinicaltrials', '&#129514; ClinicalTrials.gov');
     promises.push(
-      fetchClinicalTrials(q, maxResults, dateFrom, dateTo)
+      fetchClinicalTrials(secQ, maxResults, dateFrom, dateTo)
         .then(function(r) { setPill('clinicaltrials', '&#129514; ClinicalTrials.gov — ' + r.length + ' results', 'done'); return r; })
         .catch(function(e) { setPill('clinicaltrials', '&#129514; ClinicalTrials.gov — ' + (e.message || 'failed'), 'error'); console.error('ClinicalTrials:', e); return []; })
     );
@@ -2458,6 +2542,33 @@ function doSearch() {
       dpill.textContent = '\u2728 ' + dupeCount + ' duplicate' + (dupeCount > 1 ? 's' : '') + ' removed';
       bar.appendChild(dpill);
     }
+
+    // ── PRISMA-style identification breakdown ──
+    // Stream split: indices 0-2 = primary (MeSH) sources; 3-6 = secondary (keyword).
+    var primaryRaw   = (allResults[0]||[]).length + (allResults[1]||[]).length + (allResults[2]||[]).length;
+    var secondaryRaw = (allResults[3]||[]).length + (allResults[4]||[]).length + (allResults[5]||[]).length + (allResults[6]||[]).length;
+    // Unique contribution per source (papers whose sources[] contains only that label
+    // are uniquely from it; we report records identified per source pre-merge for PRISMA).
+    var perSource = {
+      'PubMed': (allResults[0]||[]).length,
+      'Cochrane': (allResults[1]||[]).length,
+      'Europe PMC': (allResults[2]||[]).length,
+      'Semantic Scholar': (allResults[3]||[]).length,
+      'OpenAlex': (allResults[4]||[]).length,
+      'Scopus': (allResults[5]||[]).length,
+      'ClinicalTrials.gov': (allResults[6]||[]).length
+    };
+    lastSearchProvenance = {
+      primaryQuery: q,
+      secondaryQuery: secQ,
+      primaryRaw: primaryRaw,
+      secondaryRaw: secondaryRaw,
+      totalIdentified: primaryRaw + secondaryRaw,
+      duplicatesRemoved: dupeCount,
+      uniqueRecords: combined.length,
+      perSource: perSource
+    };
+    if (searchMode === 'advanced') renderProvenancePanel(lastSearchProvenance);
 
     if (combined.length === 0) {
       var er = document.getElementById('empty-results');
@@ -2680,8 +2791,125 @@ function fetchWithFallback(url) {
   });
 }
 
+// ══════════════════════════════════════════════
+// PUBMED SET HISTORY (Advanced mode) — NCBI History server
+// Build numbered sets (#1, #2…) on NCBI's History server, view live counts,
+// then combine with full boolean nesting "(#1 OR #2) AND #3 NOT #4" resolved
+// server-side by NCBI. Executing a combination fans the reconstructed query
+// out to the other databases (Europe PMC/Cochrane + keyword-derived NL engines).
+// ══════════════════════════════════════════════
+
+// Tokenize a set expression into #N refs, operators, and parens.
+function tokenizeSetExpr(expr) {
+  var tokens = [];
+  var re = /\s*(\(|\)|#\d+|\bAND\b|\bOR\b|\bNOT\b)\s*/gi;
+  var lastIndex = 0, m;
+  while ((m = re.exec(expr)) !== null) {
+    var between = expr.slice(lastIndex, m.index).trim();
+    if (between) return { error: 'Unexpected text: "' + between + '"' };
+    var tok = m[1];
+    if (tok !== '(' && tok !== ')' && tok[0] !== '#') tok = tok.toUpperCase();
+    tokens.push(tok);
+    lastIndex = re.lastIndex;
+  }
+  var tail = expr.slice(lastIndex).trim();
+  if (tail) return { error: 'Unexpected text: "' + tail + '"' };
+  if (tokens.length === 0) return { error: 'Empty expression' };
+  return { tokens: tokens };
+}
+
+// Validate parens balance, operator/operand ordering, and that all #N exist.
+function validateSetExpr(tokens) {
+  var depth = 0;
+  for (var i = 0; i < tokens.length; i++) {
+    var t = tokens[i];
+    if (t === '(') depth++;
+    else if (t === ')') { depth--; if (depth < 0) return 'Unbalanced parentheses'; }
+    else if (t[0] === '#') {
+      var n = parseInt(t.slice(1), 10);
+      if (!pubmedSets[n]) return 'Set ' + t + ' does not exist';
+    }
+  }
+  if (depth !== 0) return 'Unbalanced parentheses';
+  var seq = tokens.filter(function(t){ return t !== '(' && t !== ')'; });
+  var expectOperand = true;
+  for (var j = 0; j < seq.length; j++) {
+    var isOp = (seq[j] === 'AND' || seq[j] === 'OR' || seq[j] === 'NOT');
+    if (expectOperand && isOp) return 'Operator "' + seq[j] + '" where a set reference was expected';
+    if (!expectOperand && !isOp) return 'Missing operator before ' + seq[j];
+    expectOperand = !expectOperand;
+  }
+  if (expectOperand) return 'Expression ends with an operator';
+  return null;
+}
+
+// Reconstruct a flat PubMed query STRING (for fan-out): #N -> "(storedQuery)".
+function reconstructQueryString(tokens) {
+  return tokens.map(function(t) {
+    if (t[0] === '#') { var n = parseInt(t.slice(1), 10); return '(' + pubmedSets[n].query + ')'; }
+    return t;
+  }).join(' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\s+/g, ' ').trim();
+}
+
+// Reconstruct the NCBI History term: #N -> %23N (URL-encoded '#').
+function reconstructHistoryTerm(tokens) {
+  return tokens.map(function(t) {
+    if (t[0] === '#') return '%23' + t.slice(1);
+    return t;
+  }).join(' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\s+/g, ' ').trim();
+}
+
+// Run a primary-bar query against PubMed's History server, creating a new set.
+// Returns a promise resolving to the new set object (or rejecting on error).
+function createPubmedSet(query) {
+  var url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&usehistory=y'
+    + '&term=' + encodeURIComponent(query) + '&retmode=json';
+  if (pubmedWebEnv) url += '&WebEnv=' + encodeURIComponent(pubmedWebEnv);
+  return fetchWithFallback(url).then(function(r){ return r.json(); }).then(function(d){
+    var res = d.esearchresult || {};
+    if (!res.webenv || !res.querykey) throw new Error('No History data returned (check query syntax)');
+    pubmedWebEnv = res.webenv; // thread the shared WebEnv through the session
+    pubmedSetCounter += 1;
+    var set = {
+      n: pubmedSetCounter,
+      query: query,
+      count: parseInt(res.count, 10) || 0,
+      queryKey: res.querykey,
+      webEnv: res.webenv
+    };
+    pubmedSets[pubmedSetCounter] = set;
+    return set;
+  });
+}
+
+// Combine sets server-side via History, returning the live count for the combo.
+// Does NOT fetch records — just resolves the count, so the user can sanity-check
+// before executing the full fan-out.
+function previewPubmedCombo(historyTerm) {
+  var url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&usehistory=y'
+    + '&WebEnv=' + encodeURIComponent(pubmedWebEnv)
+    + '&term=' + historyTerm + '&retmode=json'; // historyTerm already has %23 encoded
+  return fetchWithFallback(url).then(function(r){ return r.json(); }).then(function(d){
+    var res = d.esearchresult || {};
+    return { count: parseInt(res.count, 10) || 0, queryKey: res.querykey, webEnv: res.webenv };
+  });
+}
+
+
 function fetchPubMed(query, maxResults) {
-  var searchUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=' + encodeURIComponent(query) + '&retmax=' + maxResults + '&retmode=json';
+  // If executeCombo resolved this search via the NCBI History server, use the
+  // pre-resolved queryKey/WebEnv to fetch results directly (one-shot, then cleared).
+  var histCtx = _comboHistoryCtx;
+  _comboHistoryCtx = null;
+  var searchUrl;
+  if (histCtx && histCtx.queryKey && histCtx.webEnv) {
+    searchUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed'
+      + '&query_key=' + encodeURIComponent(histCtx.queryKey)
+      + '&WebEnv=' + encodeURIComponent(histCtx.webEnv)
+      + '&retmax=' + maxResults + '&retmode=json';
+  } else {
+    searchUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=' + encodeURIComponent(query) + '&retmax=' + maxResults + '&retmode=json';
+  }
   return fetchWithFallback(searchUrl).then(function(r) {
     return r.json();
   }).then(function(sd) {
@@ -2730,6 +2958,249 @@ function fetchPubMed(query, maxResults) {
 // Translate a PubMed-syntax query to Europe PMC query syntax.
 // PubMed field tags ([tiab], [MeSH Terms] etc.) are not understood by Europe PMC —
 // passing them raw produces 0 results. This translates known tags and strips unknown ones.
+// ──────────────────────────────────────────────
+// SECONDARY QUERY DERIVATION
+// Strips a PubMed MeSH/boolean strategy down to a keyword query for
+// natural-language engines (Semantic Scholar, OpenAlex, Scopus, ClinicalTrials).
+// Design: keep [tiab]/free-text terms (stay close to source), drop only
+// controlled-vocabulary field tags, PRESERVE boolean operators + parentheses.
+// ──────────────────────────────────────────────
+function deriveSecondaryQuery(pubmedQuery) {
+  if (!pubmedQuery) return '';
+  var s = pubmedQuery;
+  // 1. MeSH subheading constructs "Pain/drug therapy"[Mesh] -> keep main heading
+  s = s.replace(/"([^"\/]+)(\/[^"]+)?"\[(mesh|majr|mh|mesh terms)\]/gi, '"$1"');
+  // 2. Remove field tags but KEEP the attached term (quoted or bareword)
+  s = s.replace(/\[(mesh|majr|mh|mesh terms|tiab|tw|ti|ab|all fields|sb|la|pt|sh|nm)\]/gi, '');
+  // 3. Strip any other leftover [xxx] field tags defensively
+  s = s.replace(/\[[^\]]*\]/g, '');
+  // 4. Drop PubMed-only tokens meaningless to keyword engines
+  s = s.replace(/\bMeSH Terms\b/gi, '');
+  // 5. Tidy whitespace, empty parens, and dangling operators left by removals
+  s = s.replace(/\(\s*\)/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+  s = s.replace(/\b(AND|OR|NOT)\s+(AND|OR|NOT)\b/gi, '$1');
+  s = s.replace(/\(\s*(AND|OR|NOT)\b/gi, '(');
+  s = s.replace(/\b(AND|OR|NOT)\s*\)/gi, ')');
+  s = s.replace(/^\s*(AND|OR|NOT)\b/i, '');
+  s = s.replace(/\b(AND|OR|NOT)\s*$/i, '');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+// Toggle between Simple (single keyword bar, original behaviour) and Advanced
+// (two-stream MeSH primary + keyword secondary). Simple mode hides .adv-only
+// elements; the search itself still feeds all selected sources, deriving the
+// secondary keyword query silently from the single bar.
+var searchMode = 'simple';
+function setSearchMode(mode) {
+  searchMode = mode;
+  var adv = mode === 'advanced';
+  document.body.classList.toggle('mode-advanced', adv);
+  var sBtn = document.getElementById('mode-simple-btn');
+  var aBtn = document.getElementById('mode-advanced-btn');
+  if (sBtn && aBtn) {
+    sBtn.style.background = adv ? 'transparent' : '#3b82f6';
+    sBtn.style.color      = adv ? '#94a3b8' : '#fff';
+    aBtn.style.background = adv ? '#3b82f6' : 'transparent';
+    aBtn.style.color      = adv ? '#fff' : '#94a3b8';
+  }
+  var qi = document.getElementById('query-input');
+  if (qi) {
+    qi.placeholder = adv
+      ? '("Propofol"[Mesh] OR propofol[tiab]) AND ("Postoperative Complications"[Mesh] OR postoperative outcomes[tiab])'
+      : '"propofol" AND "postoperative outcomes" AND anaesthesia';
+  }
+  if (adv) renderSetHistory();
+}
+
+// Deliberately re-derive the secondary keyword query from the primary MeSH bar.
+// Per design: this is manual-only (never auto-overwrites the user's edits).
+function rederiveSecondary() {
+  var primary = document.getElementById('query-input').value.trim();
+  if (!primary) { showToast('Enter a primary MeSH query first', '#f59e0b'); return; }
+  var derived = deriveSecondaryQuery(primary);
+  var secEl = document.getElementById('query-input-secondary');
+  secEl.value = derived;
+  secondaryEdited = false; // reset: it now matches the derivation again
+  document.getElementById('query-clear-btn2').style.display = derived ? 'flex' : 'none';
+  showToast('Secondary query re-derived from primary', '#3b82f6');
+}
+
+// ── Set-history UI ──
+
+// "Add to history" — runs the primary bar query as a new numbered PubMed set.
+function addPubmedSet() {
+  var q = document.getElementById('query-input').value.trim();
+  if (!q) { showToast('Enter a primary (MeSH) query first', '#f59e0b'); return; }
+  var btn = document.getElementById('add-set-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding\u2026'; }
+  createPubmedSet(q).then(function(set){
+    renderSetHistory();
+    showToast('Added set #' + set.n + ' \u2014 ' + set.count.toLocaleString() + ' PubMed results', '#22c55e');
+  }).catch(function(e){
+    showToast('Could not add set: ' + e.message, '#ef4444');
+  }).then(function(){
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#43; Add to history'; }
+  });
+}
+
+function removePubmedSet(n) {
+  delete pubmedSets[n];
+  renderSetHistory();
+}
+
+function clearPubmedSets() {
+  pubmedSets = {}; pubmedSetCounter = 0; pubmedWebEnv = null;
+  renderSetHistory();
+  var pc = document.getElementById('combo-preview'); if (pc) pc.innerHTML = '';
+  showToast('Search history cleared', '#3b82f6');
+}
+
+// Insert "#N" into the combination box when a set row is clicked.
+function insertSetRef(n) {
+  var box = document.getElementById('combo-input');
+  if (!box) return;
+  var cur = box.value;
+  // append with a space; if box ends with #N or ), suggest AND
+  if (cur && !/[\s(]$/.test(cur)) cur += ' AND ';
+  box.value = cur + '#' + n + ' ';
+  box.focus();
+}
+
+function renderSetHistory() {
+  var panel = document.getElementById('set-history-panel');
+  if (!panel) return;
+  var nums = Object.keys(pubmedSets).map(Number).sort(function(a,b){ return a-b; });
+  if (nums.length === 0) {
+    panel.innerHTML = '<div style="font-size:11px;color:#64748b;padding:8px 2px">No sets yet. Type a MeSH query in the primary bar and click <b>Add to history</b> to create set #1.</div>';
+    return;
+  }
+  var rows = nums.map(function(n){
+    var s = pubmedSets[n];
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;background:#0d1220">' +
+      '<button onclick="insertSetRef(' + n + ')" title="Insert #' + n + ' into the combination box" style="flex-shrink:0;font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:700;color:#7dd3fc;background:#0a1530;border:1px solid #1e3a5f;border-radius:5px;padding:3px 8px;cursor:pointer">#' + n + '</button>' +
+      '<span style="flex:1;min-width:0;font-size:11px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(s.query) + '">' + esc(s.query) + '</span>' +
+      '<span style="flex-shrink:0;font-size:11px;font-weight:600;color:#4ade80;font-variant-numeric:tabular-nums">' + s.count.toLocaleString() + '</span>' +
+      '<button onclick="removePubmedSet(' + n + ')" title="Remove set" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:none;background:#374151;color:#9ca3af;font-size:11px;cursor:pointer;line-height:1">&#10005;</button>' +
+    '</div>';
+  }).join('');
+  panel.innerHTML = rows;
+}
+
+// Preview the combination count (server-side via NCBI History), no fan-out yet.
+function previewCombo() {
+  var expr = document.getElementById('combo-input').value.trim();
+  var out = document.getElementById('combo-preview');
+  if (!expr) { if (out) out.innerHTML = ''; return; }
+  var tk = tokenizeSetExpr(expr);
+  if (tk.error) { out.innerHTML = '<span style="color:#f87171;font-size:11px">' + esc(tk.error) + '</span>'; return; }
+  var err = validateSetExpr(tk.tokens);
+  if (err) { out.innerHTML = '<span style="color:#f87171;font-size:11px">' + esc(err) + '</span>'; return; }
+  if (!pubmedWebEnv) { out.innerHTML = '<span style="color:#f87171;font-size:11px">No active PubMed session \u2014 add a set first</span>'; return; }
+  out.innerHTML = '<span style="color:#94a3b8;font-size:11px"><span class="spinner"></span>Resolving on PubMed\u2026</span>';
+  var historyTerm = reconstructHistoryTerm(tk.tokens);
+  previewPubmedCombo(historyTerm).then(function(res){
+    out.innerHTML = '<span style="font-size:11px;color:#cbd5e1">PubMed combined result: <b style="color:#4ade80">' + res.count.toLocaleString() + '</b> records. ' +
+      'Click <b>Execute &amp; fan out</b> to retrieve and search the other databases.</span>';
+  }).catch(function(e){
+    out.innerHTML = '<span style="color:#f87171;font-size:11px">Preview failed: ' + esc(e.message) + '</span>';
+  });
+}
+
+// Execute the combination: reconstruct the full query string and run a normal
+// fan-out search across ALL selected databases (PubMed gets the real string too).
+function executeCombo() {
+  var expr = document.getElementById('combo-input').value.trim();
+  if (!expr) { showToast('Enter a combination like #1 AND #2', '#f59e0b'); return; }
+  var tk = tokenizeSetExpr(expr);
+  if (tk.error) { showToast(tk.error, '#ef4444'); return; }
+  var err = validateSetExpr(tk.tokens);
+  if (err) { showToast(err, '#ef4444'); return; }
+  var combinedQuery = reconstructQueryString(tk.tokens);
+  var historyTerm = reconstructHistoryTerm(tk.tokens);
+  // Push the reconstructed query into the primary bar (drives Europe PMC, Cochrane,
+  // and the keyword secondary derivation for NL engines).
+  document.getElementById('query-input').value = combinedQuery;
+  document.getElementById('query-clear-btn').style.display = 'flex';
+  secondaryEdited = false;
+  showToast('Resolving ' + esc(expr) + ' on NCBI History server\u2026', '#3b82f6');
+  // Resolve the combo server-side first so we get a real queryKey/WebEnv.
+  // PubMed fetch will use this directly instead of re-parsing set references.
+  previewPubmedCombo(historyTerm).then(function(res) {
+    if (res.queryKey && res.webEnv) {
+      _comboHistoryCtx = { queryKey: res.queryKey, webEnv: res.webEnv };
+    }
+    showToast('Executing ' + esc(expr) + ' across all databases\u2026', '#3b82f6');
+    doSearch();
+  }).catch(function(e) {
+    console.warn('History combo resolve failed, falling back to expanded query:', e.message);
+    showToast('Executing ' + esc(expr) + ' across all databases\u2026', '#3b82f6');
+    doSearch();
+  });
+}
+
+// into the primary (MeSH) and secondary (keyword) streams, plus dedup and unique.
+function renderProvenancePanel(prov) {
+  var el = document.getElementById('provenance-panel');
+  if (!el || !prov) return;
+  function row(label, n) {
+    if (!n && n !== 0) return '';
+    return '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px"><span style="color:#94a3b8">' + esc(label) + '</span><span style="color:#e2e8f0;font-variant-numeric:tabular-nums">' + n + '</span></div>';
+  }
+  var primarySrc = ['PubMed','Cochrane','Europe PMC'];
+  var secondarySrc = ['Semantic Scholar','OpenAlex','Scopus','ClinicalTrials.gov'];
+  function block(title, sub, srcList, rawTotal, colour) {
+    var rows = srcList.map(function(s){ return prov.perSource[s] != null && prov.perSource[s] > 0 ? row(s, prov.perSource[s]) : ''; }).join('');
+    if (!rows) rows = '<div style="font-size:11px;color:#64748b">no sources selected</div>';
+    return '<div style="flex:1;min-width:180px;background:#0d1220;border:1px solid ' + colour + '33;border-radius:8px;padding:11px 13px">' +
+      '<div style="font-size:11px;font-weight:600;color:' + colour + ';margin-bottom:2px">' + title + '</div>' +
+      '<div style="font-size:9.5px;color:#64748b;font-family:\'IBM Plex Mono\',monospace;margin-bottom:7px">' + sub + '</div>' +
+      rows +
+      '<div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:5px;border-top:1px solid #1e293b;font-size:11px;font-weight:600"><span style="color:#cbd5e1">Identified</span><span style="color:' + colour + ';font-variant-numeric:tabular-nums">' + rawTotal + '</span></div>' +
+      '</div>';
+  }
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="background:#0a0f1c;border:1px solid #1e293b;border-radius:10px;padding:13px 15px;margin-bottom:14px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">' +
+        '<span style="font-size:12px;font-weight:600;color:#e2e8f0">&#128202; Search identification (PRISMA)</span>' +
+        '<button onclick="copyProvenanceText()" style="margin-left:auto;font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid #334155;background:#0d1220;color:#7dd3fc;cursor:pointer;font-family:\'IBM Plex Mono\',monospace">&#128203; Copy for methods</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        block('&#128300; Primary stream', 'MeSH &middot; PubMed / Europe PMC / Cochrane', primarySrc, prov.primaryRaw, '#60a5fa') +
+        block('&#129504; Secondary stream', 'keyword &middot; SemSch / OpenAlex / Scopus / CT.gov', secondarySrc, prov.secondaryRaw, '#a78bfa') +
+      '</div>' +
+      '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:11px;padding-top:10px;border-top:1px solid #1e293b;font-size:11px">' +
+        '<span style="color:#94a3b8">Total identified: <b style="color:#e2e8f0">' + prov.totalIdentified + '</b></span>' +
+        '<span style="color:#94a3b8">Duplicates removed: <b style="color:#fbbf24">' + prov.duplicatesRemoved + '</b></span>' +
+        '<span style="color:#94a3b8">Unique records screened: <b style="color:#4ade80">' + prov.uniqueRecords + '</b></span>' +
+      '</div>' +
+    '</div>';
+}
+
+function copyProvenanceText() {
+  var p = lastSearchProvenance;
+  if (!p) return;
+  var lines = [];
+  lines.push('Search identification (PRISMA)');
+  lines.push('Primary (MeSH) query: ' + p.primaryQuery);
+  lines.push('Secondary (keyword) query: ' + p.secondaryQuery);
+  lines.push('');
+  lines.push('Records identified per source:');
+  Object.keys(p.perSource).forEach(function(s){ if (p.perSource[s] > 0) lines.push('  ' + s + ': ' + p.perSource[s]); });
+  lines.push('');
+  lines.push('Total identified: ' + p.totalIdentified);
+  lines.push('Duplicates removed: ' + p.duplicatesRemoved);
+  lines.push('Unique records screened: ' + p.uniqueRecords);
+  var text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ showToast('Copied PRISMA summary to clipboard', '#22c55e'); },
+      function(){ showToast('Copy failed', '#ef4444'); });
+  } else {
+    showToast('Clipboard not available', '#f59e0b');
+  }
+}
+
 function pubmedToEuropePMC(query) {
   var tagMap = {
     'tiab': 'TITLE_ABS', 'ti': 'TITLE', 'ab': 'ABSTRACT',
@@ -3397,9 +3868,22 @@ function renderPapers() {
 }
 
 function toggleExpand(pmid) {
+  var opening = !expandedCards.has(pmid);
   if (expandedCards.has(pmid)) expandedCards.delete(pmid); else expandedCards.add(pmid);
   document.getElementById('body-'+pmid).classList.toggle('open');
   document.getElementById('card-'+pmid).querySelector('.expand-btn').innerHTML = expandedCards.has(pmid) ? '&#9650; Less' : '&#9660; Full criteria &amp; checklists';
+
+  // Option C: lazily fetch + scan the PDF on first expand, if a free PDF was
+  // found but not yet scanned. One paper at a time — no bulk memory pressure.
+  if (opening) {
+    var p = papers.find(function(x){ return x.pmid === pmid; });
+    if (p && p.fullTextUrl && !p._pdfScanning &&
+        p.scanDepth !== 'full' && p.scanDepth !== 'pdf' &&
+        p.scanDepth !== 'pdf-blocked' && p.scanDepth !== 'agent' &&
+        p.scanDepth !== 'agent-processing') {
+      scanPaperFromPDF(p);
+    }
+  }
 }
 
 function toggleManualTag(pmid, tag) {
@@ -3770,7 +4254,7 @@ function fetchScopus(query, maxResults, dateFrom, dateTo) {
 
   var params = new URLSearchParams({
     query: scopusQ,
-    count: Math.min(maxResults, 200),  // Scopus max per request
+    count: Math.min(maxResults, 25),  // Elsevier API hard-caps usable results at 25/request
     sort: 'relevancy',
     field: 'dc:title,dc:creator,prism:publicationName,prism:coverDate,prism:doi,dc:identifier,dc:description,citedby-count,prism:aggregationType,subtypeDescription,openaccess,eid',
     httpAccept: 'application/json'
@@ -3780,27 +4264,11 @@ function fetchScopus(query, maxResults, dateFrom, dateTo) {
   // We pass the API key as query param and insttoken in header via proxy
   var url = 'https://api.elsevier.com/content/search/scopus?' + params.toString() + '&apiKey=' + encodeURIComponent(scopusApiKey);
 
-  var headers = { 'Accept': 'application/json' };
-  if (scopusInstToken) headers['X-ELS-Insttoken'] = scopusInstToken;
+  // Move insttoken to query param — custom headers don't survive CORS proxies.
+  // fetchWithFallback handles direct-first with a hardened proxy chain fallback.
+  if (scopusInstToken) url += '&insttoken=' + encodeURIComponent(scopusInstToken);
 
-  // Try direct first (works on-campus), then via CORS proxy
-  function tryDirect() {
-    return fetch(url, { headers: headers }).then(function(r) {
-      if (!r.ok) throw new Error('Scopus ' + r.status);
-      return r.json();
-    });
-  }
-
-  function tryProxy() {
-    // Pass headers via URL params for proxy compatibility
-    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url + (scopusInstToken ? '&insttoken=' + encodeURIComponent(scopusInstToken) : ''));
-    return fetch(proxyUrl).then(function(r) {
-      if (!r.ok) throw new Error('Proxy ' + r.status);
-      return r.json();
-    });
-  }
-
-  return tryDirect().catch(function() { return tryProxy(); })
+  return fetchWithFallback(url).then(function(r) { return r.json(); })
     .then(function(data) {
       var entries = (data['search-results'] && data['search-results']['entry']) || [];
       return entries.filter(function(e) {
@@ -3992,14 +4460,17 @@ function checkAlertForNew(i, btn) {
   var pubmedQuery = alert.query;
   var cochraneQuery = alert.query + ' JOURNAL:"Cochrane Database Syst Rev"';
   var epQuery = alert.query;
+  // Natural-language engines get the keyword-derived version (MeSH stripped),
+  // consistent with the two-stream search model.
+  var alertSecQ = deriveSecondaryQuery(alert.query) || alert.query;
 
   var promises = [
     usePubmed    ? fetchPubMed(pubmedQuery, maxR).catch(function(){ return []; }) : Promise.resolve([]),
     useCochrane  ? fetchEuropePMC(cochraneQuery, maxR, 'Cochrane').catch(function(){ return []; }) : Promise.resolve([]),
     useEuropePmc ? fetchEuropePMC(epQuery, maxR, 'EuropePMC').catch(function(){ return []; }) : Promise.resolve([]),
-    useSemantic  ? fetchSemanticScholar(alert.query, maxR).catch(function(){ return []; }) : Promise.resolve([]),
-    useOpenAlex  ? fetchOpenAlex(alert.query, maxR).catch(function(){ return []; }) : Promise.resolve([]),
-    (dbEnabled('scopus') && scopusApiKey) ? fetchScopus(alert.query, maxR).catch(function(){ return []; }) : Promise.resolve([])
+    useSemantic  ? fetchSemanticScholar(alertSecQ, maxR).catch(function(){ return []; }) : Promise.resolve([]),
+    useOpenAlex  ? fetchOpenAlex(alertSecQ, maxR).catch(function(){ return []; }) : Promise.resolve([]),
+    (dbEnabled('scopus') && scopusApiKey) ? fetchScopus(alertSecQ, maxR).catch(function(){ return []; }) : Promise.resolve([])
   ];
 
   Promise.all(promises).then(function(allResults) {
@@ -4192,6 +4663,13 @@ function extractPmcIdFromUrl(url) {
 // Detects PMC links and uses the reliable XML route for those
 function scanPaperFromPDF(p) {
   if (!p.fullTextUrl) return;
+  // Re-entrancy guard: never run two scans for the same paper concurrently.
+  // (Rapid card expand/collapse, or agent + manual expand racing, could otherwise
+  //  launch duplicate PDF.js loads — the memory pressure Option C exists to avoid.)
+  if (p._pdfScanning) return;
+  p._pdfScanning = true;
+  var clearGuard = function() { p._pdfScanning = false; };
+
   var db = document.getElementById('db-' + p.pmid);
 
   // ── PMC URL? Use the XML full-text route which is CORS-safe ──
@@ -4205,7 +4683,7 @@ function scanPaperFromPDF(p) {
         return;
       }
       applyFullText(p, fullText, 'full', db);
-    });
+    }).catch(function(){ setPdfBlocked(p, db); }).then(clearGuard);
     return;
   }
 
@@ -4218,7 +4696,7 @@ function scanPaperFromPDF(p) {
       return;
     }
     applyFullText(p, text, 'pdf', db);
-  });
+  }).catch(function(){ setPdfBlocked(p, db); }).then(clearGuard);
 }
 
 // Mark a paper as having a PDF that's available but unreadable by the app
@@ -4356,9 +4834,10 @@ function fetchFullTextLinks() {
       if (!el) return;
       if (result) {
         el.innerHTML = '<a class="pdf-btn" href="' + result.url + '" target="_blank">&#128196; Free PDF <span style="font-size:9px;opacity:0.7">(' + result.source + ')</span></a>';
-        if (p.scanDepth !== 'full' && p.scanDepth !== 'pdf') {
-          scanPaperFromPDF(p);
-        }
+        // Option C: do NOT eagerly fetch/parse the PDF here — that caused tab
+        // crashes on large searches (100+ concurrent PDF.js loads in memory).
+        // Heavy extraction is now deferred to (a) agent run, or (b) card expand.
+        // We only mark that a free PDF is available; depth stays 'abstract'.
       } else {
         // Definitively no free PDF — update depth badge and checklist pill
         p.scanDepth = 'no-pdf';
@@ -4383,28 +4862,15 @@ function fetchFullTextLinks() {
   });
 }
 
-// Safety-net: re-check any papers that resolved a URL but weren't scanned
+// Option C: bulk PDF scanning on search completion is intentionally disabled.
+// Eagerly parsing every PDF crashed the tab on large result sets. PDF text is
+// now fetched lazily — by the agent when it analyses a paper, or on card expand.
+// This just clears the in-progress flag once link lookups have settled.
 function fetchAndScanPDFs() {
   setTimeout(function() {
-    var toScan = papers.filter(function(p) {
-      return p.fullTextUrl && p.scanDepth !== 'full' && p.scanDepth !== 'pdf' && p.scanDepth !== 'pdf-blocked';
-    });
-    if (!toScan.length) {
-      searchInProgress = false;
-      updateKeyBanner();
-      return;
-    }
-    var completed = 0;
-    toScan.forEach(function(p) {
-      Promise.resolve(scanPaperFromPDF(p)).catch(function(){}).then(function() {
-        completed++;
-        if (completed >= toScan.length) {
-          searchInProgress = false;
-          updateKeyBanner();
-        }
-      });
-    });
-  }, 10000);
+    searchInProgress = false;
+    updateKeyBanner();
+  }, 2000);
 }
 
 // ══════════════════════════════════════════════
@@ -4422,6 +4888,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadScopusKey();
   uclUpdateSummary('quality');
   uclUpdateSummary('bias');
+  setSearchMode('simple');
 });
 
 // ── REFERENCE SCANNER ────────────────────────────────────────────────────────
@@ -5264,7 +5731,7 @@ function updateProjPaperNotes(projectId, pmid, val) {
 // ── Per-paper agent analysis within a project ─────────────────────────────────
 async function runProjPaperAgent(projectId, pmid) {
   if (!hasValidKey()) {
-    showToast('⚠️ OpenAI API key required — set it in Settings', '#f59e0b');
+    showToast('⚠️ ' + (aiProvider === 'anthropic' ? 'Anthropic' : 'OpenAI') + ' API key required — set it in Settings', '#f59e0b');
     return;
   }
   var papers = projectPapers[projectId];
@@ -5875,9 +6342,10 @@ function activeModel() {
 
 function setAiProvider(provider) {
   aiProvider = provider;
-  localStorage.setItem('pla_ai_provider', provider);
-  // Activate the stored key for this provider
-  openAIKey = localStorage.getItem(provider === 'anthropic' ? 'pla_anthropic_key' : 'pla_openai_key') || '';
+  try {
+    localStorage.setItem('pla_ai_provider', provider);
+    openAIKey = localStorage.getItem(provider === 'anthropic' ? 'pla_anthropic_key' : 'pla_openai_key') || '';
+  } catch(e) { /* storage disabled (private mode) — provider still set in memory */ }
   updateKeyBanner();
 }
 
@@ -5893,21 +6361,24 @@ function closeSettings() {
 
 function saveOpenAIKey() {
   var val = (document.getElementById('openai-key-input').value || '').trim();
-  localStorage.setItem('pla_openai_key', val);
+  try { localStorage.setItem('pla_openai_key', val); } catch(e) { /* storage disabled */ }
   if (aiProvider === 'openai') { openAIKey = val; updateKeyBanner(); }
 }
 
 function saveAnthropicKey() {
   var val = (document.getElementById('anthropic-key-input').value || '').trim();
-  localStorage.setItem('pla_anthropic_key', val);
+  try { localStorage.setItem('pla_anthropic_key', val); } catch(e) { /* storage disabled */ }
   if (aiProvider === 'anthropic') { openAIKey = val; updateKeyBanner(); }
 }
 
 function loadOpenAIKey() {
   // Load provider preference and both keys
-  aiProvider = localStorage.getItem('pla_ai_provider') || 'openai';
-  var oaiStored = localStorage.getItem('pla_openai_key') || '';
-  var antStored = localStorage.getItem('pla_anthropic_key') || '';
+  var oaiStored = '', antStored = '';
+  try {
+    aiProvider = localStorage.getItem('pla_ai_provider') || 'openai';
+    oaiStored = localStorage.getItem('pla_openai_key') || '';
+    antStored = localStorage.getItem('pla_anthropic_key') || '';
+  } catch(e) { aiProvider = aiProvider || 'openai'; /* storage disabled */ }
   openAIKey = aiProvider === 'anthropic' ? antStored : oaiStored;
   var oaiInp = document.getElementById('openai-key-input');
   var antInp = document.getElementById('anthropic-key-input');
@@ -5973,7 +6444,7 @@ var agentStats = { done: 0, failed: 0, skipped: 0, total: 0 };
 
 function startAgentAnalysis() {
   if (!hasValidKey()) {
-    showToast('⚠️ Please enter your OpenAI API key in Settings (⚙ top right) first.', '#f59e0b');
+    showToast('⚠️ Please enter your ' + (aiProvider === 'anthropic' ? 'Anthropic' : 'OpenAI') + ' API key in Settings (⚙ top right) first.', '#f59e0b');
     return;
   }
   if (!papers.length) return;
@@ -6457,6 +6928,22 @@ function buildAnalysisPrompts(p, questionOverride) {
 
 // Core function: analyse one paper using OpenAI Responses API
 async function analyseOneWithAgent(p, questionOverride) {
+  // Remember the depth we came in with so a failure can't leave the paper stuck
+  // in 'agent-processing' (which hides its checklist pill and re-run button).
+  var _priorDepth = (p.scanDepth && p.scanDepth !== 'agent-processing') ? p.scanDepth : 'abstract';
+  try {
+    return await _analyseOneWithAgentInner(p, questionOverride);
+  } catch (err) {
+    // If no analysis path succeeded, applyAgentResults never set 'agent'.
+    if (p.scanDepth === 'agent-processing') {
+      p.scanDepth = _priorDepth;
+      refreshCardChecklist(p);
+    }
+    throw err; // let callers handle the toast / failed-counter
+  }
+}
+
+async function _analyseOneWithAgentInner(p, questionOverride) {
   // Mark as processing in UI
   p.scanDepth = 'agent-processing';
   refreshCardChecklist(p);
@@ -6891,7 +7378,7 @@ function showAgentSummary() {
     '<div style="color:#1e2d4a">|</div>' +
     '<div class="agent-sum-item"><div class="agent-sum-num" style="color:#64748b">' + agentStats.skipped + '</div><div style="font-size:11px">skipped</div></div>' +
     (agentStats.retracted ? '<div style="color:#1e2d4a">|</div><div class="agent-sum-item"><div class="agent-sum-num" style="color:#ef4444">' + agentStats.retracted + '</div><div style="font-size:11px">⚠️ retracted</div></div>' : '') +
-    '<div style="font-size:11px;color:#4b5563;margin-left:auto">Used gpt-5 · <a href="https://platform.openai.com/usage" target="_blank" style="color:#64748b">View usage →</a></div>';
+    '<div style="font-size:11px;color:#4b5563;margin-left:auto">Used ' + activeModel() + ' · <a href="' + (aiProvider === 'anthropic' ? 'https://console.anthropic.com/usage' : 'https://platform.openai.com/usage') + '" target="_blank" style="color:#64748b">View usage →</a></div>';
 }
 
 // ══════════════════════════════════════════════
