@@ -521,7 +521,7 @@ body.mode-advanced .adv-block { display: block !important; }
       <div style="font-size:10px;color:#fb923c;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Anthropic</div>
       <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." oninput="saveAnthropicKey()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
-      <div style="font-size:11px;color:#4b5563">Claude Sonnet via Messages API. <a href="https://console.anthropic.com/account/keys" target="_blank" style="color:#64748b">console.anthropic.com →</a></div>
+      <div style="font-size:11px;color:#4b5563">Claude Opus 4.8 via Messages API. <a href="https://console.anthropic.com/account/keys" target="_blank" style="color:#64748b">console.anthropic.com →</a></div>
       <!-- OpenAI account (Sign in with ChatGPT) -->
       <div style="font-size:10px;color:#10a37f;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">OpenAI Account (Sign in with ChatGPT)</div>
       <input type="text" id="ev-oauth-clientid" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" oninput="evSaveOauthClientId()" autocomplete="off"
@@ -631,6 +631,7 @@ body.mode-advanced .adv-block { display: block !important; }
       </div>
       <div style="font-size:10.5px;color:#64748b;margin-top:8px">The count is the true number of PubMed records this strategy retrieves (NCBI History server). Aim for a manageable, comprehensive set &mdash; the coach above suggests adjustments.</div>
     </div>
+    <div id="protocol-card" class="card" style="display:none"></div>
   </div>
 
   <div class="tab-panel active" id="tab-search">
@@ -732,7 +733,8 @@ body.mode-advanced .adv-block { display: block !important; }
           <button class="wb-tab active" data-wbtab="pubmed"  onclick="switchWbTab('pubmed')">&#128300; PubMed</button>
           <button class="wb-tab"        data-wbtab="epmc"    onclick="switchWbTab('epmc')">&#127757; Europe PMC + Cochrane</button>
           <button class="wb-tab"        data-wbtab="scopus"  onclick="switchWbTab('scopus')">&#128083; Scopus</button>
-          <button class="wb-tab"        data-wbtab="keyword" onclick="switchWbTab('keyword')">&#129504; Keyword engines</button>
+          <button class="wb-tab"        data-wbtab="keyword" onclick="switchWbTab('keyword')">&#129504; SemSch + CT.gov</button>
+          <button class="wb-tab"        data-wbtab="openalex" onclick="switchWbTab('openalex')">&#127760; OpenAlex</button>
         </div>
 
         <!-- PubMed panel (includes set-history builder) -->
@@ -764,6 +766,7 @@ body.mode-advanced .adv-block { display: block !important; }
         <div class="wb-panel" id="wbpanel-epmc"><div id="wb-input-epmc"></div></div>
         <div class="wb-panel" id="wbpanel-scopus"><div id="wb-input-scopus"></div></div>
         <div class="wb-panel" id="wbpanel-keyword"><div id="wb-input-keyword"></div></div>
+        <div class="wb-panel" id="wbpanel-openalex"><div id="wb-input-openalex"></div></div>
       </div>
 
       <div class="grid4" style="margin-top:12px">
@@ -933,7 +936,7 @@ body.mode-advanced .adv-block { display: block !important; }
           </label>
           <button class="btn btn-green" onclick="exportCSV()">&#8595; Export CSV</button>
           <button class="btn" id="retraction-check-btn" onclick="runRetractionSweep()" style="background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;font-size:12px" title="Check all papers against Retraction Watch / Crossref (free, no API key needed)">⚠️ Check Retractions</button>
-          <button class="agent-btn" id="agent-run-btn" onclick="startAgentAnalysis()" disabled title="Add your OpenAI API key in the Search tab to enable">🤖 Agent Analysis</button>
+          <button class="agent-btn" id="agent-run-btn" onclick="startAgentAnalysis()" disabled title="Add your OpenAI or Anthropic API key in Settings to enable">🤖 Agent Analysis</button>
           <button class="btn btn-blue" id="rob2-viz-btn" onclick="showRob2Viz()" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 Visualisation</button>
         </div>
         <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
@@ -2086,7 +2089,7 @@ function reRankAfterAgent() {
 // ── Single-paper agent analysis (from card button) ────────────────────────────
 async function analyseSinglePaper(pmid) {
   if (!hasValidKey()) {
-    showToast('Add your OpenAI API key in the Search tab first', '#ef4444'); return;
+    showToast('Add your ' + (aiProvider === 'anthropic' ? 'Anthropic' : 'OpenAI') + ' API key in Settings first', '#ef4444'); return;
   }
   var p = papers.find(function(x){ return String(x.pmid) === String(pmid); });
   if (!p) return;
@@ -2843,21 +2846,29 @@ function deduplicatePapers(pubmedArr, cochraneArr, europePmcArr, semanticArr, op
   }
 
   function tryAdd(p) {
-    // DOI match (most reliable)
-    if (p.doi) {
-      var doi = p.doi.toLowerCase().trim();
-      if (seenDoi[doi]) { mergeIntoBetter(seenDoi[doi], p); return; }
-      seenDoi[doi] = p;
+    var doi      = p.doi ? p.doi.toLowerCase().trim() : '';
+    var pmidKey  = (p.pmid && !p.pmid.toString().startsWith('EP_') && !p.pmid.toString().startsWith('SS_')) ? p.pmid : '';
+    var nt       = normTitle(p.title);
+    var titleKey = nt.length > 20 ? nt : '';
+
+    // Resolve against an already-KEPT record, most reliable identifier first.
+    // Crucially we look up before registering anything, so a record that gets
+    // merged away can never leave a seen-key pointing at a dropped object.
+    var existing = (doi && seenDoi[doi]) || (pmidKey && seenPmid[pmidKey]) || (titleKey && seenTitle[titleKey]) || null;
+    if (existing) {
+      mergeIntoBetter(existing, p);
+      // Back-fill the exact identifiers this record carried onto the survivor,
+      // so later records sharing either ID resolve here too (transitive de-dup).
+      // Title is a fuzzy fallback and is deliberately not aliased.
+      if (doi && !seenDoi[doi]) seenDoi[doi] = existing;
+      if (pmidKey && !seenPmid[pmidKey]) seenPmid[pmidKey] = existing;
+      return;
     }
-    // PMID match
-    if (p.pmid && !p.pmid.toString().startsWith('EP_') && !p.pmid.toString().startsWith('SS_')) {
-      if (seenPmid[p.pmid]) { mergeIntoBetter(seenPmid[p.pmid], p); return; }
-      seenPmid[p.pmid] = p;
-    }
-    // Fuzzy title match
-    var nt = normTitle(p.title);
-    if (nt.length > 20 && seenTitle[nt]) { mergeIntoBetter(seenTitle[nt], p); return; }
-    if (nt.length > 20) seenTitle[nt] = p;
+
+    // New record — register every key it has so later duplicates resolve to it.
+    if (doi) seenDoi[doi] = p;
+    if (pmidKey) seenPmid[pmidKey] = p;
+    if (titleKey) seenTitle[titleKey] = p;
 
     p.sources = p.sources || [p.source];
     out.push(p);
@@ -3020,12 +3031,12 @@ function reconstructQueryString(tokens) {
   }).join(' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\s+/g, ' ').trim();
 }
 
-// Reconstruct the NCBI History term: #N -> %23N (URL-encoded '#').
+// Reconstruct the NCBI History term, e.g. "#1 AND (#2 OR #3)". Left RAW here —
+// previewPubmedCombo URL-encodes the whole term once, so '#', spaces and parens
+// all get escaped together. (Pre-encoding only '#' left spaces/parens raw, which
+// is invalid in a URL and could be mangled by a CORS proxy.)
 function reconstructHistoryTerm(tokens) {
-  return tokens.map(function(t) {
-    if (t[0] === '#') return '%23' + t.slice(1);
-    return t;
-  }).join(' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\s+/g, ' ').trim();
+  return tokens.join(' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\s+/g, ' ').trim();
 }
 
 // Run a primary-bar query against PubMed's History server, creating a new set.
@@ -3057,7 +3068,7 @@ function createPubmedSet(query) {
 function previewPubmedCombo(historyTerm) {
   var url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&usehistory=y'
     + '&WebEnv=' + encodeURIComponent(pubmedWebEnv)
-    + '&term=' + historyTerm + '&retmode=json'; // historyTerm already has %23 encoded
+    + '&term=' + encodeURIComponent(historyTerm) + '&retmode=json'; // encode '#', spaces, parens together
   return fetchWithFallback(url).then(function(r){ return r.json(); }).then(function(d){
     var res = d.esearchresult || {};
     return { count: parseInt(res.count, 10) || 0, queryKey: res.querykey, webEnv: res.webenv };
@@ -3165,6 +3176,47 @@ function deriveSecondaryQuery(pubmedQuery) {
 var buildBlocks = [];   // [{ concept, terms:[{term, field:'mesh'|'tiab'}] }]
 var buildCoachNotes = [];
 
+// Generic single-word concepts that retrieve enormous, mostly off-topic sets when used
+// as a bare free-text term (a lone "surgery" matches every surgical paper). They're fine
+// inside a specific phrase ("breast surgery") or as a precise MeSH heading — the flag
+// only fires on a single-word free-text (tiab) term whose stem is one of these.
+var BROAD_CONCEPT_TERMS = {
+  surgery:1, surgical:1, treatment:1, treat:1, therapy:1, therapies:1, therapeutic:1,
+  disease:1, diseases:1, disorder:1, disorders:1, condition:1, conditions:1, syndrome:1,
+  patient:1, patients:1, care:1, management:1, manage:1, procedure:1, procedures:1,
+  intervention:1, interventions:1, outcome:1, outcomes:1, drug:1, drugs:1, medication:1,
+  medications:1, health:1, clinical:1, hospital:1, infection:1, infections:1, cancer:1,
+  pain:1, injury:1, injuries:1, study:1, studies:1, effect:1, effects:1, complication:1,
+  complications:1, prevention:1, diagnosis:1, risk:1, function:1
+};
+
+// Flag a build term as overly broad: a single-word free-text term whose stem (trailing
+// wildcard stripped) is a generic concept. Multi-word phrases and MeSH headings are exempt.
+function isBroadBuildTerm(t) {
+  if (!t || t.field !== 'tiab') return false;
+  var w = (t.term || '').trim();
+  if (/\s/.test(w)) return false;                       // phrases are specific enough
+  var truncated = /[*?]+$/.test(w);
+  var stem = w.replace(/[*?]+$/, '').toLowerCase();
+  if (BROAD_CONCEPT_TERMS[stem]) return true;
+  // A truncated term (surger*, therap*) is broad if its stem prefixes a generic concept.
+  if (truncated && stem.length >= 4) {
+    for (var k in BROAD_CONCEPT_TERMS) { if (k.indexOf(stem) === 0) return true; }
+  }
+  return false;
+}
+
+// Collect "Concept: term" labels for every flagged broad term, for warnings.
+function flaggedBroadBuildTerms() {
+  var hits = [];
+  buildBlocks.forEach(function(b) {
+    (b.terms || []).forEach(function(t) {
+      if (isBroadBuildTerm(t)) hits.push((b.concept || 'concept') + ': ' + t.term);
+    });
+  });
+  return hits;
+}
+
 function picoInputs() {
   return {
     p: (document.getElementById('pico-p').value || '').trim(),
@@ -3213,7 +3265,11 @@ async function buildDraftStrategy() {
     var parsed = await callBuilderAgent(sys, user);
     buildBlocks = (parsed.blocks || []).map(function(b){
       return { concept: b.concept || 'Concept', terms: (b.terms || []).map(function(t){
-        return { term: t.term || '', field: (t.field === 'mesh' ? 'mesh' : 'tiab') };
+        var term = t.term || '';
+        // A MeSH heading can't carry a wildcard; if the model emits one, treat it as
+        // free text so the truncation is honoured rather than silently dropped.
+        var field = (t.field === 'mesh' && term.indexOf('*') === -1) ? 'mesh' : 'tiab';
+        return { term: term, field: field };
       }).filter(function(t){ return t.term; }) };
     }).filter(function(b){ return b.terms.length; });
     buildCoachNotes = parsed.notes || [];
@@ -3239,7 +3295,7 @@ async function callBuilderAgent(systemPrompt, userPrompt) {
     var r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': openAIKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
     });
     if (!r.ok) { var e1 = await r.json().catch(function(){return {};}); throw new Error('Anthropic ' + r.status + ': ' + ((e1.error && e1.error.message) || 'error')); }
     var d1 = await r.json();
@@ -3265,8 +3321,14 @@ function renderBuildBlocks() {
     var terms = b.terms.map(function(t, ti) {
       var cls = t.field === 'mesh' ? 'cterm-mesh' : 'cterm-tiab';
       var tag = t.field === 'mesh' ? 'MeSH' : 'tiab';
-      return '<span class="cterm ' + cls + '" onclick="removeBuildTerm(' + bi + ',' + ti + ')" title="click to remove">' +
-        esc(t.term) + ' <span style="opacity:0.6;font-size:9px">' + tag + '</span> &times;</span>';
+      var broad = isBroadBuildTerm(t);
+      var broadStyle = broad ? ' style="border-color:#f59e0b;box-shadow:inset 0 0 0 1px #f59e0b55"' : '';
+      var broadTitle = broad
+        ? 'Very broad single word — matches almost any paper. Make it a specific phrase (e.g. “breast surgery”) or a precise MeSH term. Click to remove.'
+        : 'click to remove';
+      var warn = broad ? '<span style="color:#f59e0b;font-size:10px" title="broad term">⚠ </span>' : '';
+      return '<span class="cterm ' + cls + '"' + broadStyle + ' onclick="removeBuildTerm(' + bi + ',' + ti + ')" title="' + broadTitle + '">' +
+        warn + esc(t.term) + ' <span style="opacity:0.6;font-size:9px">' + tag + '</span> &times;</span>';
     }).join('');
     return '<div class="cblock">' +
       '<div class="cblock-head">' +
@@ -3281,6 +3343,7 @@ function renderBuildBlocks() {
       '</div>' +
     '</div>';
   }).join('');
+  if (typeof renderProtocolPanel === 'function') renderProtocolPanel();
 }
 
 function renderBuildCoach() {
@@ -3301,7 +3364,15 @@ function addBuildTerm(bi, field) {
   var inp = document.getElementById('newterm-' + bi);
   var v = inp ? inp.value.trim() : '';
   if (!v) { if (field) showToast('Type a term first', '#f59e0b'); return; }
-  buildBlocks[bi].terms.push({ term: v, field: field || 'tiab' });
+  var f = field || 'tiab';
+  // MeSH is controlled vocabulary — truncation (*) isn't valid and would otherwise be
+  // silently dropped to a non-heading that PubMed then remaps unpredictably. A truncated
+  // term belongs in free text, so route it to [tiab] and tell the user why.
+  if (f === 'mesh' && v.indexOf('*') !== -1) {
+    f = 'tiab';
+    showToast('“' + v + '” has a wildcard — added as free-text (tiab); MeSH headings don’t support truncation', '#f59e0b');
+  }
+  buildBlocks[bi].terms.push({ term: v, field: f });
   renderBuildBlocks(); assembleBuildQuery();
 }
 
@@ -3310,7 +3381,12 @@ function buildPubmedQuery() {
   var blockStrs = buildBlocks.map(function(b) {
     var parts = b.terms.map(function(t) {
       if (t.field === 'mesh') return '"' + t.term.replace(/\*$/,'') + '"[Mesh]';
-      return t.term + '[tiab]';
+      var term = (t.term || '').trim();
+      // Quote multi-word free-text phrases for exact title/abstract matching. Leave
+      // single words and truncated terms (e.g. deliri*) unquoted so PubMed truncation
+      // still fires — phrase + truncation isn't supported inside quotes.
+      if (/\s/.test(term) && term.indexOf('*') === -1) term = '"' + term + '"';
+      return term + '[tiab]';
     });
     return parts.length ? '(' + parts.join(' OR ') + ')' : '';
   }).filter(Boolean);
@@ -3363,6 +3439,14 @@ function sendStrategyToWorkbench() {
   var pubmedQ = buildPubmedQuery();
   if (!pubmedQ) { showToast('Nothing to send', '#f59e0b'); return; }
 
+  // Non-blocking heads-up: broad single-word free-text terms balloon the result set
+  // and pull in off-topic papers (especially on full-text engines). Warn, but still send.
+  var broad = flaggedBroadBuildTerms();
+  if (broad.length) {
+    showToast('⚠ Broad term' + (broad.length > 1 ? 's' : '') + ' — ' + broad.slice(0, 4).join('; ') +
+      (broad.length > 4 ? ' …' : '') + '. Consider a specific phrase or MeSH for tighter results.', '#f59e0b');
+  }
+
   // Switch to advanced mode + the Search tab. setSearchMode() itself calls
   // renderWbPanels(), which REBUILDS the wbq-* inputs from scratch with empty
   // values — so we must populate AFTER all rendering is done, never before
@@ -3378,7 +3462,8 @@ function sendStrategyToWorkbench() {
       pubmed: pubmedQ,
       epmc:   (WB_GROUPS && WB_GROUPS.epmc)   ? WB_GROUPS.epmc.derive(pubmedQ)   : pubmedQ,
       scopus: (WB_GROUPS && WB_GROUPS.scopus) ? WB_GROUPS.scopus.derive(pubmedQ) : pubmedQ,
-      keyword:(WB_GROUPS && WB_GROUPS.keyword)? WB_GROUPS.keyword.derive(pubmedQ): pubmedQ
+      keyword:(WB_GROUPS && WB_GROUPS.keyword)? WB_GROUPS.keyword.derive(pubmedQ): pubmedQ,
+      openalex:(WB_GROUPS && WB_GROUPS.openalex)? WB_GROUPS.openalex.derive(pubmedQ): pubmedQ
     };
     // Persist into state first so re-renders keep the values.
     Object.keys(fills).forEach(function(k){ wbQueries[k] = fills[k]; });
@@ -3428,15 +3513,19 @@ var WB_GROUPS = {
   epmc:    { title: '\ud83c\udf0d Europe PMC + Cochrane', syntax: 'Europe PMC query',
              hint: 'One Europe PMC\u2013syntax query runs both: Europe PMC directly, and Cochrane (CDSR) with the journal filter added automatically.',
              members: ['europepmc','cochrane'],
-             derive: function(q){ return q; } },
+             derive: function(q){ return pubmedToEuropePMC(q); } },
   scopus:  { title: '\ud83d\udc53 Scopus', syntax: 'Scopus boolean',
              hint: 'Scopus syntax, e.g. TITLE-ABS-KEY(delirium AND postoperative). Needs an API key in Settings; returns up to 25 results per search (Elsevier API limit).',
              members: ['scopus'],
+             derive: function(q){ var b = deriveSecondaryQuery(q) || q; return b ? 'TITLE-ABS-KEY(' + scopusNegation(b) + ')' : ''; } },
+  keyword: { title: '\ud83e\udde0 Semantic Scholar + ClinicalTrials.gov', syntax: 'boolean keywords',
+             hint: 'Boolean keywords (AND/OR/NOT, no field tags). One query runs both \u2014 Semantic Scholar adapts it to its + | - operators, ClinicalTrials.gov runs it as an Essie expression. Untick either to skip.',
+             members: ['semantic','clinicaltrials'],
              derive: function(q){ return deriveSecondaryQuery(q) || q; } },
-  keyword: { title: '\ud83e\udde0 Keyword engines', syntax: 'plain keywords',
-             hint: 'Plain keywords \u2014 no boolean operators or field tags. One query runs Semantic Scholar, OpenAlex, and ClinicalTrials.gov (untick any you don\u2019t want).',
-             members: ['semantic','openalex','clinicaltrials'],
-             derive: function(q){ return deriveSecondaryQuery(q) || q; } }
+  openalex: { title: '\ud83c\udf10 OpenAlex', syntax: 'ranked keywords',
+             hint: 'OpenAlex relevance search has no Boolean engine \u2014 AND/OR/NOT are ignored and truncation is unsupported. The query is reduced to plain ranked keywords (quoted phrases kept) so what runs matches what you see here.',
+             members: ['openalex'],
+             derive: function(q){ return openAlexSearchTerms(deriveSecondaryQuery(q) || q); } }
 };
 
 var WB_FETCH = {
@@ -3462,7 +3551,9 @@ function getDbQuery(dbId, q, secQ) {
       return q;
     case 'cochrane':
       return q + ' JOURNAL:"Cochrane Database Syst Rev"';
-    default: // semantic, openalex, scopus, clinicaltrials — keyword engines
+    case 'openalex': // no Boolean engine — reduce to plain ranked keywords
+      return openAlexSearchTerms(secQ);
+    default: // semantic, scopus, clinicaltrials — keyword engines
       return secQ;
   }
 }
@@ -3510,15 +3601,18 @@ function renderWbPanels() {
         '<input type="text" id="wbq-' + gid + '" placeholder="enter ' + esc(g.syntax) + ' query"' +
           ' value="' + esc(wbQueries[gid] || '') + '"' +
           ' style="flex:1;min-width:200px;box-sizing:border-box;padding:11px 13px;font-size:13px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#e2e8f0;font-family:\'IBM Plex Mono\',monospace"' +
-          ' oninput="wbQueries[\'' + gid + '\']=this.value"' +
+          ' oninput="wbQueries[\'' + gid + '\']=this.value;evMarkEdited(\'' + gid + '\')"' +
           ' onkeydown="if(event.key===\'Enter\') runWbGroup(\'' + gid + '\')" />' +
         (gid !== 'pubmed'
-          ? '<button onclick="prefillWb(\'' + gid + '\')" title="Fill from your PubMed strategy, translated to this syntax" style="font-size:11px;padding:9px 13px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#7dd3fc;cursor:pointer;white-space:nowrap">\u21c4 from PubMed</button>'
+          ? '<button onclick="prefillWb(\'' + gid + '\')" title="Fill from your PubMed strategy, translated deterministically to this syntax" style="font-size:11px;padding:9px 13px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#7dd3fc;cursor:pointer;white-space:nowrap">\u21c4 from PubMed</button>' +
+            '<button onclick="evAITranslate(\'' + gid + '\')" id="wbai-' + gid + '" title="AI-translate from your PubMed strategy into native ' + esc(g.syntax) + ' (review before running)" style="font-size:11px;padding:9px 13px;border-radius:7px;border:1px solid #a78bfa55;background:#0d1220;color:#a78bfa;cursor:pointer;white-space:nowrap">\u2728 AI</button>'
           : '') +
         '<button onclick="runWbGroup(\'' + gid + '\')" id="wbrun-' + gid + '" style="font-size:12px;padding:9px 16px;border-radius:7px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">Run \u2192 add to pool</button>' +
       '</div>' + keyWarn +
-      '<div id="wbstatus-' + gid + '" style="margin-top:8px;font-size:11px;min-height:6px"></div>';
+      '<div id="wbstatus-' + gid + '" style="margin-top:8px;font-size:11px;min-height:6px"></div>' +
+      '<div id="wbnote-' + gid + '" style="margin-top:6px;font-size:10px;line-height:1.6"></div>';
   });
+  Object.keys(WB_GROUPS).forEach(function(gid){ if (typeof evRenderWbNote === 'function') evRenderWbNote(gid); });
 }
 
 // Prefill a group's query from the PubMed strategy, translated to its syntax.
@@ -3527,8 +3621,13 @@ function prefillWb(gid) {
              || (document.getElementById('query-input') && document.getElementById('query-input').value.trim())
              || '';
   if (!pubmedQ) { showToast('Enter a PubMed strategy first, then translate from it', '#f59e0b'); return; }
+  var translated = WB_GROUPS[gid].derive(pubmedQ);
   var inp = document.getElementById('wbq-' + gid);
-  if (inp) inp.value = WB_GROUPS[gid].derive(pubmedQ);
+  if (inp) inp.value = translated;
+  wbQueries[gid] = translated;   // keep state in sync (programmatic set skips oninput)
+  wbProvenance[gid] = { method: 'deterministic', at: new Date().toISOString() };
+  if (typeof evRenderWbNote === 'function') evRenderWbNote(gid);
+  showToast('Filled ' + (WB_GROUPS[gid].syntax || gid) + ' from PubMed', '#22c55e');
 }
 
 // Run every (ticked) member of a group with the group's query; each member
@@ -3623,6 +3722,337 @@ function logWbSearch(id, query, count, replacing) {
   });
   if (typeof renderHistory === 'function') renderHistory();
 }
+
+// ============================================================================
+// Search Protocol — reproducibility layer
+// Freezes the concept skeleton + assembled per-database query strings + provenance
+// into an immutable, versioned object stored on the project. Each run captures a
+// snapshot (query, count, identifiers) so a later re-test can prove the strategy is
+// byte-identical offline, and diff live results against a baseline. The AI sits at
+// authoring time only; once frozen, everything downstream is deterministic replay.
+// ============================================================================
+
+var PROTOCOL_FORMAT = 'evidentum-search-protocol/v1';
+var PROTOCOL_GROUPS = { pubmed:['pubmed'], epmc:['europepmc','cochrane'], scopus:['scopus'], keyword:['semantic','clinicaltrials'], openalex:['openalex'] };
+var PROTOCOL_GROUP_LABEL = { pubmed:'PubMed', epmc:'Europe PMC + Cochrane', scopus:'Scopus', keyword:'Semantic Scholar + ClinicalTrials.gov', openalex:'OpenAlex' };
+var PROTO_BTN = 'font-size:12px;padding:8px 13px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#cbd5e1;cursor:pointer';
+
+// Pure: assemble the PubMed string from a stored skeleton. Mirrors buildPubmedQuery()
+// but parameterised so it runs on a saved protocol, not just the live globals — this
+// is what lets re-assembly be verified against the frozen strings.
+function assemblePubmedFromBlocks(blocks, pico) {
+  var blockStrs = (blocks || []).map(function(b) {
+    var parts = (b.terms || []).map(function(t) {
+      if (t.field === 'mesh') return '"' + t.term.replace(/\*$/,'') + '"[Mesh]';
+      var term = (t.term || '').trim();
+      // Mirror buildPubmedQuery(): quote multi-word free-text phrases, leave single
+      // words and truncated terms unquoted so a frozen protocol reproduces the live query.
+      if (/\s/.test(term) && term.indexOf('*') === -1) term = '"' + term + '"';
+      return term + '[tiab]';
+    });
+    return parts.length ? '(' + parts.join(' OR ') + ')' : '';
+  }).filter(Boolean);
+  var q = blockStrs.join(' AND ');
+  var d = (pico && pico.design) || '';
+  if (d === 'rct') q += ' AND (randomized controlled trial[pt] OR controlled clinical trial[pt] OR randomi*[tiab])';
+  else if (d === 'sr') q += ' AND (systematic review[pt] OR meta-analysis[pt] OR systematic review[tiab] OR meta-analysis[tiab])';
+  else if (d === 'obs') q += ' AND (cohort studies[Mesh] OR case-control studies[Mesh] OR observational study[pt])';
+  else if (d === 'dx') q += ' AND (sensitivity and specificity[Mesh] OR diagnostic accuracy[tiab])';
+  return q;
+}
+
+// Pure: deterministic per-group query strings from the skeleton, using the same
+// translators the workbench bars use. Guarantees strategy reproducibility.
+function assembleProtocolQueries(blocks, pico) {
+  var pubmed = assemblePubmedFromBlocks(blocks, pico);
+  var out = { pubmed: pubmed };
+  ['epmc','scopus','keyword','openalex'].forEach(function(gid){
+    try { out[gid] = WB_GROUPS[gid].derive(pubmed); } catch(e) { out[gid] = pubmed; }
+  });
+  return out;
+}
+
+function paperIdent(p) {
+  if (p.doi) return 'doi:' + String(p.doi).toLowerCase();
+  if (p.pmid) return 'pmid:' + p.pmid;
+  return 'ttl:' + ((p.title||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,80));
+}
+
+// Headless execution of a protocol's stored query strings across all member DBs.
+// Returns { dbId: {query, count, ids[]} }. Never throws per-DB; records errors instead.
+function executeProtocol(queries, maxResults) {
+  maxResults = maxResults || 50;
+  var jobs = [], perDb = {};
+  Object.keys(PROTOCOL_GROUPS).forEach(function(gid){
+    var q = ((queries && queries[gid]) || '').trim();
+    if (!q) return;
+    PROTOCOL_GROUPS[gid].forEach(function(id){
+      if (id === 'scopus' && !scopusApiKey) { perDb[id] = { query:q, count:null, ids:[], note:'no Scopus key' }; return; }
+      jobs.push(
+        Promise.resolve(WB_FETCH[id](q, maxResults)).then(function(results){
+          results = results || [];
+          perDb[id] = { query:q, count: results.length, ids: results.map(paperIdent) };
+        }).catch(function(e){
+          perDb[id] = { query:q, count:null, ids:[], error: (e && e.message) || 'failed' };
+        })
+      );
+    });
+  });
+  return Promise.all(jobs).then(function(){ return perDb; });
+}
+
+// Ensure there's a project to hang the protocol on (create one from the PICO if none).
+function ensureProtocolProject() {
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (proj) return proj;
+  var pico = picoInputs();
+  var name = (pico.p ? pico.p.slice(0,40) : 'Search protocol') + ' \u2014 ' + new Date().toLocaleDateString();
+  var id = 'proj_' + Date.now();
+  proj = { id:id, name:name, desc:'', created:new Date().toISOString() };
+  projects.push(proj);
+  projectPapers[id] = [];
+  currentProjectId = id;
+  saveProjects();
+  return proj;
+}
+
+// Freeze the current Build-tab skeleton into an immutable, versioned protocol.
+function freezeProtocolFromBuild() {
+  if (!buildBlocks.length) { showToast('Build a concept-block strategy first', '#f59e0b'); return; }
+  var proj = ensureProtocolProject();
+  var pico = picoInputs();
+  var blocks = JSON.parse(JSON.stringify(buildBlocks)); // deep, immutable copy
+  var queries = assembleProtocolQueries(blocks, pico);
+  // If a group was AI-translated or hand-edited on the workbench, freeze THAT exact
+  // string (the AI runs once, at authoring time) instead of the deterministic re-derivation.
+  var groupProvenance = { pubmed: { method: 'deterministic' } };
+  var anyAuthored = false;
+  ['epmc','scopus','keyword','openalex'].forEach(function(gid){
+    var bar = (wbQueries[gid] || '').trim();
+    var pv = (typeof wbProvenance !== 'undefined' && wbProvenance[gid]) ? wbProvenance[gid] : null;
+    if (bar && pv && (pv.method === 'ai' || pv.method === 'ai-edited' || pv.method === 'manual')) {
+      queries[gid] = bar;
+      groupProvenance[gid] = { method: pv.method, model: pv.model || '', at: pv.at || '', addedTerms: pv.addedTerms || [], notes: pv.notes || '' };
+      if (pv.method !== 'manual') anyAuthored = true;
+    } else {
+      groupProvenance[gid] = { method: 'deterministic' };
+    }
+  });
+  var prevVersion = (proj.searchProtocol && proj.searchProtocol.version) || 0;
+  proj.protocolVersions = proj.protocolVersions || [];
+  if (proj.searchProtocol) proj.protocolVersions.push(proj.searchProtocol); // archive prior version
+  proj.searchProtocol = {
+    id: 'proto_' + Date.now(),
+    version: prevVersion + 1,
+    created: new Date().toISOString(),
+    pico: pico,
+    blocks: blocks,
+    queries: queries,
+    groupProvenance: groupProvenance,
+    provenance: { translator: anyAuthored ? 'ai-assisted' : 'deterministic', model: anyAuthored ? evModelName() : '', promptVersion: anyAuthored ? 'ai-v1' : 'regex-v1' }
+  };
+  saveProjects();
+  showToast('\ud83d\udd12 Frozen protocol v' + proj.searchProtocol.version + ' on "' + proj.name + '"', '#22c55e');
+  renderProtocolPanel();
+}
+
+// Run the frozen protocol and append an immutable snapshot.
+function snapshotProtocolRun() {
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj || !proj.searchProtocol) { showToast('Freeze a protocol first', '#f59e0b'); return; }
+  var maxResults = parseInt((document.getElementById('max-results')||{}).value) || 50;
+  setProtocolStatus('<span class="spinner"></span> running protocol across databases\u2026');
+  executeProtocol(proj.searchProtocol.queries, maxResults).then(function(perDb){
+    proj.runs = proj.runs || [];
+    proj.runs.push({
+      id: 'run_' + Date.now(),
+      protocolId: proj.searchProtocol.id,
+      protocolVersion: proj.searchProtocol.version,
+      ranAt: new Date().toISOString(),
+      results: perDb
+    });
+    saveProjects();
+    setProtocolStatus('');
+    showToast('\ud83d\udcf8 Snapshot captured', '#22c55e');
+    renderProtocolPanel();
+  });
+}
+
+// Re-test: (1) offline deterministic strategy check; (2) live re-run + diff vs baseline.
+function retestProtocol() {
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj || !proj.searchProtocol) { showToast('Freeze a protocol first', '#f59e0b'); return; }
+  var sp = proj.searchProtocol;
+  var reassembled = assembleProtocolQueries(sp.blocks, sp.pico);
+  var strategyOk = ['pubmed','epmc','scopus','keyword','openalex'].every(function(k){
+    if (!sp.queries[k]) return true;
+    var gp = (sp.groupProvenance && sp.groupProvenance[k]) || { method: 'deterministic' };
+    if (gp.method && gp.method !== 'deterministic') return true; // AI/manual: frozen string replayed verbatim, not re-derived
+    return reassembled[k] === sp.queries[k];
+  });
+  var baseline = (proj.runs && proj.runs.length) ? proj.runs[proj.runs.length-1] : null;
+  setProtocolStatus('<span class="spinner"></span> re-testing\u2026');
+  var maxResults = parseInt((document.getElementById('max-results')||{}).value) || 50;
+  executeProtocol(sp.queries, maxResults).then(function(perDb){
+    var diff = diffSnapshots(baseline ? baseline.results : null, perDb);
+    setProtocolStatus('');
+    renderRetestReport(strategyOk, baseline, diff, sp.groupProvenance);
+  });
+}
+
+function diffSnapshots(base, now) {
+  var dbs = {};
+  Object.keys(now||{}).forEach(function(k){ dbs[k]=1; });
+  Object.keys(base||{}).forEach(function(k){ dbs[k]=1; });
+  return Object.keys(dbs).map(function(db){
+    var b = base && base[db], n = now && now[db];
+    var bIds = (b && b.ids) || [], nIds = (n && n.ids) || [];
+    var bSet = {}; bIds.forEach(function(x){ bSet[x]=1; });
+    var nSet = {}; nIds.forEach(function(x){ nSet[x]=1; });
+    return {
+      db: db,
+      baseCount: b ? b.count : null,
+      nowCount: n ? n.count : null,
+      added: nIds.filter(function(x){ return !bSet[x]; }).length,
+      removed: bIds.filter(function(x){ return !nSet[x]; }).length
+    };
+  });
+}
+
+// Export / import the protocol + run history as a portable JSON file.
+function exportProtocolJSON() {
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj || !proj.searchProtocol) { showToast('Freeze a protocol first', '#f59e0b'); return; }
+  var payload = {
+    format: PROTOCOL_FORMAT,
+    exported: new Date().toISOString(),
+    project: { id: proj.id, name: proj.name, desc: proj.desc || '' },
+    protocol: proj.searchProtocol,
+    protocolVersions: proj.protocolVersions || [],
+    runs: proj.runs || []
+  };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (proj.name || 'search-protocol').replace(/[^\w.-]+/g,'_') + '.evidentum.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function importProtocolFile(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try {
+      var data = JSON.parse(reader.result);
+      if (!data || data.format !== PROTOCOL_FORMAT || !data.protocol) throw new Error('Not an Evidentum protocol file');
+      var proj = ensureProtocolProject();
+      proj.searchProtocol = data.protocol;
+      proj.protocolVersions = data.protocolVersions || [];
+      proj.runs = data.runs || [];
+      if (data.project && data.project.name) proj.name = data.project.name;
+      saveProjects();
+      showToast('\ud83d\udce5 Imported protocol "' + proj.name + '"', '#22c55e');
+      renderProtocolPanel();
+    } catch(e) {
+      showToast('\u26a0\ufe0f ' + (e.message || 'Invalid protocol file'), '#ef4444');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── UI ──────────────────────────────────────────────────────────────────────
+function setProtocolStatus(html){ var el=document.getElementById('protocol-status'); if (el) el.innerHTML = html; }
+
+function renderProtocolPanel() {
+  var card = document.getElementById('protocol-card');
+  if (!card) return;
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  var sp = proj && proj.searchProtocol;
+  card.style.display = 'block';
+
+  var html = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">';
+  html += '<span class="step-num">4</span>';
+  html += '<div class="card-label" style="margin-bottom:0">Reproducible search protocol</div>';
+  if (sp) html += '<span style="font-size:11px;color:#a78bfa;border:1px solid #a78bfa44;border-radius:10px;padding:2px 8px">v' + sp.version + ' \u00b7 ' + new Date(sp.created).toLocaleDateString() + '</span>';
+  if (proj) html += '<span style="font-size:11px;color:#64748b">' + esc(proj.name) + '</span>';
+  html += '</div>';
+
+  if (!sp) {
+    html += '<div style="font-size:12.5px;color:#94a3b8;line-height:1.6;margin-bottom:12px">Freeze the concept-block strategy above into an immutable, versioned protocol. The skeleton and the per-database query strings are stored, so the strategy can be re-assembled and verified byte-for-byte later, and every run is snapshotted for a reproducibility diff.</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html += '<button onclick="freezeProtocolFromBuild()" style="font-size:13px;padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;cursor:pointer;font-weight:650">\ud83d\udd12 Freeze current search as protocol</button>';
+    html += '<label style="' + PROTO_BTN + '">\ud83d\udce5 Import protocol<input type="file" accept=".json,application/json" onchange="importProtocolFile(this)" style="display:none"></label>';
+    html += '</div>';
+  } else {
+    html += '<div style="font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Frozen query strings</div>';
+    ['pubmed','epmc','scopus','keyword','openalex'].forEach(function(gid){
+      if (!sp.queries[gid]) return;
+      var gm = (sp.groupProvenance && sp.groupProvenance[gid] && sp.groupProvenance[gid].method) || 'deterministic';
+      var badge = (gm === 'ai' || gm === 'ai-edited')
+        ? ' <span style="font-size:9px;color:#a78bfa;border:1px solid #a78bfa55;border-radius:4px;padding:0 5px">\u2728 ' + (gm === 'ai-edited' ? 'AI, edited' : 'AI') + '</span>'
+        : (gm === 'manual' ? ' <span style="font-size:9px;color:#fbbf24;border:1px solid #fbbf2455;border-radius:4px;padding:0 5px">manual</span>' : '');
+      html += '<div style="margin-bottom:8px"><div style="font-size:11px;color:#7dd3fc;margin-bottom:2px">' + PROTOCOL_GROUP_LABEL[gid] + badge + '</div>';
+      html += '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#cbd5e1;background:#0d1220;border:1px solid #1e293b;border-radius:6px;padding:7px 9px;word-break:break-word;line-height:1.55">' + esc(sp.queries[gid]) + '</div></div>';
+    });
+
+    var runs = proj.runs || [];
+    html += '<div style="font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px">Run snapshots (' + runs.length + ')</div>';
+    if (!runs.length) html += '<div style="font-size:12px;color:#64748b">No runs captured yet \u2014 the first snapshot becomes your reproducibility baseline.</div>';
+    runs.slice().reverse().slice(0,5).forEach(function(r){
+      var tot = Object.keys(r.results).reduce(function(s,k){ var c=r.results[k].count; return s + (typeof c==='number'?c:0); }, 0);
+      html += '<div style="font-size:12px;color:#cbd5e1;margin-bottom:3px">\ud83d\udcf8 ' + new Date(r.ranAt).toLocaleString() + ' \u00b7 protocol v' + r.protocolVersion + ' \u00b7 ' + tot + ' records</div>';
+    });
+
+    html += '<div id="protocol-status" style="margin:12px 0 6px;font-size:12px;color:#94a3b8;min-height:6px"></div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html += '<button onclick="snapshotProtocolRun()" style="font-size:12px;padding:8px 13px;border-radius:7px;border:none;background:#22c55e;color:#04210f;cursor:pointer;font-weight:650">\ud83d\udcf8 Run &amp; snapshot</button>';
+    html += '<button onclick="retestProtocol()" style="font-size:12px;padding:8px 13px;border-radius:7px;border:1px solid #a78bfa55;background:#2e1f4f33;color:#c4b5fd;cursor:pointer;font-weight:650">\ud83d\udd01 Re-test reproducibility</button>';
+    html += '<button onclick="freezeProtocolFromBuild()" style="' + PROTO_BTN + '">\ud83d\udd12 Re-freeze (new version)</button>';
+    html += '<button onclick="exportProtocolJSON()" style="' + PROTO_BTN + '">\u2b07 Export JSON</button>';
+    html += '<label style="' + PROTO_BTN + '">\ud83d\udce5 Import<input type="file" accept=".json,application/json" onchange="importProtocolFile(this)" style="display:none"></label>';
+    html += '</div>';
+    html += '<div id="retest-report" style="margin-top:12px"></div>';
+  }
+  card.innerHTML = html;
+}
+
+function renderRetestReport(strategyOk, baseline, diff, groupProvenance) {
+  var el = document.getElementById('retest-report');
+  if (!el) return;
+  var html = '<div style="background:#0d1220;border:1px solid #1e293b;border-radius:8px;padding:12px 14px">';
+  html += '<div style="font-weight:700;color:#f1f5f9;margin-bottom:8px">\ud83d\udd01 Reproducibility report</div>';
+  html += '<div style="font-size:13px;margin-bottom:10px;line-height:1.5">Strategy <span style="color:#64748b">(offline, deterministic)</span>: ' +
+    (strategyOk
+      ? '<span style="color:#22c55e;font-weight:700">\u2713 byte-identical</span> \u2014 the deterministic strategy re-assembles to exactly the frozen query strings.'
+      : '<span style="color:#ef4444;font-weight:700">\u2717 mismatch</span> \u2014 re-assembled strings differ from the frozen protocol.') + '</div>';
+  var authored = [];
+  if (groupProvenance) ['epmc','scopus','keyword','openalex'].forEach(function(gid){
+    var m = groupProvenance[gid] && groupProvenance[gid].method;
+    if (m === 'ai' || m === 'ai-edited') authored.push(PROTOCOL_GROUP_LABEL[gid] + ' (AI)');
+    else if (m === 'manual') authored.push(PROTOCOL_GROUP_LABEL[gid] + ' (manual)');
+  });
+  if (authored.length) html += '<div style="font-size:11.5px;color:#c4b5fd;margin-bottom:10px;line-height:1.5">\u2728 ' + esc(authored.join(', ')) + ' were authored at freeze time and are replayed from the stored string verbatim (the AI is not re-run) \u2014 reproducible by record, not by re-derivation.</div>';
+  if (!baseline) {
+    html += '<div style="font-size:12.5px;color:#94a3b8">No baseline snapshot yet \u2014 capture a run, then re-test later to measure drift.</div>';
+  } else {
+    html += '<div style="font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Live results vs baseline (' + new Date(baseline.ranAt).toLocaleDateString() + ')</div>';
+    diff.forEach(function(d){
+      var delta = (typeof d.baseCount==='number' && typeof d.nowCount==='number') ? (d.nowCount - d.baseCount) : null;
+      var dColor = delta>0?'#22c55e':delta<0?'#f59e0b':'#64748b';
+      html += '<div style="font-size:12.5px;color:#cbd5e1;margin-bottom:3px">' + esc(d.db) + ': ' +
+        (d.baseCount==null?'\u2014':d.baseCount) + ' \u2192 ' + (d.nowCount==null?'\u2014':d.nowCount) +
+        (delta!=null ? ' <span style="color:'+dColor+'">('+(delta>0?'+':'')+delta+')</span>' : '') +
+        ' \u00b7 <span style="color:#22c55e">+'+d.added+' new</span> \u00b7 <span style="color:#f59e0b">\u2212'+d.removed+' gone</span></div>';
+    });
+    html += '<div style="font-size:11px;color:#64748b;margin-top:7px;line-height:1.5">Result drift is expected \u2014 databases index new records over time. The diff is the reportable output, not a pass/fail.</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 
 // Move the pooled, deduplicated records into the screening pipeline.
 function screenPool() {
@@ -3895,6 +4325,72 @@ function copyProvenanceText() {
   }
 }
 
+// Europe PMC searches BARE (unscoped) terms across the entire indexed FULL TEXT of
+// open-access articles, not just title/abstract — so an unrelated paper matches just
+// because a word appears somewhere in its body or references. That silently balloons
+// the result set and pulls in off-topic hits (e.g. a prolapse-surgery review surfacing
+// in a breast-surgery search). This wraps any unscoped term/phrase in TITLE_ABS: so
+// matching stays in title+abstract. Field-scoped tokens (TITLE_ABS:, MESH:, JOURNAL:…),
+// Boolean operators, parentheses and [date ranges] are left untouched. Idempotent:
+// re-running on an already-scoped query is a no-op.
+function scopeBareEuropePMCTerms(q) {
+  if (!q) return q;
+  var out = '', i = 0, n = q.length;
+  function afterField() { return /[A-Za-z][A-Za-z_]*:\s*$/.test(out); }
+  while (i < n) {
+    var ch = q[i];
+    if (ch === '[') { var e = q.indexOf(']', i); if (e === -1) e = n - 1; out += q.slice(i, e + 1); i = e + 1; continue; } // [date range] verbatim
+    if (ch === '"') { var end = q.indexOf('"', i + 1); if (end === -1) end = n - 1; var ph = q.slice(i, end + 1);
+                      out += afterField() ? ph : 'TITLE_ABS:' + ph; i = end + 1; continue; }
+    if (ch === '(' || ch === ')') { out += ch; i++; continue; }
+    if (/\s/.test(ch)) { out += ch; i++; continue; }
+    var j = i; while (j < n && !/\s/.test(q[j]) && q[j] !== '(' && q[j] !== ')' && q[j] !== '"' && q[j] !== '[') j++;
+    var tok = q.slice(i, j);
+    if (tok === 'AND' || tok === 'OR' || tok === 'NOT') out += tok;     // operator
+    else if (tok.indexOf(':') !== -1) out += tok;                        // FIELD:value or bare field prefix
+    else if (afterField()) out += tok;                                   // value following a FIELD:
+    else out += 'TITLE_ABS:' + tok;                                      // bare term -> scope to title/abstract
+    i = j;
+  }
+  return out;
+}
+
+// Europe PMC's query parser loses field binding when DIFFERENT field codes are OR-ed
+// together inside one parenthesised group — e.g. (MESH:"Mastectomy" OR TITLE_ABS:mastectom*)
+// silently matches a massive unrelated set (~569k) instead of the union (~35k), so a
+// 4-concept AND search returns hundreds of thousands of off-topic hits. Wrapping EACH
+// scoped clause in its own parentheses — ((MESH:"Mastectomy") OR (TITLE_ABS:mastectom*)) —
+// restores correct behaviour. Quoted phrases and [date ranges] are matched whole; the
+// transform is safe to apply more than once (extra parentheses are harmless).
+function parenEachEuropePMCClause(q) {
+  if (!q) return q;
+  return q.replace(/[A-Za-z][A-Za-z_]*:(?:"[^"]*"|\[[^\]]*\]|[^\s()]+)/g, function(m){ return '(' + m + ')'; });
+}
+
+// Europe PMC only matches a wildcard inside a quoted phrase when the wildcarded token is
+// already a whole word ("block*" works, "pain*" works); a truncated stem ("surg*",
+// "conserv*", "dissect*") makes the WHOLE phrase return zero — so terms like
+// TITLE_ABS:"breast surg*" silently match nothing and recall is lost. EP can't express
+// "phrase where the last word starts with surg", so we keep the complete-word run as an
+// adjacent phrase and AND the wildcard stem as a separate scoped term:
+//   TITLE_ABS:"breast cancer surg*"  ->  (TITLE_ABS:"breast cancer" AND TITLE_ABS:surg*)
+//   TITLE_ABS:"breast surg*"         ->  (TITLE_ABS:breast AND TITLE_ABS:surg*)
+//   TITLE_ABS:"mammoplast*"          ->  TITLE_ABS:mammoplast*   (single token, just unquote)
+// Adjacency is loosened only for the truncated word; within a multi-concept AND search the
+// net effect is recovered recall, not an explosion. Phrases with no wildcard are untouched.
+function fixEuropePMCPhraseWildcards(q) {
+  if (!q) return q;
+  return q.replace(/([A-Za-z][A-Za-z_]*):"([^"]*[*?][^"]*)"/g, function(m, field, phrase) {
+    var tokens = phrase.trim().split(/\s+/);
+    if (tokens.length === 1) return field + ':' + tokens[0];   // single token -> bareword wildcard (valid)
+    var parts = [], buf = [];
+    function flush() { if (buf.length) { parts.push(buf.length > 1 ? field + ':"' + buf.join(' ') + '"' : field + ':' + buf[0]); buf = []; } }
+    tokens.forEach(function(t) { if (/[*?]/.test(t)) { flush(); parts.push(field + ':' + t); } else buf.push(t); });
+    flush();
+    return parts.length > 1 ? '(' + parts.join(' AND ') + ')' : parts[0];
+  });
+}
+
 function pubmedToEuropePMC(query) {
   var tagMap = {
     'tiab': 'TITLE_ABS', 'ti': 'TITLE', 'ab': 'ABSTRACT',
@@ -3908,15 +4404,31 @@ function pubmedToEuropePMC(query) {
     var ep = tagMap[tag.trim().toLowerCase()];
     return ep ? ep + ':"' + phrase + '"' : '"' + phrase + '"';
   });
-  // 2. Single-word terms with field tags: word[field]
-  result = result.replace(/(\w+)\[([^\]]+)\]/g, function(_, term, tag) {
+  // 2. Unquoted terms with a field tag — single OR multi-word: early goal directed therapy[tiab]
+  //    Capture the WHOLE phrase before the tag (stopping at parens, quotes, or an
+  //    UPPERCASE boolean operator) so a sibling term/operator is never swallowed, and
+  //    quote multi-word phrases so they stay field-scoped. Previously only the single
+  //    word before the bracket was scoped, leaking leading words ("early goal directed")
+  //    out as bare, unscoped tokens and ballooning the result set.
+  //    Operators are matched case-sensitively: a lowercase "and"/"or" inside a term
+  //    (e.g. "head and neck") is a literal word, not an operator.
+  var WORD = "\\b(?!(?:AND|OR|NOT)\\b)[A-Za-z0-9][\\w*?'\\-]*";
+  var phraseRe = new RegExp('(' + WORD + '(?:\\s+' + WORD + ')*)\\s*\\[([^\\]]+)\\]', 'g');
+  result = result.replace(phraseRe, function(_, phrase, tag) {
     var ep = tagMap[tag.trim().toLowerCase()];
-    return ep ? ep + ':' + term : term;
+    phrase = phrase.trim();
+    if (!ep) return phrase;                       // unmapped/unknown tag -> bare term
+    return /\s/.test(phrase) ? ep + ':"' + phrase + '"' : ep + ':' + phrase;
   });
   // 3. Strip remaining PubMed-style bracketed tags ONLY (short, no spaces, no colons).
   //    Preserves EuropePMC native ranges like [2020-01-01 TO 3000-12-31].
   result = result.replace(/\[([^\]\s:]{1,20})\]/g, '');
-  return result.replace(/\s+/g, ' ').trim();
+  result = result.replace(/\s+/g, ' ').trim();
+  // Final safety passes: (1) scope any term still left bare so it can't degrade to a
+  // full-text search; (2) rewrite quoted phrases with a truncated-stem wildcard, which
+  // Europe PMC otherwise matches as zero; (3) parenthesise each scoped clause so
+  // mixed-field OR groups don't blow up Europe PMC's parser.
+  return parenEachEuropePMCClause(fixEuropePMCPhraseWildcards(scopeBareEuropePMCTerms(result)));
 }
 
 function fetchEuropePMC(query, maxResults, sourceLabel) {
@@ -4006,17 +4518,32 @@ function fetchEuropePMC(query, maxResults, sourceLabel) {
 // ══════════════════════════════════════════════
 // SEMANTIC SCHOLAR API
 // ══════════════════════════════════════════════
+// Translate a derived keyword boolean query into Semantic Scholar BULK-search
+// syntax. The /paper/search/bulk endpoint matches keywords against title/abstract
+// and supports its own operators: + (AND), | (OR), - (exclude), "phrase", and *
+// wildcards — NOT the words AND/OR/NOT. Previously this stripped the operators and
+// parentheses to a bag of words, which the bulk endpoint then required ALL of
+// (implicit AND) — collapsing any multi-concept strategy to zero matches.
 function sanitiseForS2(query) {
-  return query
-    // Strip PubMed field tags: [tiab], [MeSH Terms], [tw], [pt], etc.
-    .replace(/\[[^\]]*\]/g, ' ')
-    // Strip Boolean operators (case-insensitive, whole-word)
-    .replace(/\b(AND|OR|NOT)\b/g, ' ')
-    // Strip parentheses and quotes
-    .replace(/[()\"]/g, ' ')
-    // Collapse multiple spaces
-    .replace(/\s+/g, ' ')
-    .trim();
+  if (!query) return '';
+  var s = String(query).replace(/\[[^\]]*\]/g, ' ');   // drop any residual field tags
+  s = quoteMultiwordTerms(s);                           // phrase-quote multi-word terms
+  // Boolean words -> bulk operators. Uppercase only: a lowercase "and"/"or" inside
+  // a phrase is a literal word, and multi-word phrases are already quoted above.
+  s = s.replace(/\bAND\s+NOT\b/g, ' - ')                // A AND NOT B -> exclude B
+       .replace(/\bNOT\b/g, ' - ')
+       .replace(/\bAND\b/g, ' + ')
+       .replace(/\bOR\b/g, ' | ');
+  // Tidy: empty groups, doubled/dangling operators, whitespace.
+  s = s.replace(/\(\s*\)/g, ' ')
+       .replace(/\s+/g, ' ')
+       .replace(/([+|])\s*([+|])/g, '$1')
+       .replace(/\(\s*[+|]\s*/g, '(')
+       .replace(/\s*[+|]\s*\)/g, ')')
+       .replace(/^\s*[+|]\s*/, '')
+       .replace(/\s*[+|]\s*$/, '')
+       .replace(/\s+/g, ' ').trim();
+  return s;
 }
 
 function fetchSemanticScholar(query, maxResults, dateFrom, dateTo) {
@@ -4117,11 +4644,30 @@ function fetchSemanticScholar(query, maxResults, dateFrom, dateTo) {
 // ══════════════════════════════════════════════
 // OPENALEX API — free, no key required
 // ══════════════════════════════════════════════
+// OpenAlex /works?search= has NO Boolean engine: AND/OR/NOT are stopwords and are
+// silently dropped, parentheses are ignored, and truncation (*) is unsupported.
+// Passing a Boolean string therefore makes OpenAlex quietly return a differently
+// scoped relevance set — the worst failure mode for a reproducible review. Reduce
+// the query to plain ranked keywords: strip field tags, the uppercase Boolean
+// operators, parentheses and wildcards. Quoted phrases are kept (OpenAlex honours
+// them) and lower-case "and"/"or" inside a phrase (e.g. "head and neck") is left
+// alone, matching the operator handling elsewhere in the app.
+function openAlexSearchTerms(query) {
+  if (!query) return '';
+  var s = String(query);
+  s = s.replace(/\[[^\]]*\]/g, ' ');         // residual field tags
+  s = s.replace(/[()]/g, ' ');               // parentheses are not honoured
+  s = s.replace(/\b(AND|OR|NOT)\b/g, ' ');   // uppercase Boolean operators only
+  s = s.replace(/[*?]/g, '');                // truncation/wildcards unsupported
+  return s.replace(/\s+/g, ' ').trim();
+}
 
 function fetchOpenAlex(query, maxResults, dateFrom, dateTo) {
   var limit = Math.min(maxResults || 50, 200);
-  // OpenAlex uses simple keyword search via /works?search=
-  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) +
+  // OpenAlex uses simple keyword search via /works?search= — Boolean syntax is not
+  // supported, so reduce whatever we were handed to plain ranked keywords first.
+  var terms = openAlexSearchTerms(query);
+  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(terms) +
     '&per-page=' + limit +
     '&select=id,doi,title,authorships,publication_year,primary_location,type,abstract_inverted_index,cited_by_count,ids,open_access,best_oa_location' +
     '&mailto=evidentum@lab.tool';
@@ -4372,16 +4918,11 @@ function citationBoostScore(p) {
   return Math.round((Math.log10(c + 1) / CITATION_BOOST_NORM) * CITATION_BOOST_MAX);
 }
 
-function getSorted() {
-  var sortBy = document.getElementById('sort-by').value;
-  var filterType = document.getElementById('filter-type').value;
-  var filterScore = parseInt(document.getElementById('filter-score').value);
-
-  return papers.filter(function(p) {
-    if (filterType !== 'All' && p.studyType !== filterType) return false;
-    if (filterScore > 0 && p.score < filterScore) return false;
-    return true;
-  }).sort(function(a, b) {
+// Single source of truth for result ordering. Returns a comparator for the
+// given sort key so the on-screen list (getSorted) and the CSV export stay in
+// lockstep — the export must never silently fall back to a different order.
+function paperSortComparator(sortBy) {
+  return function(a, b) {
     if (sortBy === 'sources') {
       // Cross-database corroboration: found by more databases first.
       var sa = (a.sources||[]).length, sb = (b.sources||[]).length;
@@ -4409,7 +4950,19 @@ function getSorted() {
     if (sortBy === 'date_old') return (parseInt(a.year)||0) - (parseInt(b.year)||0);
     if (sortBy === 'type') return a.studyType < b.studyType ? -1 : 1;
     return 0;
-  });
+  };
+}
+
+function getSorted() {
+  var sortBy = document.getElementById('sort-by').value;
+  var filterType = document.getElementById('filter-type').value;
+  var filterScore = parseInt(document.getElementById('filter-score').value);
+
+  return papers.filter(function(p) {
+    if (filterType !== 'All' && p.studyType !== filterType) return false;
+    if (filterScore > 0 && p.score < filterScore) return false;
+    return true;
+  }).sort(paperSortComparator(sortBy));
 }
 
 function buildChecklistPill(p) {
@@ -4513,7 +5066,8 @@ function renderPapers() {
         '</div>';
     }
 
-    return '<div class="paper-card" id="card-'+p.pmid+'">' +
+    return '<div class="paper-card'+(p.retracted?' retracted-card':'')+'" id="card-'+p.pmid+'">' +
+      (p.retracted ? retractionBannerHtml(p) : '') +
       '<div class="paper-header">' +
         '<div class="paper-row">' +
           '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;flex-shrink:0">' +
@@ -4522,7 +5076,7 @@ function renderPapers() {
           '</div>' +
           '<div style="flex:1;min-width:0">' +
             '<div class="paper-title-link" onclick="window.open(\''+(p.nctId ? 'https://clinicaltrials.gov/study/'+p.nctId : p.pmid && !String(p.pmid).startsWith('EP_') && !String(p.pmid).startsWith('SS_') && !String(p.pmid).startsWith('CT_') ? 'https://pubmed.ncbi.nlm.nih.gov/'+p.pmid+'/' : (safeDoi(p.doi)||'#'))+'\',\'_blank\')">'+esc(p.title)+'</div>' +
-            '<div class="paper-meta">' + esc(authorStr) + ' &middot; ' + esc(p.journal) + ' &middot; ' + esc(p.year) + (safeDoi(p.doi) ? ' &middot; <a href="' + safeDoi(p.doi) + '" target="_blank" style="color:#374151">DOI</a>' : '') +'</div>' +
+            '<div class="paper-meta">' + esc(authorStr) + ' &middot; ' + esc(p.journal) + ' &middot; ' + esc(p.year) + (safeDoi(p.doi) ? ' &middot; <a href="' + esc(safeDoi(p.doi)) + '" target="_blank" style="color:#374151">DOI</a>' : '') +'</div>' +
             '<div style="margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">' +
               (p.scanDepth==='full' ? '<span class="depth-badge depth-full" id="db-'+p.pmid+'">&#9670; Full text scanned</span>' :
                p.scanDepth==='pdf' ? '<span class="depth-badge depth-pdf" id="db-'+p.pmid+'">&#9670; PDF scanned</span>' :
@@ -4540,7 +5094,7 @@ function renderPapers() {
                 }).join('');
               })() +
             '</div>' +
-            '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="ft-'+p.pmid+'" class="pdf-checking">'+(p.nctId ? '' : p.doi ? '&#8635; checking for free PDF…' : '')+'</span>'+(p.nctId ? '<a class="pdf-btn" href="https://clinicaltrials.gov/study/'+(/^NCT\d+$/i.test(p.nctId)?p.nctId:'')+'" target="_blank" style="border-color:#f47256;background:#1f100a;color:#fda57d">&#129514; View on ClinicalTrials.gov</a>' : p.fullTextUrl ? '<a class="pdf-btn" href="'+safeUrl(p.fullTextUrl)+'" target="_blank">&#128196; Free PDF <span style="font-size:9px;opacity:0.7">('+p.fullTextSource+')</span></a>' : '')+buildLibkeyLink(p)+'</div>' +
+            '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="ft-'+p.pmid+'" class="pdf-checking">'+(p.nctId ? '' : p.doi ? '&#8635; checking for free PDF…' : '')+'</span>'+(p.nctId ? '<a class="pdf-btn" href="https://clinicaltrials.gov/study/'+(/^NCT\d+$/i.test(p.nctId)?p.nctId:'')+'" target="_blank" style="border-color:#f47256;background:#1f100a;color:#fda57d">&#129514; View on ClinicalTrials.gov</a>' : p.fullTextUrl ? '<a class="pdf-btn" href="'+esc(safeUrl(p.fullTextUrl))+'" target="_blank">&#128196; Free PDF <span style="font-size:9px;opacity:0.7">('+esc(p.fullTextSource)+')</span></a>' : '')+buildLibkeyLink(p)+'</div>' +
             (hideCriteria ? '' : '<div class="scan-row">'+chipHtml+'</div>') +
           '</div>' +
           (hideCriteria
@@ -4752,7 +5306,7 @@ function renderRelatedPanel(panel, items, title, mode) {
       if ((item.authors||[]).length > 3) authorStr += ' et al.';
       var cites = item.citationCount !== null && item.citationCount !== undefined ? ' · ' + item.citationCount.toLocaleString() + ' citations' : '';
       return '<div class="related-item">' +
-        '<div class="related-item-title" onclick="window.open(\'' + url + '\',\'_blank\')">' + esc(item.title || 'Untitled') + '</div>' +
+        '<a class="related-item-title" href="' + esc(safeUrl(url)) + '" target="_blank" rel="noopener" style="text-decoration:none;display:block">' + esc(item.title || 'Untitled') + '</a>' +
         '<div class="related-item-meta">' + [esc(authorStr), esc(item.year), esc((item.journal && item.journal.name) || '')].filter(Boolean).join(' · ') + esc(cites) + '</div>' +
       '</div>';
     }).join('');
@@ -4934,12 +5488,36 @@ function loadScopusKey() {
 }
 
 
+// Scopus uses "AND NOT" for exclusion (a bare "NOT" is a syntax error there).
+// Convert any standalone NOT to AND NOT without producing "AND AND NOT".
+function scopusNegation(q) {
+  if (!q) return q;
+  return q
+    .replace(/\s+NOT\s+/gi, ' AND NOT ')
+    .replace(/\b(AND|OR)\s+AND\s+NOT\b/gi, '$1 NOT');
+}
+
 function fetchScopus(query, maxResults, dateFrom, dateTo) {
   if (!scopusApiKey) return Promise.reject(new Error('No Scopus API key'));
 
-  // Build Scopus query — use TITLE-ABS-KEY for keyword search
-  // Convert plain text query to basic Scopus syntax
-  var scopusQ = 'TITLE-ABS-KEY(' + query + ')';
+  // Build Scopus query.
+  // 1. Scopus negation is "AND NOT", not a bare "NOT".
+  // 2. Only wrap in TITLE-ABS-KEY(...) when the query isn't already field-scoped,
+  //    otherwise a user-supplied (or prefilled) TITLE-ABS-KEY(...) gets double-wrapped
+  //    into TITLE-ABS-KEY(TITLE-ABS-KEY(...)) and fails.
+  var q = scopusNegation((query || '').trim());
+  // INDEXTERMS() is not available to standard Scopus API keys — it triggers
+  // "Use of certain field restrictions ... is not allowed for this requestor" (INVALID_INPUT)
+  // and the whole search fails. TITLE-ABS-KEY already covers indexed + author keywords, so
+  // fold any INDEXTERMS(...) group into it: the terms are still searched, the forbidden
+  // field restriction is gone. (Entitled institutional keys lose only INDEXTERMS' extra
+  // precision, which TITLE-ABS-KEY largely subsumes.)
+  q = q.replace(/\bINDEXTERMS\s*\(/gi, 'TITLE-ABS-KEY(');
+  // Detect a real Scopus field code immediately before a "(" — but never treat the
+  // Boolean operators AND/OR/NOT as field codes (otherwise "concept AND (...)" looks
+  // field-scoped and the TITLE-ABS-KEY wrap is wrongly skipped, breaking the search).
+  var alreadyFieldScoped = /\b(?!AND\b|OR\b|NOT\b)[A-Z][A-Z\-]{2,}\s*\(/.test(q);
+  var scopusQ = alreadyFieldScoped ? q : 'TITLE-ABS-KEY(' + q + ')';
   if (dateFrom) scopusQ += ' AND PUBYEAR > ' + (parseInt(dateFrom) - 1);
   if (dateTo)   scopusQ += ' AND PUBYEAR < ' + (parseInt(dateTo)   + 1);
 
@@ -4961,7 +5539,30 @@ function fetchScopus(query, maxResults, dateFrom, dateTo) {
 
   return fetchWithFallback(url).then(function(r) { return r.json(); })
     .then(function(data) {
-      var entries = (data['search-results'] && data['search-results']['entry']) || [];
+      // ── Surface Scopus API errors instead of silently returning zero results ──
+      // When Scopus rejects a query (too long/complex, bad field code, auth/quota), it
+      // replies with a service-error envelope that carries NO search-results. Previously
+      // that fell through to an empty array and looked identical to a genuine "0 hits",
+      // hiding the real cause. Detect the error shapes and throw the message so the
+      // status pill shows what actually went wrong.
+      if (data && data['service-error']) {
+        var se = data['service-error'].status || data['service-error'];
+        throw new Error('Scopus rejected the query: ' + (se.statusText || se.statusCode || JSON.stringify(se)));
+      }
+      if (data && data['error-response']) {
+        var er = data['error-response'];
+        throw new Error('Scopus error: ' + (er['error-message'] || er['error-code'] || 'request rejected'));
+      }
+      var sr = data && data['search-results'];
+      if (!sr) throw new Error('Scopus returned an unexpected response (no search-results) — the query may be too long or malformed');
+      var entries = sr['entry'] || [];
+      // Scopus reports a genuine empty result set as a single entry whose only field is
+      // "error" = "Result set was empty". That is NOT an error — return []. Any OTHER
+      // single-entry error means the query itself was rejected, so surface it.
+      if (entries.length === 1 && entries[0] && entries[0].error && !entries[0]['dc:title']) {
+        if (/empty|no\s*result/i.test(entries[0].error)) return [];
+        throw new Error('Scopus rejected the query: ' + entries[0].error);
+      }
       return entries.filter(function(e) {
         return e && e['dc:title'] && e['dc:title'] !== 'No Results Found';
       }).map(function(e) {
@@ -5012,6 +5613,48 @@ function mapScopusType(subtype) {
 // ══════════════════════════════════════════════
 // CLINICALTRIALS.GOV API (v2 / AACT)
 // ══════════════════════════════════════════════
+
+// Quote multi-word phrases in a keyword boolean string. ClinicalTrials.gov only
+// does exact phrase matching when a term is quoted; unquoted multi-word terms get
+// "relaxed" matching plus UMLS synonym expansion, which balloons the result set
+// with loosely-related trials. Already-quoted spans, single words, operators and
+// parentheses are left untouched.
+function quoteMultiwordTerms(q) {
+  var WORD = "\\b(?!(?:AND|OR|NOT)\\b)[A-Za-z0-9][\\w*?'\\-]*";
+  var multiRe = new RegExp(WORD + '(?:\\s+' + WORD + ')+', 'g'); // 2+ consecutive non-operator words
+  var out = '', i = 0;
+  while (i < q.length) {
+    if (q[i] === '"') {                          // copy quoted spans verbatim
+      var end = q.indexOf('"', i + 1);
+      if (end === -1) { out += q.slice(i); break; }
+      out += q.slice(i, end + 1); i = end + 1;
+    } else {
+      var nq = q.indexOf('"', i);
+      var segEnd = nq === -1 ? q.length : nq;
+      out += q.slice(i, segEnd).replace(multiRe, function(m){ return '"' + m + '"'; });
+      i = segEnd;
+    }
+  }
+  return out;
+}
+
+// Adapt a PubMed-derived keyword query for the ClinicalTrials.gov registry:
+//  1. Drop the trailing study-design/methodology AND-group. Every record here is
+//     already a trial, so design terms ("randomized controlled trial", "cohort
+//     studies"...) add no signal and only pull in loosely-related studies.
+//  2. Quote multi-word phrases so matching is exact rather than relaxed+synonym.
+function clinicalTrialsQuery(raw) {
+  var q = (raw || '').trim();
+  if (!q) return q;
+  var DESIGN = /(randomi|controlled clinical trial|systematic review|meta[- ]?analysis|cohort stud|case[- ]control|observational stud|sensitivity and specificity|diagnostic accuracy)/i;
+  var trailing = q.match(/\s+AND\s+\(([^()]+)\)\s*$/i);
+  if (trailing && DESIGN.test(trailing[1])) {
+    var stripped = q.slice(0, trailing.index).trim();
+    if (stripped) q = stripped;                 // never strip down to nothing
+  }
+  return quoteMultiwordTerms(q);
+}
+
 function fetchClinicalTrials(query, maxResults, dateFrom, dateTo) {
   var limit = Math.min(maxResults || 50, 1000);
 
@@ -5019,7 +5662,7 @@ function fetchClinicalTrials(query, maxResults, dateFrom, dateTo) {
   // IMPORTANT: query.term must appear only ONCE — do not use params.append for it.
   // Date filtering goes in filter.advanced with AREA[]/RANGE[] syntax.
   var params = new URLSearchParams({
-    'query.term': query,
+    'query.term': clinicalTrialsQuery(query),
     'pageSize': String(limit),
     'format': 'json',
     'countTotal': 'true'
@@ -5197,6 +5840,24 @@ function checkAlertForNew(i, btn) {
 // ══════════════════════════════════════════════
 // CSV EXPORT
 // ══════════════════════════════════════════════
+// Human-readable scan depth for export. After agent analysis scanDepth is
+// 'agent', so the actual text the agent read lives in p.agentTextSource —
+// without this, every agent-analysed paper wrongly reads "Abstract only".
+function csvScanDepth(p) {
+  if (p.scanDepth === 'agent') {
+    var src = (p.agentTextSource || '').toLowerCase();
+    if (src.indexOf('pmc') !== -1) return 'AI agent (PMC full text)';
+    if (src.indexOf('pdf') !== -1) return 'AI agent (PDF full text)';
+    if (src.indexOf('full text') !== -1 || src.indexOf('supplementary') !== -1) return 'AI agent (full text)';
+    return 'AI agent (abstract only)';
+  }
+  if (p.scanDepth === 'full') return 'Full text (PMC)';
+  if (p.scanDepth === 'pdf') return 'Full text (PDF)';
+  if (p.scanDepth === 'pdf-blocked') return 'Abstract (PDF unreadable)';
+  if (p.scanDepth === 'no-pdf') return 'Abstract (no PDF found)';
+  return 'Abstract only';
+}
+
 function exportCSV() {
   if (!papers.length) return;
   // Dynamic headers: one column per criterion
@@ -5204,7 +5865,11 @@ function exportCSV() {
   var clHeaders = Object.keys(CHECKLISTS).map(function(k){ return CHECKLISTS[k].short + ' Score %'; });
   var headers = ["PMID","Title","Authors","Year","Journal","DOI","Study Type","Sources","Citations","Criteria Score %","Criteria Passed","Scan Depth"].concat(critHeaders).concat(clHeaders).concat(["Selected Checklist","Manual Tags","Notes","Abstract","PubMed Link","Free Full Text URL","Full Text Source"]);
 
-  var sorted = papers.slice().sort(function(a,b){ return b.score - a.score; });
+  // Export in the same order shown on screen. After agent analysis the active
+  // sort is 'agent_rank', so this exports by agent score — matching the list —
+  // instead of the stale first-pass keyword score.
+  var sortBy = (document.getElementById('sort-by') || {}).value || 'score';
+  var sorted = papers.slice().sort(paperSortComparator(sortBy));
   var rows = sorted.map(function(p) {
     var critCols = scanCriteria.map(function(c, i) {
       if (!p.scanResults || !p.scanResults[i]) return 'N/A';
@@ -5215,13 +5880,13 @@ function exportCSV() {
       return sc !== null ? sc.pct + '%' : '';
     });
     return [
-      p.pmid, p.title, p.authors.join('; '), p.year, p.journal, p.doi, p.studyType,
+      p.pmid, p.title, (Array.isArray(p.authors) ? p.authors.join('; ') : (p.authors || '')), p.year, p.journal, p.doi, p.studyType,
       (p.sources || [p.source || 'PubMed']).join('; '),
       p.citationCount !== null && p.citationCount !== undefined ? p.citationCount : '',
-      p.score, p.passedCriteria + '/' + p.totalCriteria, p.scanDepth === 'full' ? 'Full text (PMC)' : p.scanDepth === 'pdf' ? 'Full text (PDF)' : 'Abstract only'
+      p.score, p.passedCriteria + '/' + p.totalCriteria, csvScanDepth(p)
     ].concat(critCols).concat(clCols).concat([
       p.selectedChecklist ? (CHECKLISTS[p.selectedChecklist] ? CHECKLISTS[p.selectedChecklist].name : '') : '',
-      p.manualTags.join('; '), p.notes, p.abstract,
+      (Array.isArray(p.manualTags) ? p.manualTags.join('; ') : ''), p.notes, p.abstract,
       'https://pubmed.ncbi.nlm.nih.gov/' + p.pmid + '/', p.fullTextUrl||'', p.fullTextSource||''
     ]).map(function(v){ return '"' + String(v||'').replace(/"/g,'""') + '"'; });
   });
@@ -5527,7 +6192,7 @@ function fetchFullTextLinks() {
       p.fullTextSource = result ? result.source : null;
       if (!el) return;
       if (result) {
-        el.innerHTML = '<a class="pdf-btn" href="' + result.url + '" target="_blank">&#128196; Free PDF <span style="font-size:9px;opacity:0.7">(' + result.source + ')</span></a>';
+        el.innerHTML = '<a class="pdf-btn" href="' + esc(safeUrl(result.url)) + '" target="_blank">&#128196; Free PDF <span style="font-size:9px;opacity:0.7">(' + esc(result.source) + ')</span></a>';
         // Option C: do NOT eagerly fetch/parse the PDF here — that caused tab
         // crashes on large searches (100+ concurrent PDF.js loads in memory).
         // Heavy extraction is now deferred to (a) agent run, or (b) card expand.
@@ -5642,7 +6307,7 @@ async function parseReferencesWithAI(refText) {
     var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': openAIKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
     });
     if (!response.ok) { var err = await response.json().catch(function(){ return {}; }); throw new Error('Anthropic ' + response.status + ': ' + ((err.error && err.error.message) || 'unknown')); }
     var data = await response.json();
@@ -5674,7 +6339,7 @@ function rankReferences(refs) {
 async function runReferenceScanner() {
   if (!uploaderFile) { setUploaderStatus('Please select a PDF first.', '#ef4444'); return; }
   if (!hasValidKey()) {
-    setUploaderStatus('An OpenAI API key is required for reference scanning.', '#ef4444');
+    setUploaderStatus('An ' + (aiProvider === 'anthropic' ? 'Anthropic' : 'OpenAI') + ' API key is required for reference scanning.', '#ef4444');
     return;
   }
 
@@ -6223,7 +6888,8 @@ function renderProjDetail() {
       ? '<button class="proj-agent-btn" id="proj-agent-btn-' + esc(p.pmid) + '" onclick="runProjPaperAgent(\'' + esc(currentProjectId) + '\',\'' + esc(p.pmid) + '\')">🤖 Run AI Analysis</button> '
       : '';
 
-    return '<div class="proj-paper-card" id="proj-card-' + esc(p.pmid) + '">' +
+    return '<div class="proj-paper-card' + (p.retracted ? ' retracted-card' : '') + '" id="proj-card-' + esc(p.pmid) + '">' +
+      (p.retracted ? retractionBannerHtml(p) : '') +
       '<button class="proj-remove-btn" onclick="removePaperFromProject(\'' + esc(currentProjectId) + '\',\'' + esc(p.pmid) + '\')" title="Remove from project">&#10005; Remove</button>' +
       '<div class="proj-paper-title">' + esc(p.title || '(Untitled)') + '</div>' +
       (meta ? '<div class="proj-paper-meta">' + esc(meta) + '</div>' : '') +
@@ -6478,6 +7144,9 @@ async function runProjPaperAgent(projectId, pmid) {
     p.selectedChecklist = fakePaper.selectedChecklist || p.selectedChecklist;
     p.biasToolUsed     = fakePaper.biasToolUsed || p.biasToolUsed;
     p.score            = fakePaper.score || p.score;
+    p.retracted        = fakePaper.retracted || p.retracted;
+    p.retractionInfo   = fakePaper.retractionInfo || p.retractionInfo;
+    p.retractionChecked = fakePaper.retractionChecked || p.retractionChecked;
     saveProjects();
     showToast('🤖 Analysis complete for "' + (p.title || 'paper').slice(0,40) + '…"', '#a78bfa');
     renderProjDetail(); // re-render to show results
@@ -6736,6 +7405,7 @@ function renderUploaderResults(p, clKey, alsoRob2, title) {
   var BIAS_TOOLS = { ROB2:1, ROBINS2:1, NOS:1, JADAD:1 };
 
   var html = '';
+  if (p.retracted) html += retractionBannerHtml(p);
   clDefs.forEach(function(ck) {
     var cl = CHECKLISTS[ck];
     if (!cl) return;
@@ -6885,6 +7555,20 @@ function renderUploaderChecklistItems(p, ck) {
 // Stored uploader papers by pmid (so we can update live)
 var uploaderPapers = {};
 
+// Pull the first plausible DOI out of free text (e.g. an uploaded PDF's first page).
+// Crossref / Retraction Watch are DOI-keyed, so this lets uploaded PDFs be checked
+// for retraction during AI analysis just like database results are.
+function extractDoiFromText(text) {
+  if (!text) return null;
+  var DOI_RE = /10\.\d{4,9}\/[^\s"'<>)\]}]+/i;
+  // DOIs almost always sit in the header/footer of page 1 — look there first.
+  var m = String(text).slice(0, 4000).match(DOI_RE) || String(text).match(DOI_RE);
+  if (!m) return null;
+  var doi = m[0].replace(/[.,;:]+$/, '').replace(/\)+$/, '').trim();
+  // Validate against the same shape checkRetraction enforces (no spaces, printable).
+  return /^10[.][0-9]{4,}[!-~]+$/.test(doi) ? doi : null;
+}
+
 function runUploaderWithText(text, clKey, alsoRob2, title, studyType) {
   setUploaderStatus('Running checklist…', '#64748b');
   setUploaderProgress(90);
@@ -6893,6 +7577,7 @@ function runUploaderWithText(text, clKey, alsoRob2, title, studyType) {
   var fakePaper = {
     pmid: pmid, title: title, studyType: studyType,
     fullText: text, abstract: text, scanDepth: 'pdf',
+    doi: extractDoiFromText(text) || '',
     checklists: {}, selectedChecklist: clKey,
     authors: [], year: '', journal: '', score: 0,
     scanResults: [], passedCriteria: 0, totalCriteria: 0,
@@ -7031,7 +7716,7 @@ function hasValidKey() {
 }
 
 function activeModel() {
-  return aiProvider === 'anthropic' ? 'claude-sonnet-4-6' : 'gpt-5';
+  return aiProvider === 'anthropic' ? 'claude-opus-4-8' : 'gpt-5';
 }
 
 function setAiProvider(provider) {
@@ -7177,6 +7862,7 @@ function startAgentAnalysis() {
   }
   throttledQueue(papersWithDoi, 80, function(p) {
     return checkRetraction(p).then(function(info) {
+      p.retractionChecked = true;
       if (info && info.retracted) {
         applyRetractionBadge(p, info);
         agentStats.retracted = (agentStats.retracted || 0) + 1;
@@ -7196,10 +7882,10 @@ function startAgentAnalysis() {
             '</div>' +
             '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
               '<span style="background:#7f1d1d;color:#fca5a5;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">RETRACTED</span>' +
-              (info.date ? '<span style="color:#9ca3af;font-size:11px">📅 ' + info.date + '</span>' : '') +
-              '<span style="color:#9ca3af;font-size:11px">🔍 ' + info.source + '</span>' +
+              (info.date ? '<span style="color:#9ca3af;font-size:11px">📅 ' + esc(info.date) + '</span>' : '') +
+              '<span style="color:#9ca3af;font-size:11px">🔍 ' + esc(info.source || 'Crossref') + '</span>' +
               (info.reason ? '<span style="color:#fbbf24;font-size:11px">Reason: ' + esc(info.reason) + '</span>' : '') +
-              (info.noticeDoi ? (safeDoi(info.noticeDoi) ? '<a href="' + safeDoi(info.noticeDoi) + '" target="_blank" style="color:#f87171;font-size:11px;text-decoration:underline">Retraction notice ↗</a>' : '') : '') +
+              (info.noticeDoi ? (safeDoi(info.noticeDoi) ? '<a href="' + esc(safeDoi(info.noticeDoi)) + '" target="_blank" style="color:#f87171;font-size:11px;text-decoration:underline">Retraction notice ↗</a>' : '') : '') +
             '</div>';
           list.appendChild(item);
         }
@@ -7372,6 +8058,37 @@ function throttledQueue(items, delayMs, asyncFn) {
   });
 }
 
+// Run a single paper through Retraction Watch / Crossref, exactly once, as part
+// of AI analysis. Non-blocking: any network/timeout failure resolves quietly and
+// never stops the analysis. Funnelled through analyseOneWithAgent so it fires for
+// every path — single result, project, PDF viewer, and the bulk queue.
+function ensureRetractionChecked(p) {
+  if (!p || p.retractionChecked || p.retracted || !p.doi) return Promise.resolve();
+  p.retractionChecked = true; // guard against duplicate/concurrent checks for this paper
+  return checkRetraction(p).then(function(info) {
+    if (info && info.retracted) {
+      applyRetractionBadge(p, info);            // sets p.retracted + (if visible) injects banner
+      try { refreshCardChecklist(p); } catch (e) {}
+    }
+  }).catch(function() { /* never block analysis on a retraction-check failure */ });
+}
+
+// Shared banner markup so the results card, project card, and the one-time
+// applyRetractionBadge insert all render identical retraction notices.
+function retractionBannerHtml(p) {
+  var info = p.retractionInfo || {};
+  var rwUrl = info.recordId ? 'https://retractionwatch.com/?s=' + encodeURIComponent(p.title || '') : null;
+  return '<div class="retraction-banner">' +
+    '\u26a0\ufe0f <strong>RETRACTED</strong>' +
+    (info.date ? ' &nbsp;\u00b7&nbsp; ' + esc(info.date) : '') +
+    ' &nbsp;\u00b7&nbsp; <span style="opacity:0.8">Source:</span> ' + esc(info.source || 'Crossref') +
+    (info.reason ? ' &nbsp;\u00b7&nbsp; <span style="opacity:0.8">Reason:</span> ' + esc(info.reason) : '') +
+    (info.noticeDoi
+      ? ' &nbsp;\u00b7&nbsp; <a href="https://doi.org/' + esc(info.noticeDoi) + '" target="_blank" style="color:#fca5a5;text-decoration:underline">Retraction notice \u2197</a>'
+      : (rwUrl ? ' &nbsp;\u00b7&nbsp; <a href="' + rwUrl + '" target="_blank" style="color:#fca5a5;text-decoration:underline">Retraction Watch \u2197</a>' : '')) +
+  '</div>';
+}
+
 function checkRetraction(p) {
   if (!p.doi) return Promise.resolve(null);
   if (!/^10[.][0-9]{4,}[!-~]+$/.test(String(p.doi).trim())) return Promise.resolve(null);
@@ -7428,20 +8145,7 @@ function applyRetractionBadge(p, retractionInfo) {
   var card = document.getElementById('card-' + p.pmid);
   if (!card) return;
   if (!card.querySelector('.retraction-banner')) {
-    var rwUrl = retractionInfo.recordId
-      ? 'https://retractionwatch.com/?s=' + encodeURIComponent(p.title || '')
-      : null;
-    var banner = document.createElement('div');
-    banner.className = 'retraction-banner';
-    banner.innerHTML =
-      '⚠️ <strong>RETRACTED</strong>' +
-      (retractionInfo.date ? ' &nbsp;·&nbsp; ' + retractionInfo.date : '') +
-      ' &nbsp;·&nbsp; <span style="opacity:0.8">Source:</span> ' + retractionInfo.source +
-      (retractionInfo.reason ? ' &nbsp;·&nbsp; <span style="opacity:0.8">Reason:</span> ' + retractionInfo.reason : '') +
-      (retractionInfo.noticeDoi
-        ? ' &nbsp;·&nbsp; <a href="https://doi.org/' + retractionInfo.noticeDoi + '" target="_blank" style="color:#fca5a5;text-decoration:underline">Retraction notice ↗</a>'
-        : (rwUrl ? ' &nbsp;·&nbsp; <a href="' + rwUrl + '" target="_blank" style="color:#fca5a5;text-decoration:underline">Retraction Watch ↗</a>' : ''));
-    card.insertBefore(banner, card.firstChild);
+    card.insertAdjacentHTML('afterbegin', retractionBannerHtml(p));
   }
   card.classList.add('retracted-card');
 }
@@ -7492,13 +8196,13 @@ function runRetractionSweep() {
             '</div>' +
             '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">' +
               '<span style="background:#991b1b;color:#fca5a5;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.05em">RETRACTED</span>' +
-              (info.date   ? '<span style="color:#9ca3af;font-size:11px">📅 ' + info.date + '</span>' : '') +
-              '<span style="color:#9ca3af;font-size:11px">🔍 ' + info.source + '</span>' +
+              (info.date   ? '<span style="color:#9ca3af;font-size:11px">📅 ' + esc(info.date) + '</span>' : '') +
+              '<span style="color:#9ca3af;font-size:11px">🔍 ' + esc(info.source || 'Crossref') + '</span>' +
               (info.reason ? '<span style="color:#fbbf24;font-size:11px;max-width:400px">Reason: ' + esc(info.reason) + '</span>' : '') +
               (info.noticeDoi
-                ? (safeDoi(info.noticeDoi) ? '<a href="' + safeDoi(info.noticeDoi) + '" target="_blank" style="color:#f87171;font-size:11px;text-decoration:underline">Retraction notice ↗</a>' : '')
+                ? (safeDoi(info.noticeDoi) ? '<a href="' + esc(safeDoi(info.noticeDoi)) + '" target="_blank" style="color:#f87171;font-size:11px;text-decoration:underline">Retraction notice ↗</a>' : '')
                 : '<a href="https://retractionwatch.com/?s=' + encodeURIComponent((p.title||'').slice(0,60)) + '" target="_blank" style="color:#f87171;font-size:11px;text-decoration:underline">Search Retraction Watch ↗</a>') +
-              (p.doi ? '<a href="https://doi.org/' + p.doi + '" target="_blank" style="color:#6b7280;font-size:11px">DOI ↗</a>' : '') +
+              (safeDoi(p.doi) ? '<a href="' + esc(safeDoi(p.doi)) + '" target="_blank" style="color:#6b7280;font-size:11px">DOI ↗</a>' : '') +
             '</div>';
           list.appendChild(item);
         }
@@ -7626,6 +8330,7 @@ async function analyseOneWithAgent(p, questionOverride) {
   // in 'agent-processing' (which hides its checklist pill and re-run button).
   var _priorDepth = (p.scanDepth && p.scanDepth !== 'agent-processing') ? p.scanDepth : 'abstract';
   try {
+    await ensureRetractionChecked(p);   // every analysis path also hits Retraction Watch
     return await _analyseOneWithAgentInner(p, questionOverride);
   } catch (err) {
     // If no analysis path succeeded, applyAgentResults never set 'agent'.
@@ -7749,7 +8454,7 @@ async function callOpenAIWithPdfUrl(pdfUrl, prompts) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': openAIKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-8',
         max_tokens: 4000,
         messages: [{
           role: 'user',
@@ -7822,7 +8527,7 @@ async function callOpenAIWithText(text, prompts, p, textSource) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-8',
         max_tokens: 8000,
         system: prompts.systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
@@ -8538,6 +9243,140 @@ document.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════════
 // EVIDENTUM — splash, PWA, OpenAI account sign-in (OAuth 2.0 + PKCE)
 // ══════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════════
+// AI TRANSLATION — per-database, on the workbench
+// Sits beside the deterministic "from PubMed" button. The AI runs ONCE, here,
+// at authoring time; its output lands in the editable bar for review and is
+// recorded with provenance so freeze captures how each query was made. The AI
+// is given the concept blocks as the logical skeleton it must preserve.
+// ══════════════════════════════════════════════════════════════════════════
+var wbProvenance = {}; // gid -> { method:'deterministic'|'ai'|'ai-edited'|'manual', model, at, addedTerms[], notes }
+
+function evModelName(){ return aiProvider === 'anthropic' ? 'claude-opus-4-8' : 'gpt-5'; }
+
+// Target-database syntax guidance for the translator.
+function evDbTranslationSpec(gid){
+  if (gid === 'epmc') return {
+    label: 'Europe PMC + Cochrane',
+    instr: 'Target: Europe PMC query syntax. Use Europe PMC field codes (e.g. TITLE_ABS:"...", MESH:"...", AUTH:"...") with Boolean AND/OR/NOT and parentheses, plus quoted phrases. Map MeSH to Europe PMC MESH: where a clear equivalent exists, otherwise keep as TITLE_ABS free text. CRITICAL: EVERY search term MUST carry a field code (TITLE_ABS: or MESH:). Never emit a bare/unscoped word or phrase — in Europe PMC a bare term searches the entire full body text and floods the results with off-topic papers. Do NOT use PubMed [tag] bracket syntax.'
+  };
+  if (gid === 'scopus') return {
+    label: 'Scopus',
+    instr: 'Target: Scopus advanced search. Field-scope EVERY keyword concept inside TITLE-ABS-KEY( ... ). Do NOT use INDEXTERMS( ... ) — it is not available to standard Scopus API keys and makes the whole query fail; TITLE-ABS-KEY already covers indexed and author keywords, so put controlled-vocabulary equivalents there too. Use AND NOT (never a bare NOT) for exclusion; truncation * and quoted phrases as appropriate. Do NOT use PubMed [tag] bracket syntax.'
+  };
+  return {
+    label: 'Keyword engines',
+    instr: 'Target: a plain natural-language keyword query for general engines (Semantic Scholar, OpenAlex, ClinicalTrials.gov). Keep the core concepts joined with simple Boolean AND/OR. No field tags, no controlled-vocabulary codes, no database-specific operators.'
+  };
+}
+
+// Lightweight structural validation — catches the common hallucination/format failures.
+function evValidateTranslatedQuery(q, gid){
+  if (!q || !q.trim()) return { ok: false, reason: 'empty query' };
+  var opens = (q.match(/\(/g) || []).length, closes = (q.match(/\)/g) || []).length;
+  if (opens !== closes) return { ok: false, reason: 'unbalanced parentheses' };
+  if (((q.match(/"/g) || []).length) % 2 !== 0) return { ok: false, reason: 'unbalanced quotes' };
+  if (/\[[a-z][a-z\/ ]{1,18}\]/i.test(q)) return { ok: false, reason: 'leftover PubMed [field] tags' };
+  if (gid === 'keyword' && /[A-Z_]+:\S/.test(q)) return { ok: false, reason: 'field operators in a plain-keyword query' };
+  return { ok: true };
+}
+
+// Mark a bar as manually edited (programmatic prefill/AI sets value without firing this).
+function evMarkEdited(gid){
+  var prev = wbProvenance[gid] && wbProvenance[gid].method;
+  wbProvenance[gid] = { method: (prev === 'ai' || prev === 'ai-edited') ? 'ai-edited' : 'manual', at: new Date().toISOString() };
+  evRenderWbNote(gid);
+}
+
+function evRenderWbNote(gid){
+  var el = document.getElementById('wbnote-' + gid);
+  if (!el) return;
+  var pv = wbProvenance[gid];
+  if (!pv){ el.innerHTML = ''; return; }
+  var chip = {
+    deterministic: ['#7dd3fc', '\u21c4 deterministic'],
+    ai:            ['#a78bfa', '\u2728 AI (' + esc(pv.model || 'model') + ')'],
+    'ai-edited':   ['#fbbf24', '\u2728 AI, hand-edited'],
+    manual:        ['#94a3b8', '\u270e manual']
+  }[pv.method] || ['#94a3b8', pv.method];
+  var html = '<span style="color:' + chip[0] + ';border:1px solid ' + chip[0] + '44;border-radius:4px;padding:1px 6px">' + chip[1] + '</span>';
+  if (pv.addedTerms && pv.addedTerms.length){
+    html += ' <span style="color:#64748b">added for review:</span> ' +
+      pv.addedTerms.slice(0,12).map(function(t){ return '<span style="color:#cbd5e1">' + esc(t) + '</span>'; }).join('<span style="color:#475569">, </span>');
+  }
+  if (pv.notes) html += ' <span style="color:#64748b">\u00b7 ' + esc(pv.notes) + '</span>';
+  el.innerHTML = html;
+}
+
+async function evAITranslate(gid){
+  if (gid === 'pubmed') return;
+  var pubmedQ = (document.getElementById('wbq-pubmed') && document.getElementById('wbq-pubmed').value.trim())
+             || (document.getElementById('query-input') && document.getElementById('query-input').value.trim()) || '';
+  if (!pubmedQ){ showToast('Build a PubMed strategy first, then enhance from it', '#f59e0b'); return; }
+  if (!hasValidKey()){
+    showToast('No API key \u2014 using the deterministic translation instead', '#f59e0b');
+    if (typeof prefillWb === 'function') prefillWb(gid);
+    return;
+  }
+
+  var spec = evDbTranslationSpec(gid);
+  var inp = document.getElementById('wbq-' + gid);
+  var aiBtn = document.getElementById('wbai-' + gid);
+  var note = document.getElementById('wbnote-' + gid);
+  if (note) note.innerHTML = '<span class="spinner"></span> AI translating to ' + esc(spec.label) + '\u2026';
+  if (aiBtn){ aiBtn.disabled = true; aiBtn.style.opacity = '0.6'; }
+
+  var blockLines = (Array.isArray(buildBlocks) && buildBlocks.length)
+    ? buildBlocks.map(function(b){ return '- ' + b.concept + ': ' + b.terms.map(function(t){ return t.term; }).join(', '); }).join('\n')
+    : '(no explicit concept blocks; infer the concepts from the query structure)';
+
+  var sys = 'You are an expert medical librarian translating a validated PubMed/MEDLINE search strategy into the native syntax of another database for a systematic review. '
+    + 'CRITICAL CONSTRAINTS: (1) Preserve the Boolean logic and the exact set of concepts \u2014 same concepts, same AND/OR/NOT structure and nesting. Do NOT add or remove a concept or restriction. '
+    + '(2) Only adapt field syntax to the target database and, within the SAME concepts, map controlled vocabulary to the target thesaurus and add clearly-equivalent synonyms. '
+    + '(3) Every term you add must belong to an existing concept; list each addition so a human can review it. '
+    + spec.instr + '\n\n'
+    + 'Respond ONLY with JSON, no markdown: {"query":"<translated query>","added_terms":["term \u2014 which concept / why"],"notes":"<=1 short caveat, or empty string"}';
+
+  var user = 'PubMed/MEDLINE strategy:\n' + pubmedQ + '\n\n'
+    + 'Concept blocks (this is the logical skeleton \u2014 preserve it exactly):\n' + blockLines + '\n\n'
+    + 'Translate to ' + spec.label + ' now.';
+
+  try {
+    var parsed = await callBuilderAgent(sys, user);
+    var q = (parsed && parsed.query ? String(parsed.query) : '').trim();
+    // Europe PMC: scope any bare term the model emitted to TITLE_ABS so it can't
+    // silently degrade to a full-text search and drag in off-topic papers. Done
+    // before validation/display so the bar shows exactly what will run.
+    var scopeNote = '';
+    if (gid === 'epmc') {
+      var fixed = parenEachEuropePMCClause(fixEuropePMCPhraseWildcards(scopeBareEuropePMCTerms(q)));
+      if (fixed !== q) { q = fixed; scopeNote = 'normalised for Europe PMC (scoped, phrase wildcards, per-clause parentheses)'; }
+    }
+    var v = evValidateTranslatedQuery(q, gid);
+    if (!v.ok){
+      if (note) note.innerHTML = '<span style="color:#fca5a5">\u2715 AI output rejected (' + esc(v.reason) + ') \u2014 falling back to deterministic</span>';
+      if (typeof prefillWb === 'function') prefillWb(gid);
+      return;
+    }
+    if (inp) inp.value = q;
+    wbQueries[gid] = q;
+    var aiNotes = parsed.notes ? String(parsed.notes) : '';
+    if (scopeNote) aiNotes = aiNotes ? (aiNotes + ' \u00b7 ' + scopeNote) : scopeNote;
+    wbProvenance[gid] = {
+      method: 'ai', model: evModelName(), at: new Date().toISOString(),
+      addedTerms: Array.isArray(parsed.added_terms) ? parsed.added_terms.slice(0,30) : [],
+      notes: aiNotes, source: pubmedQ
+    };
+    evRenderWbNote(gid);
+    showToast('\u2728 AI-translated to ' + spec.label + ' \u2014 review before running', '#a78bfa');
+  } catch(e){
+    if (note) note.innerHTML = '<span style="color:#fca5a5">\u2715 ' + esc(e.message || 'AI translation failed') + ' \u2014 try the deterministic button</span>';
+  } finally {
+    if (aiBtn){ aiBtn.disabled = false; aiBtn.style.opacity = '1'; }
+  }
+}
+
 (function evSplash() {
   var splash = document.getElementById('ev-splash');
   if (!splash) return;
