@@ -5,7 +5,7 @@ Search across major biomedical databases, screen and de-duplicate results, run A
 
 > **Status:** Beta. Features and interfaces are still changing between builds.
 
-🔗 **Live:** https://ankianaesthesia.github.io/pubmedsearch/
+🔗 **Live:** https://ankianaesthesia.github.io/evidentum/
 
 ---
 
@@ -58,8 +58,8 @@ Pick a model per provider in Settings (or enter a custom model ID). The active m
 No install needed — just open the live link. To run it yourself:
 
 ```bash
-git clone https://github.com/AnkiAnaesthesia/pubmedsearch.git
-cd pubmedsearch
+git clone https://github.com/AnkiAnaesthesia/evidentum.git
+cd evidentum
 # open index.html in a browser, or serve locally:
 python3 -m http.server 8000
 # then visit http://localhost:8000

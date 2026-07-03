@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Evidentum in your review, please cite it as below."
+title: "Evidentum: a self-contained systematic review search and appraisal workbench"
+type: software
+authors:
+  - family-names: McNally
+    given-names: Angus
+version: 1.0.0-beta
+date-released: "2026-07-03"
+url: "https://ankianaesthesia.github.io/evidentum/"
+repository-code: "https://github.com/AnkiAnaesthesia/evidentum"
+license: MIT
+keywords:
+  - systematic review
+  - evidence synthesis
+  - critical appraisal
+  - risk of bias
+  - PRISMA
