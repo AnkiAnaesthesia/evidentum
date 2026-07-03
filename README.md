@@ -7,6 +7,8 @@ Search across major biomedical databases, screen and de-duplicate results, run A
 
 🔗 **Live:** https://ankianaesthesia.github.io/evidentum/
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21159986.svg)](https://doi.org/10.5281/zenodo.21159986)
+
 ---
 
 ## What it does
@@ -101,6 +103,12 @@ Evidentum is a research aid, not a substitute for methodological judgement. AI-g
 Appraisal instruments are reproduced for use within the app with attribution to their authors; tools under a NonCommercial-NoDerivatives licence are reproduced verbatim and used only because this tool is non-commercial. See the in-app **Settings → References & licences** panel for full citations and licence terms, and always consult the original source for full guidance.
 
 ---
+
+## How to cite
+
+If you use Evidentum in a review, please cite it (or use GitHub's *Cite this repository* button):
+
+> McNally A. *Evidentum: a self-contained systematic review search and appraisal workbench* (v1.0.0-beta). Zenodo. https://doi.org/10.5281/zenodo.21159986
 
 ## Acknowledgements
 
