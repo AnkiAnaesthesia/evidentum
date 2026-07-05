@@ -1653,6 +1653,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <button onclick="applyCriteriaToResults()" style="margin-left:auto;font-size:12px;padding:8px 18px;border-radius:7px;border:none;background:#22c55e;color:#04210f;cursor:pointer;font-weight:700">Apply &amp; re-score &#8594;</button>
   </div>
 </div>
+
+<!-- Backup durability nudge (contents rendered by renderBackupNudge) -->
+<div id="backup-nudge" role="status" style="display:none; position:fixed; bottom:20px; left:20px; z-index:900; background:#0d1220; border:1px solid #f59e0b55; border-radius:10px; padding:12px 14px; max-width:360px; box-shadow:0 4px 20px rgba(0,0,0,0.5)"></div>
 <script>
 // ══════════════════════════════════════════════
 // STATE
@@ -10038,8 +10041,17 @@ function saveProjects() {
   try {
     localStorage.setItem(PROJ_STORE_KEY, JSON.stringify(projects));
     localStorage.setItem(PROJ_PAPERS_KEY, JSON.stringify(projectPapers));
+    bumpBackupCounter();
   } catch(e) {
     showToast('⚠️ Storage full — try removing some papers from projects.', '#f59e0b');
+  }
+  // Ask the browser to protect this origin's storage from automatic eviction
+  // (does nothing against a manual "clear site data" — that's what backups are
+  // for — but stops the silent under-storage-pressure eviction path). Silent in
+  // Chromium; once per session is plenty.
+  if (!saveProjects._persistAsked) {
+    saveProjects._persistAsked = true;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){}); } catch(e) {}
   }
 }
 
@@ -10110,6 +10122,7 @@ function exportFullBackup() {
     a.download = 'evidentum-backup-' + new Date().toISOString().slice(0, 10) + '.json';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    markBackupDone();
     showToast('Backup exported — ' + projects.length + ' project' + (projects.length !== 1 ? 's' : '') + ', ' + (assessments || []).length + ' assessment(s)', '#22c55e');
   }).catch(function(){ showToast('Backup failed', '#ef4444'); });
 }
@@ -10168,6 +10181,76 @@ function importFullBackup(input) {
   };
   reader.readAsText(file);
 }
+
+// ── Backup durability nudge ──────────────────────────────────────────────────
+// Projects live in per-origin browser storage, so one "clear browsing data"
+// erases months of screening. Every saveProjects() bumps a counter; once enough
+// un-backed-up work has accumulated (and any snooze has lapsed) a small fixed
+// banner offers a one-click full backup. The counter and timestamps live in
+// localStorage too — if the user clears storage the nudge dies with the data,
+// which is exactly why it nags *before* that happens, not after.
+var BACKUP_COUNT_KEY  = 'evidentum_changes_since_backup';
+var BACKUP_AT_KEY     = 'evidentum_last_backup_at';
+var BACKUP_SNOOZE_KEY = 'evidentum_backup_snooze_until';
+var BACKUP_NUDGE_THRESHOLD = 20;              // saves since last backup
+var BACKUP_RECENT_MS = 7 * 24 * 3600 * 1000;  // a backup this fresh silences the nudge
+
+// Pure decision: should the nudge show, and why. All times in epoch ms.
+function backupNudgeState(changes, lastBackupAt, snoozedUntil, now) {
+  if (snoozedUntil && now < snoozedUntil) return { show: false, reason: 'snoozed' };
+  if ((changes || 0) < BACKUP_NUDGE_THRESHOLD) return { show: false, reason: 'few-changes' };
+  if (lastBackupAt && (now - lastBackupAt) < BACKUP_RECENT_MS) return { show: false, reason: 'recent-backup' };
+  return {
+    show: true,
+    reason: lastBackupAt ? 'stale' : 'never',
+    days: lastBackupAt ? Math.floor((now - lastBackupAt) / (24 * 3600 * 1000)) : null
+  };
+}
+
+function bumpBackupCounter() {
+  try {
+    var n = (parseInt(localStorage.getItem(BACKUP_COUNT_KEY), 10) || 0) + 1;
+    localStorage.setItem(BACKUP_COUNT_KEY, String(n));
+  } catch(e) {}
+  renderBackupNudge();
+}
+function markBackupDone() {
+  try {
+    localStorage.setItem(BACKUP_AT_KEY, String(Date.now()));
+    localStorage.setItem(BACKUP_COUNT_KEY, '0');
+    localStorage.removeItem(BACKUP_SNOOZE_KEY);
+  } catch(e) {}
+  renderBackupNudge();
+}
+function snoozeBackupNudge() {
+  try { localStorage.setItem(BACKUP_SNOOZE_KEY, String(Date.now() + 24 * 3600 * 1000)); } catch(e) {}
+  renderBackupNudge();
+}
+function renderBackupNudge() {
+  var host = document.getElementById('backup-nudge');
+  if (!host) return;
+  var changes = 0, at = 0, snooze = 0;
+  try {
+    changes = parseInt(localStorage.getItem(BACKUP_COUNT_KEY), 10) || 0;
+    at      = parseInt(localStorage.getItem(BACKUP_AT_KEY), 10) || 0;
+    snooze  = parseInt(localStorage.getItem(BACKUP_SNOOZE_KEY), 10) || 0;
+  } catch(e) {}
+  var st = backupNudgeState(changes, at, snooze, Date.now());
+  if (!st.show) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  host.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:16px">&#128190;</span>' +
+      '<span style="font-size:11px;color:#e2e8f0;line-height:1.5">' + changes + ' change' + (changes === 1 ? '' : 's') + ' since your last backup' +
+        (st.reason === 'never' ? ' &mdash; you haven’t exported one yet' : ' &mdash; last backup ' + st.days + ' day' + (st.days === 1 ? '' : 's') + ' ago') +
+        '. Browser storage is the only copy.</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">' +
+      '<button onclick="snoozeBackupNudge()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #47556955;background:transparent;color:#94a3b8;cursor:pointer;font-family:inherit">Later</button>' +
+      '<button onclick="exportFullBackup()" style="font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid #16a34a55;background:#14271a;color:#4ade80;cursor:pointer;font-family:inherit;font-weight:700">&#8595; Back up now</button>' +
+    '</div>';
+}
+document.addEventListener('DOMContentLoaded', function() { renderBackupNudge(); });
 
 // ── Serialise a paper for storage ───────────────────────────────────────────
 function serialisePaper(p, source) {
