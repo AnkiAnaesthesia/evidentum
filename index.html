@@ -742,6 +742,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="exportFullBackup()" style="font-size:11px;padding:7px 12px;border-radius:6px;border:1px solid #16a34a55;background:#0d1220;color:#4ade80;cursor:pointer">&#8595; Export full backup</button>
         <label style="font-size:11px;padding:7px 12px;border-radius:6px;border:1px solid #3b82f655;background:#0d1220;color:#93c5fd;cursor:pointer">&#8593; Restore backup<input type="file" accept="application/json,.json" onchange="importFullBackup(this)" style="display:none"></label>
+        <label style="font-size:11px;padding:7px 12px;border-radius:6px;border:1px solid #c084fc55;background:#0d1220;color:#c084fc;cursor:pointer" title="Screen a colleague's project as Reviewer B on this computer: import the packet file they sent you, screen the records, then send your votes back with the export button that appears in the project">&#8646; Import reviewer packet<input type="file" accept="application/json,.json" onchange="importReviewerPacket(this)" style="display:none"></label>
       </div>
     </div>
 
@@ -11731,6 +11732,10 @@ function setProjPaperExclusionReason(projectId, pmid, val) {
 // Storage: p.reviews = { A: {decision, exclusionReason, reason, at}, B: {…} }.
 function dualLens(proj) {
   if (!proj || !proj.dualReviewer) return 'final';
+  // A satellite copy (imported reviewer packet) is locked to the B lens: there
+  // are no A votes or final decisions on this machine to adjudicate, and only
+  // B's votes travel back to the host.
+  if (proj.packetRole === 'B') return 'B';
   return proj.activeReviewer === 'B' ? 'B' : proj.activeReviewer === 'final' ? 'final' : 'A';
 }
 function projReviewEnsure(p, which) {
@@ -11819,6 +11824,14 @@ function renderDualBar() {
   var proj = projects.find(function(x){ return x.id === currentProjectId; });
   if (!proj) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
+  // Satellite copy: no lens chips, no toggle — screen as B and send the votes home.
+  if (proj.packetRole === 'B') {
+    bar.innerHTML =
+      '<span style="font-size:11px;color:#c084fc;font-weight:700">&#8646; Reviewer B packet</span>' +
+      '<span style="font-size:10px;color:#64748b">screen each record, then send your votes back to the host reviewer</span>' +
+      '<button onclick="exportVotesPacket()" title="Download your Reviewer B votes as a file to send back to the host reviewer" style="font-size:11px;padding:3px 12px;border-radius:12px;cursor:pointer;font-family:inherit;background:#c084fc;color:#0a0e1a;border:1px solid #c084fc;font-weight:700;margin-left:auto">&#8687; Export votes for host</button>';
+    return;
+  }
   var dual = !!proj.dualReviewer;
   var lens = dualLens(proj);
   function chip(val, label, color) {
@@ -11838,9 +11851,218 @@ function renderDualBar() {
     if (conflicts) html += '<span style="font-size:11px;color:#f87171">&#9876; ' + conflicts + ' conflict' + (conflicts === 1 ? '' : 's') + '</span>';
     var kap = computeDualKappa(currentProjectId);
     if (kap) html += '<span style="font-size:11px;color:#94a3b8" title="Cohen&#39;s kappa — inter-rater agreement over the ' + kap.n + ' records both reviewers have decided (Landis &amp; Koch benchmark)">&kappa; ' + kap.kappa.toFixed(2) + ' &middot; ' + kappaLabel(kap.kappa) + ' (' + kap.agreePct + '% raw, n=' + kap.n + ')</span>';
-    if (lens !== 'final') html += '<span style="font-size:10px;color:#64748b;margin-left:auto">blinded &mdash; the other reviewer&#39;s votes are hidden in this lens</span>';
+    html += '<span style="display:flex;gap:6px;align-items:center;margin-left:auto">' +
+      (lens !== 'final' ? '<span style="font-size:10px;color:#64748b">blinded &mdash; the other reviewer&#39;s votes are hidden in this lens</span>' : '') +
+      '<button onclick="exportReviewerPacket()" title="Export a blinded copy of this project for Reviewer B to screen on their own computer — your votes and final decisions are stripped from the file" style="font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;background:transparent;color:#94a3b8;border:1px solid #47556955">&#8687; Packet for B</button>' +
+      '<label title="Merge the votes file Reviewer B sent back into this project" style="font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;background:transparent;color:#94a3b8;border:1px solid #47556955">&#8689; Import B votes<input type="file" accept="application/json,.json" onchange="importVotesPacket(this)" style="display:none"></label>' +
+    '</span>';
   }
   bar.innerHTML = html;
+}
+
+// ── Two-machine dual review: reviewer packets ─────────────────────────────────
+// Dual-reviewer screening across two computers with no backend, in keeping with
+// the everything-in-one-file principle: the host (Reviewer A) exports a packet
+// file for Reviewer B, who imports it into Evidentum on their own machine,
+// screens under a locked B lens, and exports a votes file the host merges back.
+// The packet file is the blinding boundary — Reviewer A's votes and any final
+// decisions are stripped at export, not merely hidden by the UI. Vote merges
+// are newest-wins per record, so re-importing a stale file can never roll back
+// fresher work on either side. Known limitation: a vote B *retracts* (cleared
+// back to undecided) doesn't travel — only votes with content do; changing a
+// vote does travel.
+function buildReviewerPacket(proj, papers) {
+  var out = (papers || []).filter(Boolean).map(function(p) {
+    var c = JSON.parse(JSON.stringify(p));
+    delete c.decision; delete c.decisionAt; delete c.decisionAuto;
+    delete c.decisionReason; delete c.exclusionReason;
+    var b = c.reviews && c.reviews.B;              // B's own prior votes may return to them
+    if (b) c.reviews = { B: b }; else delete c.reviews;
+    return c;
+  });
+  return {
+    app: 'Evidentum', type: 'reviewer-packet', version: 1,
+    exportedAt: new Date().toISOString(),
+    projectId: proj.id, projectName: proj.name || '',
+    papers: out
+  };
+}
+// Packet papers are authoritative for the record set (the host may have added,
+// merged or removed records since the last packet); the local machine stays
+// authoritative for Reviewer B's own votes across a packet refresh.
+function mergeReviewerPacketPapers(packetPapers, localPapers) {
+  var localB = {};
+  (localPapers || []).forEach(function(p) {
+    var b = p && p.reviews && p.reviews.B;
+    if (b && (b.decision || b.exclusionReason || b.reason)) localB[String(p.pmid)] = b;
+  });
+  return (packetPapers || []).filter(Boolean).map(function(p) {
+    var c = JSON.parse(JSON.stringify(p));
+    var loc = localB[String(c.pmid)];
+    if (loc) {
+      var pk = c.reviews && c.reviews.B;
+      if (!pk || !pk.at || (loc.at && loc.at >= pk.at)) {
+        c.reviews = c.reviews || {};
+        c.reviews.B = loc;
+      }
+    }
+    return c;
+  });
+}
+function buildVotesPacket(proj, papers) {
+  var votes = [];
+  (papers || []).forEach(function(p) {
+    var b = p && p.reviews && p.reviews.B;
+    if (b && (b.decision || b.exclusionReason || b.reason)) {
+      votes.push({ pmid: String(p.pmid), decision: b.decision || '', exclusionReason: b.exclusionReason || '', reason: b.reason || '', at: b.at || '' });
+    }
+  });
+  return {
+    app: 'Evidentum', type: 'votes-packet', version: 1,
+    exportedAt: new Date().toISOString(),
+    projectId: proj.id, projectName: proj.name || '',
+    reviewer: 'B',
+    votes: votes
+  };
+}
+// Merge B's votes into the host project. reconcileDualDecision runs per record,
+// so agreements auto-fill the final decision and disagreements surface in the
+// Conflicts filter exactly as if B had voted on this machine.
+function applyVotesPacket(packet, papers) {
+  var byId = {};
+  (papers || []).forEach(function(p) { if (p) byId[String(p.pmid)] = p; });
+  var summary = { applied: 0, updated: 0, keptNewerLocal: 0, missing: 0 };
+  ((packet && packet.votes) || []).forEach(function(v) {
+    if (!v || !v.pmid) return;
+    var p = byId[String(v.pmid)];
+    if (!p) { summary.missing++; return; }        // record deleted/merged on host since packet went out
+    var cur = p.reviews && p.reviews.B;
+    var hasCur = !!(cur && (cur.decision || cur.exclusionReason || cur.reason));
+    if (hasCur && cur.at && v.at && cur.at > v.at) { summary.keptNewerLocal++; return; }
+    var r = projReviewEnsure(p, 'B');
+    r.decision = v.decision || '';
+    r.exclusionReason = v.exclusionReason || '';
+    r.reason = v.reason || '';
+    r.at = v.at || new Date().toISOString();
+    reconcileDualDecision(p);
+    if (hasCur) summary.updated++; else summary.applied++;
+  });
+  return summary;
+}
+
+function packetDownload(bundle, filename) {
+  var blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+function packetSlug(name) {
+  return (String(name || 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'project').slice(0, 40);
+}
+
+function exportReviewerPacket() {
+  var proj = projects.find(function(x){ return x.id === currentProjectId; });
+  if (!proj) return;
+  var papers = projectPapers[proj.id] || [];
+  packetDownload(buildReviewerPacket(proj, papers),
+    'evidentum-packet-' + packetSlug(proj.name) + '-' + new Date().toISOString().slice(0, 10) + '.json');
+  showToast('Reviewer packet exported (' + papers.length + ' records) — send the file to Reviewer B', '#22c55e');
+}
+
+function importReviewerPacket(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    var data;
+    try { data = JSON.parse(reader.result); } catch(e) { showToast('Not a valid packet file', '#ef4444'); input.value = ''; return; }
+    if (!data || data.type !== 'reviewer-packet' || !Array.isArray(data.papers)) {
+      showToast(data && data.type === 'votes-packet'
+        ? 'That is a votes file — open the project and use "Import B votes" instead'
+        : 'Not an Evidentum reviewer packet', '#ef4444');
+      input.value = ''; return;
+    }
+    var pid = safeId(data.projectId || '');
+    if (!pid) { showToast('Packet has no project ID', '#ef4444'); input.value = ''; return; }
+    var existing = projects.find(function(p){ return p.id === pid; });
+    // The host copy of this project carries Reviewer A's votes and the final
+    // decisions — the packet deliberately doesn't. Importing it over the host
+    // copy would destroy that work, so refuse: only satellite copies refresh.
+    if (existing && existing.packetRole !== 'B') {
+      showToast('This is the HOST copy of "' + (existing.name || pid) + '" — importing the packet here would erase Reviewer A\'s votes. Use "Import B votes" to merge B\'s file instead.', '#ef4444');
+      input.value = ''; return;
+    }
+    var msg = existing
+      ? 'Refresh "' + (existing.name || pid) + '" from this packet?\n\nThe record set is replaced by the packet’s; your own Reviewer B votes are kept (newest vote per record wins).'
+      : 'Import reviewer packet "' + (data.projectName || pid) + '" (' + data.papers.length + ' records)?\n\nYou will screen as Reviewer B, then send your votes back to the host.';
+    if (!confirm(msg)) { input.value = ''; return; }
+    projectPapers[pid] = mergeReviewerPacketPapers(data.papers, projectPapers[pid] || []);
+    if (existing) {
+      if (data.projectName) existing.name = data.projectName;
+    } else {
+      projects.push({ id: pid, name: (data.projectName || 'Reviewer packet'), desc: 'Reviewer B packet — screen, then send your votes back to the host', picoQuestion: '', created: Date.now(), dualReviewer: true, activeReviewer: 'B', packetRole: 'B' });
+    }
+    // Untrusted input: re-establish the ID/URL invariants before persisting.
+    sanitiseProjectData();
+    saveProjects();
+    input.value = '';
+    // Land the reviewer in the project ready to screen — the import lives in the
+    // Settings overlay, which would otherwise stay open on top of it.
+    if (typeof closeSettings === 'function') closeSettings();
+    if (typeof switchTab === 'function') switchTab('projects');
+    openProjDetail(pid);
+    showToast('Packet imported — ' + data.papers.length + ' records. Screen as Reviewer B, then "Export votes for host".', '#22c55e');
+  };
+  reader.readAsText(file);
+}
+
+function exportVotesPacket() {
+  var proj = projects.find(function(x){ return x.id === currentProjectId; });
+  if (!proj) return;
+  var packet = buildVotesPacket(proj, projectPapers[proj.id] || []);
+  if (!packet.votes.length) { showToast('No Reviewer B votes to export yet — screen some records first', '#f59e0b'); return; }
+  packetDownload(packet,
+    'evidentum-votes-' + packetSlug(proj.name) + '-' + new Date().toISOString().slice(0, 10) + '.json');
+  showToast('Votes exported (' + packet.votes.length + ' records) — send the file back to the host reviewer', '#22c55e');
+}
+
+function importVotesPacket(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    var data;
+    try { data = JSON.parse(reader.result); } catch(e) { showToast('Not a valid votes file', '#ef4444'); input.value = ''; return; }
+    if (!data || data.type !== 'votes-packet' || !Array.isArray(data.votes)) {
+      showToast(data && data.type === 'reviewer-packet'
+        ? 'That is a reviewer packet — Reviewer B imports that on their machine (Settings → Backup)'
+        : 'Not an Evidentum votes file', '#ef4444');
+      input.value = ''; return;
+    }
+    var proj = projects.find(function(x){ return x.id === currentProjectId; });
+    if (!proj) { input.value = ''; return; }
+    if (safeId(data.projectId || '') !== proj.id) {
+      showToast('This votes file belongs to a different project ("' + (data.projectName || data.projectId || '?') + '")', '#ef4444');
+      input.value = ''; return;
+    }
+    if (!proj.dualReviewer) { proj.dualReviewer = true; proj.activeReviewer = proj.activeReviewer || 'A'; }
+    var summary = applyVotesPacket(data, projectPapers[proj.id] || []);
+    saveProjects();
+    renderProjDetail();
+    var kap = computeDualKappa(proj.id);
+    var parts = [];
+    if (summary.applied) parts.push(summary.applied + ' new vote' + (summary.applied === 1 ? '' : 's'));
+    if (summary.updated) parts.push(summary.updated + ' updated');
+    if (summary.keptNewerLocal) parts.push(summary.keptNewerLocal + ' kept (newer here)');
+    if (summary.missing) parts.push(summary.missing + ' skipped (record no longer in project)');
+    showToast('Reviewer B votes merged — ' + (parts.join(', ') || 'nothing to apply') +
+      (kap ? ' · κ ' + kap.kappa.toFixed(2) + ' (' + kappaLabel(kap.kappa) + ')' : ''),
+      summary.missing ? '#f59e0b' : '#22c55e');
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 // ── Keyboard-driven screening (Projects tab) ──────────────────────────────────

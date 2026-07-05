@@ -25,8 +25,14 @@ Each database is queried in its own native advanced syntax (PubMed field tags an
 
 Includes a concept-block builder, a **live count preview** before you commit, **set history** with Boolean nesting (combine prior sets into a pool), per-source result counts, and **deep pagination** (Europe PMC `cursorMark`, Semantic Scholar token paging) so large searches aren't silently capped at the first page. Optional, clearly-labelled recall levers — Europe PMC synonym expansion and cross-engine phrase proximity — are off by default for precise, reproducible searching.
 
+Study-design limits (e.g. RCTs only) are applied with each engine's native filter where one exists, and with a Cochrane-style sensitivity **hedge** on the keyword engines that lack one — so the restriction actually holds across every source, not just PubMed. For the paywalled databases the app can't call, the builder emits **copy-and-paste strategies for Ovid Embase and Cochrane CENTRAL** in their native line-numbered syntax, translated from the same concept blocks.
+
 ### Screening & records
 - De-duplication across sources.
+- **Keyboard-driven screening** — Rayyan-style shortcuts in a project: `J`/`K` move through records, `I`/`M`/`X` record include/maybe/exclude (auto-advancing to the next undecided), number keys `1`–`0` set the PRISMA exclusion reason, `N` jumps to the next unscreened record. A live tally shows progress at a glance.
+- **Dual-reviewer screening** — two reviewers screen independently under blinded A/B lenses; agreements auto-fill the final decision, disagreements surface in a **Conflicts** filter for adjudication, and inter-rater agreement is reported live as **Cohen's κ** (with the Landis–Koch label). Reviewer votes travel in the CSV export.
+- **Two-computer dual review** — no shared account needed: the host exports a **reviewer packet** file (blinded — the host's votes and final decisions are stripped from the file itself), Reviewer B imports it into Evidentum on their own machine, screens under a locked Reviewer B lens, and sends back a votes file that merges with conflict detection and a live κ update. Merges are newest-wins per record, so a stale file can never roll back fresher work.
+- A **decision filter** (To Screen / Included / Maybe / Excluded / Conflicts) that turns the record list into a shrinking screening queue.
 - A **PRISMA-style identification panel** with per-source counts and a **"Copy for methods"** export (structured and prose) that you can paste straight into a manuscript — now including any active search options (synonym expansion, phrase proximity, field limits) so the documented strategy is reproducible.
 - A complete **PRISMA 2020 flow diagram** with screening stages, plus structured exclusion reasons.
 - **Projects** — group searches and saved records into named projects.
@@ -40,10 +46,11 @@ An optional AI agent reads full text (PMC XML, PDF, or fetched HTML) and drafts 
 - **Reporting quality** — CONSORT 2025, PRISMA 2020, STROBE, CARE 2013, and AGREE II.
 - **Certainty of evidence** — GRADE, with a **Summary of Findings** export.
 
-The agent is **bring-your-own-key** with a provider toggle for **OpenAI**, **Anthropic / Claude**, and **Google Gemini**:
+The agent is **bring-your-own-key** with a provider toggle for **OpenAI**, **Anthropic / Claude**, **Google Gemini**, and **xAI Grok**:
 
 - **OpenAI** (Responses API) and **Anthropic** (Messages API) — strong, well-calibrated appraisal judgements and reliable structured output.
 - **Google Gemini** (generativelanguage API) — large context windows and low cost, a good fit for high-volume abstract screening.
+- **xAI Grok** (OpenAI-compatible API) — an additional low-cost option.
 
 Pick a model per provider in Settings (or enter a custom model ID). The active model is recorded alongside your search provenance.
 
