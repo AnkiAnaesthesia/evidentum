@@ -1512,6 +1512,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <button class="btn btn-blue" onclick="exportProjectRefs('bibtex')" style="font-size:11px; padding:5px 12px" title="Export references as BibTeX (LaTeX)">&#8595; BibTeX</button>
         <button class="btn btn-blue" onclick="exportProjectRoB()" style="font-size:11px; padding:5px 12px" title="Export a traffic-light risk-of-bias summary table for the write-up">&#128682; RoB summary</button>
         <button class="btn btn-blue" onclick="exportProjectPrisma()" style="font-size:11px; padding:5px 12px" title="Export a PRISMA 2020 flow diagram from this project's screening decisions">&#128506; PRISMA flow</button>
+        <button class="btn btn-ghost" onclick="evValOpen()" style="font-size:11px; padding:5px 12px" title="Validation harness — compare this project's AI risk-of-bias judgements against reference (human consensus) judgements and report agreement (κ, weighted κ)">&#129514; Validation</button>
         <button class="btn btn-ghost" onclick="renameProject()" style="font-size:11px; padding:5px 12px">&#9998; Rename</button>
         <button class="btn btn-red" onclick="deleteProject()" style="font-size:11px; padding:5px 12px">&#128465; Delete</button>
       </div>
@@ -1651,6 +1652,27 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid #1e2d4a">
     <button onclick="resetCriteriaToDefaults()" title="Restore the built-in default criteria" style="font-size:11px;padding:7px 13px;border-radius:6px;border:1px solid #334155;background:#0d1220;color:#94a3b8;cursor:pointer">&#8634; Reset to defaults</button>
     <button onclick="applyCriteriaToResults()" style="margin-left:auto;font-size:12px;padding:8px 18px;border-radius:7px;border:none;background:#22c55e;color:#04210f;cursor:pointer;font-weight:700">Apply &amp; re-score &#8594;</button>
+  </div>
+</div>
+
+<!-- Validation harness overlay (report rendered by evValRender) -->
+<div id="evval-overlay" role="dialog" aria-modal="true" aria-label="Validation harness" onclick="if(event.target===this)evValClose()" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(4,8,18,0.75); align-items:center; justify-content:center">
+  <div style="background:#0d1220; border:1px solid #1e2d4a; border-radius:12px; padding:18px 20px; width:min(720px, calc(100vw - 40px)); max-height:80vh; overflow-y:auto">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
+      <div style="font-size:14px; font-weight:700; color:#f1f5f9">&#129514; Validation harness</div>
+      <button onclick="evValClose()" aria-label="Close validation harness" style="margin-left:auto; font-size:14px; background:none; border:none; color:#64748b; cursor:pointer">&#10005;</button>
+    </div>
+    <div style="font-size:11px; color:#94a3b8; line-height:1.6; margin-bottom:12px">Compare the AI's risk-of-bias judgements for this project against a reference standard (e.g. the published review's consensus judgements). Export the template, fill the judgement columns (<code>low</code> / <code>some concerns</code> / <code>high</code> &mdash; or the ROBINS-I scale), import it back, and read the agreement report. The comparison never alters the appraisals.</div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px">
+      <span style="font-size:11px;color:#64748b">Tool:</span>
+      <select id="evval-tool" onchange="evValRender()" style="padding:5px 9px; font-size:12px; background:#111827; border:1px solid #1e2d4a; border-radius:6px; color:#e2e8f0">
+        <option value="ROB2">RoB 2</option>
+        <option value="ROBINS2">ROBINS-I V2</option>
+      </select>
+      <button onclick="evValDownloadTemplate()" style="font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #16a34a55;background:#0d1220;color:#4ade80;cursor:pointer;font-family:inherit">&#8595; Reference template CSV</button>
+      <label style="font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #3b82f655;background:#0d1220;color:#93c5fd;cursor:pointer">&#8593; Import reference CSV<input type="file" accept="text/csv,.csv" onchange="evValImportRef(this)" style="display:none"></label>
+    </div>
+    <div id="evval-body"></div>
   </div>
 </div>
 
@@ -15480,6 +15502,397 @@ function evRenderOauthStatus() {
   if (f && EV_OAUTH.clientId) f.value = EV_OAUTH.clientId;
   evRenderOauthStatus();
 })();
+
+// ══════════════════════════════════════════════
+// VALIDATION HARNESS — AI vs reference judgements
+// ══════════════════════════════════════════════
+// Compares the AI's risk-of-bias domain judgements for a project's papers
+// against an imported set of REFERENCE judgements (e.g. the published review's
+// human consensus RoB table) and reports inter-rater agreement per domain:
+// raw %, Cohen's κ, and linearly weighted κ over the tool's ordered scale.
+// This is the measurement instrument for a validation study — it never touches
+// the appraisals themselves. Flow: export a reference-template CSV (papers ×
+// domain columns, judgements left blank), fill it from the published review,
+// import it back, read the report, export results.
+
+var EVVAL_TOOLS = {
+  ROB2: {
+    label: 'RoB 2',
+    scale: ['low', 'some_concerns', 'high'],
+    domains: [
+      { id: 'rob_randomisation', col: 'D1_randomisation', label: 'D1 Randomisation' },
+      { id: 'rob_deviations',    col: 'D2_deviations',    label: 'D2 Deviations' },
+      { id: 'rob_missing',       col: 'D3_missing',       label: 'D3 Missing data' },
+      { id: 'rob_measurement',   col: 'D4_measurement',   label: 'D4 Measurement' },
+      { id: 'rob_reporting',     col: 'D5_reporting',     label: 'D5 Reporting' }
+    ]
+  },
+  ROBINS2: {
+    label: 'ROBINS-I V2',
+    scale: ['low', 'moderate', 'serious', 'critical'],
+    domains: [
+      { id: 'rbi_d1', col: 'D1_confounding',    label: 'D1 Confounding' },
+      { id: 'rbi_d2', col: 'D2_classification', label: 'D2 Classification' },
+      { id: 'rbi_d3', col: 'D3_selection',      label: 'D3 Selection' },
+      { id: 'rbi_d4', col: 'D4_missing',        label: 'D4 Missing data' },
+      { id: 'rbi_d5', col: 'D5_measurement',    label: 'D5 Measurement' },
+      { id: 'rbi_d6', col: 'D6_reporting',      label: 'D6 Reporting' }
+    ]
+  }
+};
+
+// Accepts the spellings a filled-in template realistically contains.
+function evValNormaliseJudgement(s) {
+  var v = String(s == null ? '' : s).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!v) return '';
+  var map = {
+    low: 'low', low_risk: 'low', low_risk_of_bias: 'low',
+    some_concerns: 'some_concerns', some_concern: 'some_concerns', some: 'some_concerns', concerns: 'some_concerns',
+    high: 'high', high_risk: 'high', high_risk_of_bias: 'high',
+    moderate: 'moderate', serious: 'serious', critical: 'critical',
+    unclear: 'unclear', no_information: 'unclear', ni: 'unclear'
+  };
+  return map[v] || '';
+}
+
+// Cohen's kappa over paired categorical labels (same convention as the
+// screening κ: marginals from each rater's own distribution; pe → 1 means
+// agreement is perfect by construction, report κ = 1).
+function evValKappa(pairs) {
+  var n = pairs.length;
+  if (!n) return null;
+  var agree = 0, mA = {}, mB = {};
+  pairs.forEach(function(pr) {
+    if (pr[0] === pr[1]) agree++;
+    mA[pr[0]] = (mA[pr[0]] || 0) + 1;
+    mB[pr[1]] = (mB[pr[1]] || 0) + 1;
+  });
+  var po = agree / n, pe = 0;
+  Object.keys(mA).forEach(function(c) { pe += (mA[c] / n) * ((mB[c] || 0) / n); });
+  return { n: n, agreePct: Math.round(po * 1000) / 10, kappa: pe >= 1 ? 1 : (po - pe) / (1 - pe) };
+}
+
+// Linearly weighted kappa over the tool's ordered scale — a one-step
+// disagreement (low vs some concerns) costs less than a two-step one
+// (low vs high). Pairs containing categories outside the scale are skipped.
+function evValWeightedKappa(pairs, scale) {
+  var k = scale.length;
+  if (k < 2) return null;
+  var idx = {};
+  scale.forEach(function(c, i) { idx[c] = i; });
+  var use = pairs.filter(function(pr) { return idx[pr[0]] !== undefined && idx[pr[1]] !== undefined; });
+  var n = use.length;
+  if (!n) return null;
+  var mA = {}, mB = {}, obs = 0;
+  use.forEach(function(pr) {
+    obs += Math.abs(idx[pr[0]] - idx[pr[1]]) / (k - 1);
+    mA[pr[0]] = (mA[pr[0]] || 0) + 1;
+    mB[pr[1]] = (mB[pr[1]] || 0) + 1;
+  });
+  var exp = 0;
+  scale.forEach(function(a) {
+    scale.forEach(function(b) {
+      exp += (Math.abs(idx[a] - idx[b]) / (k - 1)) * ((mA[a] || 0) / n) * ((mB[b] || 0) / n);
+    });
+  });
+  return { n: n, kappa: exp === 0 ? 1 : 1 - (obs / n) / exp };
+}
+
+// The AI side of each pair: the stored domain judgements, plus an overall —
+// the stored one if the model set it, otherwise worst-domain (the same
+// no-auto-escalation convention as the in-app RoB 2 suggestion).
+function evValAiJudgements(p, toolKey) {
+  var tool = EVVAL_TOOLS[toolKey];
+  var dj = p && p.checklists && p.checklists[toolKey] && p.checklists[toolKey]['__domain_judgements__'];
+  if (!tool || !dj) return null;
+  var out = {}, any = false;
+  tool.domains.forEach(function(d) {
+    var v = evValNormaliseJudgement(dj[d.id]);
+    if (v) { out[d.id] = v; any = true; }
+  });
+  if (!any) return null;
+  var ov = evValNormaliseJudgement(dj.overall);
+  if (!ov) {
+    var worst = -1;
+    tool.domains.forEach(function(d) {
+      var i = tool.scale.indexOf(out[d.id]);
+      if (i > worst) worst = i;
+    });
+    ov = worst >= 0 ? tool.scale[worst] : '';
+  }
+  if (ov) out.overall = ov;
+  return out;
+}
+
+// RFC-4180ish CSV: quoted fields, doubled quotes, CRLF tolerant. Returns
+// array of row objects keyed by the header cells.
+function evValParseCsv(text) {
+  var rows = [], row = [], cell = '', inQ = false, s = String(text || '');
+  for (var i = 0; i < s.length; i++) {
+    var ch = s[i];
+    if (inQ) {
+      if (ch === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+      else cell += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && s[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.length > 1 || row[0] !== '') rows.push(row);
+  if (!rows.length) return [];
+  var header = rows[0].map(function(h) { return String(h || '').trim(); });
+  return rows.slice(1).map(function(r) {
+    var o = {};
+    header.forEach(function(h, j) { if (h) o[h] = r[j] !== undefined ? r[j] : ''; });
+    return o;
+  });
+}
+
+// Papers eligible for validation in a project: those carrying AI judgements
+// for the chosen tool.
+function evValEligiblePapers(projectId, toolKey) {
+  return (projectPapers[projectId] || []).filter(function(p) { return !!evValAiJudgements(p, toolKey); });
+}
+
+function evValTemplateCsvText(papersArr, toolKey) {
+  var tool = EVVAL_TOOLS[toolKey];
+  var header = ['pmid', 'title'].concat(tool.domains.map(function(d) { return d.col; })).concat(['overall']);
+  var lines = [header.join(',')];
+  papersArr.forEach(function(p) {
+    lines.push([csvCell(p.pmid), csvCell(p.title || '')]
+      .concat(tool.domains.map(function() { return ''; })).concat(['']).join(','));
+  });
+  return lines.join('\n');
+}
+
+// Parse an imported reference CSV against a tool definition → { rows, skipped }.
+// rows: { pmid: { <domainId>: judgement, overall: judgement } } — only cells
+// that normalise to a known judgement are kept.
+function evValRefFromCsv(text, toolKey) {
+  var tool = EVVAL_TOOLS[toolKey];
+  var parsed = evValParseCsv(text);
+  var rows = {}, kept = 0, skipped = 0;
+  parsed.forEach(function(r) {
+    var pmid = String(r.pmid || '').trim();
+    if (!pmid) { skipped++; return; }
+    var entry = {}, any = false;
+    tool.domains.forEach(function(d) {
+      var v = evValNormaliseJudgement(r[d.col]);
+      if (v) { entry[d.id] = v; any = true; }
+    });
+    var ov = evValNormaliseJudgement(r.overall);
+    if (ov) { entry.overall = ov; any = true; }
+    if (any) { rows[pmid] = entry; kept++; } else skipped++;
+  });
+  return { rows: rows, kept: kept, skipped: skipped };
+}
+
+// The report: per-domain (and overall) agreement between reference and AI.
+// Pairs where either side is 'unclear' are excluded from κ (they are not a
+// judgement on the same scale) but counted so the exclusion is visible.
+function evValComputeReport(papersArr, refRows, toolKey) {
+  var tool = EVVAL_TOOLS[toolKey];
+  var units = tool.domains.concat([{ id: 'overall', col: 'overall', label: 'Overall' }]);
+  var matched = [];
+  papersArr.forEach(function(p) {
+    var ai = evValAiJudgements(p, toolKey);
+    var ref = refRows[String(p.pmid)];
+    if (ai && ref) matched.push({ pmid: String(p.pmid), title: p.title || '', ai: ai, ref: ref });
+  });
+  var pooledPairs = [], disagreements = [];
+  var domains = units.map(function(u) {
+    var pairs = [], excluded = 0;
+    matched.forEach(function(m) {
+      var r = m.ref[u.id], a = m.ai[u.id];
+      if (!r || !a) return;
+      if (r === 'unclear' || a === 'unclear') { excluded++; return; }
+      pairs.push([r, a]);
+      if (u.id !== 'overall') pooledPairs.push([r, a]);
+      if (r !== a) disagreements.push({ pmid: m.pmid, title: m.title, domain: u.label, ref: r, ai: a });
+    });
+    var kap = evValKappa(pairs), wk = evValWeightedKappa(pairs, tool.scale);
+    return { id: u.id, label: u.label, n: pairs.length, excluded: excluded,
+             agreePct: kap ? kap.agreePct : null, kappa: kap ? kap.kappa : null,
+             wkappa: wk ? wk.kappa : null };
+  });
+  var pooledKap = evValKappa(pooledPairs), pooledWk = evValWeightedKappa(pooledPairs, tool.scale);
+  return {
+    tool: toolKey, toolLabel: tool.label, nPapers: matched.length,
+    domains: domains,
+    pooled: { n: pooledPairs.length,
+              agreePct: pooledKap ? pooledKap.agreePct : null,
+              kappa: pooledKap ? pooledKap.kappa : null,
+              wkappa: pooledWk ? pooledWk.kappa : null },
+    disagreements: disagreements
+  };
+}
+
+function evValResultsCsvText(report) {
+  var lines = ['unit,n,excluded_unclear,raw_agreement_pct,cohens_kappa,weighted_kappa_linear'];
+  report.domains.forEach(function(d) {
+    lines.push([csvCell(d.label), d.n, d.excluded,
+      d.agreePct === null ? '' : d.agreePct,
+      d.kappa === null ? '' : Math.round(d.kappa * 1000) / 1000,
+      d.wkappa === null ? '' : Math.round(d.wkappa * 1000) / 1000].join(','));
+  });
+  lines.push([csvCell('Pooled (domains)'), report.pooled.n, '',
+    report.pooled.agreePct === null ? '' : report.pooled.agreePct,
+    report.pooled.kappa === null ? '' : Math.round(report.pooled.kappa * 1000) / 1000,
+    report.pooled.wkappa === null ? '' : Math.round(report.pooled.wkappa * 1000) / 1000].join(','));
+  lines.push('');
+  lines.push('disagreements');
+  lines.push('pmid,title,domain,reference,ai');
+  report.disagreements.forEach(function(d) {
+    lines.push([csvCell(d.pmid), csvCell(d.title), csvCell(d.domain), d.ref, d.ai].join(','));
+  });
+  return lines.join('\n');
+}
+
+function evValMethodsText(report, modelName) {
+  var k = report.pooled.kappa === null ? 'n/a' : (Math.round(report.pooled.kappa * 100) / 100).toFixed(2);
+  var wk = report.pooled.wkappa === null ? 'n/a' : (Math.round(report.pooled.wkappa * 100) / 100).toFixed(2);
+  var ag = report.pooled.agreePct === null ? 'n/a' : report.pooled.agreePct + '%';
+  var ov = report.domains[report.domains.length - 1];
+  var ovK = ov.kappa === null ? 'n/a' : (Math.round(ov.kappa * 100) / 100).toFixed(2);
+  return 'AI-assisted ' + report.toolLabel + ' judgements' + (modelName ? ' (' + modelName + ')' : '') +
+    ' were compared with the reference (human consensus) judgements for ' + report.nPapers +
+    ' studies. Across ' + (report.domains.length - 1) + ' domains (' + report.pooled.n +
+    ' paired judgements), raw agreement was ' + ag + ' with Cohen’s κ = ' + k +
+    ' and linearly weighted κ = ' + wk + '. Agreement on the overall judgement was κ = ' + ovK +
+    ' (n = ' + ov.n + '). Judgements of “unclear” on either side were excluded from agreement statistics.' +
+    ' κ was computed with rater-specific marginals; weighted κ used linear weights over the ordered ' +
+    report.toolLabel + ' scale.';
+}
+
+// ── Validation UI ────────────────────────────────────────────────────────────
+function evValOpen() {
+  var overlay = document.getElementById('evval-overlay');
+  if (!overlay || !currentProjectId) return;
+  // Seed the tool select from any saved reference ONCE per open; from here the
+  // select is the source of truth, so the user can switch tools freely.
+  var proj = projects.find(function(x) { return x.id === currentProjectId; });
+  var sel = document.getElementById('evval-tool');
+  if (sel && proj && proj.validationRef && EVVAL_TOOLS[proj.validationRef.tool]) sel.value = proj.validationRef.tool;
+  overlay.style.display = 'flex';
+  evValRender();
+}
+function evValClose() {
+  var overlay = document.getElementById('evval-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+function evValToolKey() {
+  var sel = document.getElementById('evval-tool');
+  var k = sel && sel.value;
+  return EVVAL_TOOLS[k] ? k : 'ROB2';
+}
+function evValDownloadTemplate() {
+  var proj = projects.find(function(x) { return x.id === currentProjectId; });
+  if (!proj) return;
+  var toolKey = evValToolKey();
+  var papersArr = evValEligiblePapers(proj.id, toolKey);
+  if (!papersArr.length) { showToast('No papers with AI ' + EVVAL_TOOLS[toolKey].label + ' judgements in this project yet', '#f59e0b'); return; }
+  var blob = new Blob([evValTemplateCsvText(papersArr, toolKey)], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'evidentum-validation-template-' + packetSlug(proj.name) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+  showToast('Template exported — fill the judgement columns from the published review, then import it back', '#22c55e');
+}
+function evValImportRef(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    var proj = projects.find(function(x) { return x.id === currentProjectId; });
+    if (!proj) { input.value = ''; return; }
+    var toolKey = evValToolKey();
+    var res = evValRefFromCsv(reader.result, toolKey);
+    if (!res.kept) { showToast('No usable reference judgements found — check the file against the template columns', '#ef4444'); input.value = ''; return; }
+    proj.validationRef = { tool: toolKey, rows: res.rows, importedAt: new Date().toISOString(), fileName: file.name };
+    saveProjects();
+    showToast('Reference judgements imported for ' + res.kept + ' paper(s)' + (res.skipped ? ' (' + res.skipped + ' row(s) skipped)' : ''), '#22c55e');
+    input.value = '';
+    evValRender();
+  };
+  reader.readAsText(file);
+}
+function evValDownloadResults() {
+  var report = evValCurrentReport();
+  if (!report) return;
+  var proj = projects.find(function(x) { return x.id === currentProjectId; });
+  var blob = new Blob([evValResultsCsvText(report)], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'evidentum-validation-results-' + packetSlug(proj ? proj.name : 'project') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+}
+function evValCopyMethods() {
+  var report = evValCurrentReport();
+  if (!report) return;
+  var model = (typeof getActiveModelLabel === 'function' ? getActiveModelLabel() : '') || '';
+  navigator.clipboard.writeText(evValMethodsText(report, model)).then(function() {
+    showToast('Methods text copied', '#22c55e');
+  });
+}
+function evValCurrentReport() {
+  var proj = projects.find(function(x) { return x.id === currentProjectId; });
+  if (!proj || !proj.validationRef || !proj.validationRef.rows) return null;
+  var toolKey = EVVAL_TOOLS[proj.validationRef.tool] ? proj.validationRef.tool : 'ROB2';
+  return evValComputeReport(projectPapers[proj.id] || [], proj.validationRef.rows, toolKey);
+}
+function evValFmt(v) { return v === null || v === undefined ? '—' : (Math.round(v * 100) / 100).toFixed(2); }
+function evValRender() {
+  var body = document.getElementById('evval-body');
+  if (!body) return;
+  var proj = projects.find(function(x) { return x.id === currentProjectId; });
+  if (!proj) return;
+  var toolKey = evValToolKey();
+  var eligible = evValEligiblePapers(proj.id, toolKey);
+  var ref = proj.validationRef && proj.validationRef.tool === toolKey ? proj.validationRef : null;
+  var html = '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">' +
+    eligible.length + ' paper(s) with AI ' + EVVAL_TOOLS[toolKey].label + ' judgements · ' +
+    (ref ? 'reference imported for ' + Object.keys(ref.rows).length + ' paper(s) (' + esc(ref.fileName || '') + ')' : 'no reference judgements imported yet') +
+    '</div>';
+  var report = ref ? evValComputeReport(projectPapers[proj.id] || [], ref.rows, toolKey) : null;
+  if (report && report.nPapers) {
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">' +
+      '<tr style="color:#64748b;text-align:left"><th style="padding:4px 8px">Unit</th><th>n</th><th>Raw %</th><th>κ</th><th>Weighted κ</th><th>Excl. unclear</th></tr>' +
+      report.domains.map(function(d) {
+        return '<tr style="border-top:1px solid #1e2d4a">' +
+          '<td style="padding:4px 8px;color:#e2e8f0">' + d.label + '</td>' +
+          '<td>' + d.n + '</td><td>' + (d.agreePct === null ? '—' : d.agreePct + '%') + '</td>' +
+          '<td>' + evValFmt(d.kappa) + '</td><td>' + evValFmt(d.wkappa) + '</td><td>' + d.excluded + '</td></tr>';
+      }).join('') +
+      '<tr style="border-top:2px solid #334155;font-weight:700"><td style="padding:4px 8px;color:#e2e8f0">Pooled (domains)</td>' +
+      '<td>' + report.pooled.n + '</td><td>' + (report.pooled.agreePct === null ? '—' : report.pooled.agreePct + '%') + '</td>' +
+      '<td>' + evValFmt(report.pooled.kappa) + '</td><td>' + evValFmt(report.pooled.wkappa) + '</td><td></td></tr>' +
+      '</table>';
+    if (report.disagreements.length) {
+      html += '<div style="font-size:11px;color:#f87171;margin-bottom:4px">' + report.disagreements.length + ' disagreement(s)</div>' +
+        '<div style="max-height:180px;overflow-y:auto;border:1px solid #1e2d4a;border-radius:6px;padding:6px 10px;margin-bottom:10px">' +
+        report.disagreements.map(function(d) {
+          return '<div style="font-size:10px;color:#94a3b8;padding:2px 0">' + esc(d.title).slice(0, 70) + ' · ' + d.domain +
+            ': <span style="color:#4ade80">' + d.ref + '</span> (ref) vs <span style="color:#fbbf24">' + d.ai + '</span> (AI)</div>';
+        }).join('') + '</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#4ade80;margin-bottom:10px">No disagreements across ' + report.pooled.n + ' paired judgements.</div>';
+    }
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button onclick="evValDownloadResults()" style="font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #16a34a55;background:#0d1220;color:#4ade80;cursor:pointer;font-family:inherit">&#8595; Results CSV</button>' +
+      '<button onclick="evValCopyMethods()" style="font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #3b82f655;background:#0d1220;color:#93c5fd;cursor:pointer;font-family:inherit">&#128203; Copy methods text</button>' +
+    '</div>';
+  } else if (ref) {
+    html += '<div style="font-size:11px;color:#f59e0b">Reference imported, but no paper matched on pmid — the reference file must come from this project’s template so the identifiers line up.</div>';
+  }
+  body.innerHTML = html;
+}
 </script>
 </body>
 </html>

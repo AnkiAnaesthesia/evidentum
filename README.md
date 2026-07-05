@@ -45,6 +45,7 @@ An optional AI agent reads full text (PMC XML, PDF, or fetched HTML) and drafts 
 - **Risk of bias** — RoB 2 and ROBINS-I V2 (with **traffic-light plots** you can download as a robvis-style export), plus the Newcastle-Ottawa Scale and the Jadad scale.
 - **Reporting quality** — CONSORT 2025, PRISMA 2020, STROBE, CARE 2013, and AGREE II.
 - **Certainty of evidence** — GRADE, with a **Summary of Findings** export.
+- **Validation harness** — compare the AI's RoB 2 / ROBINS-I V2 judgements for a project against a reference standard (e.g. a published review's consensus judgements): export a reference-template CSV, fill it in, import it back, and read per-domain agreement (raw %, Cohen's κ, linearly weighted κ) with a disagreement list, results CSV, and a copy-ready methods paragraph — the measurement instrument for a formal validation study.
 
 The agent is **bring-your-own-key** with a provider toggle for **OpenAI**, **Anthropic / Claude**, **Google Gemini**, and **xAI Grok**:
 
