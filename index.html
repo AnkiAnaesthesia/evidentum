@@ -231,7 +231,9 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 /* ── Misc ── */
 .alert-error { background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 12px 16px; color: #fca5a5; font-size: 13px; margin-top: 12px; }
 .alert-success { background: #0d1a2d; border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px 18px; color: #60a5fa; font-size: 13px; margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-.info-box { background: #0a1220; border: 1px solid #1e2d4a; border-radius: 7px; padding: 10px 14px; font-size: 11px; color: #64748b; line-height: 1.65; margin-bottom: 14px; }
+/* Instruction boxes are reading material, not chrome: 12px slate-400 clears
+   WCAG small-text contrast on this background where 11px slate-500 didn't. */
+.info-box { background: #0a1220; border: 1px solid #1e2d4a; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #94a3b8; line-height: 1.65; margin-bottom: 14px; }
 .adv-only, .db-search-row.adv-only { display: none !important; }
 body.mode-advanced .adv-only { display: flex !important; }
 body.mode-advanced .simple-only { display: none !important; }
@@ -243,7 +245,9 @@ body.mode-advanced .simple-only { display: none !important; }
 body.mode-advanced .info-box.adv-only,
 body.mode-advanced .adv-block { display: block !important; }
 .info-box b { color: #60a5fa; }
-.empty { text-align: center; padding: 70px 0; color: #64748b; }
+/* Empty-state headline is primary reading copy — slate-400 clears small-text
+   contrast where slate-500 was borderline; supporting lines stay muted inline. */
+.empty { text-align: center; padding: 70px 0; color: #94a3b8; }
 .empty-icon { font-size: 44px; margin-bottom: 14px; }
 .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid #4b5563; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 5px; }
 
@@ -459,7 +463,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .upload-zone:hover, .upload-zone.drag-over { border-color: #3b82f6; background: #0d1628; }
 .upload-zone-icon { font-size: 40px; margin-bottom: 12px; }
 .upload-zone-title { font-size: 14px; color: #93c5fd; font-weight: 600; margin-bottom: 6px; }
-.upload-zone-sub { font-size: 11px; color: #64748b; }
+.upload-zone-sub { font-size: 12px; color: #94a3b8; }
 .uploader-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .uploader-meta input, .uploader-meta select { width: 100%; padding: 8px 11px; }
 .uploader-progress { margin-top: 14px; height: 4px; background: #1e2d4a; border-radius: 4px; overflow: hidden; display: none; }
@@ -3547,6 +3551,7 @@ function doSearch() {
     ].filter(Boolean).join(', ');
 
     searchHistory.unshift({ query: q, date: new Date().toLocaleString(), count: combined.length, sources: dbsUsed });
+    saveSearchHistory();
     renderHistory();
     renderResults();
 
@@ -5968,6 +5973,7 @@ function logWbSearch(id, query, count, replacing) {
     sources: WB_META[id].label,
     workbench: true
   });
+  saveSearchHistory();
   if (typeof renderHistory === 'function') renderHistory();
 }
 
@@ -8535,9 +8541,45 @@ function homeRemoveCriterion(i) {
 // ══════════════════════════════════════════════
 // HISTORY
 // ══════════════════════════════════════════════
+// Search history is review provenance — it must survive the tab closing, the
+// same as projects and alerts. Persisted on every write, capped so it can't
+// bloat the origin's storage quota; loaded and rendered again at startup.
+var HISTORY_STORE_KEY = 'evidentum_search_history';
+var HISTORY_CAP = 200;
+
+function saveSearchHistory() {
+  try {
+    if (searchHistory.length > HISTORY_CAP) searchHistory.length = HISTORY_CAP;
+    localStorage.setItem(HISTORY_STORE_KEY, JSON.stringify(searchHistory));
+  } catch(e) { /* storage full or disabled — history stays session-only */ }
+}
+
+function loadSearchHistory() {
+  try {
+    var raw = localStorage.getItem(HISTORY_STORE_KEY);
+    if (!raw) return;
+    var arr = JSON.parse(raw);
+    if (Array.isArray(arr)) searchHistory = arr.filter(Boolean);
+  } catch(e) { /* corrupt stored value — start fresh rather than crash */ }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadSearchHistory();
+  renderHistory();
+});
+
 function renderHistory() {
   var list = document.getElementById('history-list');
-  if (!searchHistory.length) { list.innerHTML = '<div class="empty" style="padding:40px 0"><div>No searches yet.</div></div>'; return; }
+  if (!searchHistory.length) {
+    // Keep in step with the static empty state in the History tab markup —
+    // this branch replaces it whenever history renders with zero entries.
+    list.innerHTML = '<div class="empty" style="padding:40px 0">' +
+      '<div style="margin-bottom:6px">No searches yet.</div>' +
+      '<div style="font-size:12px; color:#64748b; margin-bottom:14px">Every search you run is recorded here, with one-click re-run and new-result alerts.</div>' +
+      '<button class="btn btn-green" onclick="switchTab(\'search\')" style="font-size:12px;padding:8px 20px">&#128269; Run your first search</button>' +
+    '</div>';
+    return;
+  }
   list.innerHTML = searchHistory.map(function(h,i) {
     var isAlert = savedAlerts.some(function(a){ return a.query === h.query; });
     var srcBadge = h.sources ? '<span style="font-size:10px;color:#64748b;margin-left:6px">via ' + h.sources + '</span>' : '';
@@ -9044,6 +9086,7 @@ function checkAlertForNew(i, btn) {
       return !knownTitles.some(function(t){ return normTitle(t) === normTitle(p.title); });
     });
     h.newCount = newPapers.length;
+    saveSearchHistory();
     alert.knownCount = combined.length;
     if (newPapers.length > 0) {
       alert.knownTitles = combined.map(function(p){ return p.title; });
