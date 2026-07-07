@@ -69,7 +69,14 @@ a:hover { text-decoration: underline; }
 #logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
 #logo-title { font-family: 'IBM Plex Sans', sans-serif; font-weight: 700; font-size: 17px; color: #f1f5f9; }
 #logo-sub { font-size: 11px; color: #64748b; margin-top: 1px; }
-#tabs { display: flex; gap: 6px; }
+#tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Phones: the six tabs must never force horizontal scroll — wrap them into
+   rows and reclaim header padding so navigation stays one thumb-tap away. */
+@media (max-width: 640px) {
+  #header { padding: 10px 12px; }
+  .tab-btn { padding: 5px 10px; }
+  #logo-sub { display: none; }
+}
 .settings-btn { width:40px; height:40px; border-radius:8px; border:1px solid #1e2d4a; background:transparent; color:#64748b; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:color 0.15s,border-color 0.15s; }
 .settings-btn:hover { color:#f1f5f9; border-color:#3b82f6; }
 #settings-overlay { display:none; position:fixed; inset:0; background:#00000088; z-index:1000; align-items:flex-start; justify-content:flex-end; padding:60px 20px 0; }
@@ -115,6 +122,14 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
   border-radius: 5px;
 }
 .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 12px; align-items: start; }
+/* Narrow screens: 4-up limits row clips off the right edge — collapse to 2-up,
+   then 1-up on phones, so every date/limit field stays reachable. */
+@media (max-width: 860px) { .grid4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .grid4 { grid-template-columns: 1fr; } }
+/* Shared 2-up form grid (PICO fields, checklist pickers, PDF metadata) —
+   stacks to one column on phones so no field clips off-screen. */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 640px) { .grid2, .uploader-meta { grid-template-columns: 1fr; } }
 .grid4 input, .grid4 select { width: 100%; padding: 7px 10px; }
 /* Checkbox limiters (study-type multi-select) must not inherit the full-width
    text-input sizing above — keep them their natural small size. */
@@ -591,12 +606,12 @@ button:not(:disabled):active { filter: brightness(0.95); }
     </div>
   </div>
   <div id="tabs" role="tablist" aria-label="Main sections">
-    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('build')">&#129513; Build Search</button>
-    <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('search')">Search</button>
-    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" onclick="switchTab('results')">Results</button>
-    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('history')">History</button>
-    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('uploader')">&#128203; PDF Scanner</button>
-    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('projects')">&#128193; Projects</button>
+    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('build')" title="Start from your clinical question &mdash; concept blocks become reproducible strategies for every database">&#129513; Build Search</button>
+    <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('search')" title="Run searches &mdash; simple one-box mode, or the per-database advanced workbench">Search</button>
+    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" onclick="switchTab('results')" title="Everything your searches found, deduplicated and ready to screen">Results</button>
+    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('history')" title="Every search you've run &mdash; re-run with one click or save as an alert">History</button>
+    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('uploader')" title="Upload PDFs to extract, screen and appraise papers you already have">&#128203; PDF Scanner</button>
+    <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('projects')" title="Your review projects &mdash; screening, dual review, PRISMA flow and AI appraisal">&#128193; Projects</button>
   </div>
   <!-- Provider selector — dropdown (sits between tabs and settings cog) -->
   <select id="header-provider-select" onchange="setAiProvider(this.value)" title="Active AI provider" aria-label="Active AI provider"
@@ -631,7 +646,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="font-size:10px;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">OpenAI</div>
       <input type="password" id="openai-key-input" placeholder="sk-..." oninput="saveOpenAIKey()" onchange="saveOpenAIKey()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
-      <div id="openai-key-hint" style="font-size:10px;margin-bottom:6px;min-height:13px"></div>
+      <div id="openai-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="openai-model-select" onchange="onModelSelectChange('openai')"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:#e2e8f0;background:#0d1220;border:1px solid #334155;border-radius:6px;margin-bottom:4px" title="OpenAI model">
         <option value="gpt-5.6">GPT-5.6 — next flagship (not yet available)</option>
@@ -649,7 +664,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="font-size:10px;color:#fb923c;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Anthropic</div>
       <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." oninput="saveAnthropicKey()" onchange="saveAnthropicKey()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
-      <div id="anthropic-key-hint" style="font-size:10px;margin-bottom:6px;min-height:13px"></div>
+      <div id="anthropic-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="anthropic-model-select" onchange="onModelSelectChange('anthropic')"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:#e2e8f0;background:#0d1220;border:1px solid #334155;border-radius:6px;margin-bottom:4px" title="Anthropic model">
         <option value="claude-opus-4-8">Claude Opus 4.8 — flagship (default)</option>
@@ -666,7 +681,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="font-size:10px;color:#6ee7b7;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">Google Gemini</div>
       <input type="password" id="gemini-key-input" placeholder="Gemini API key (from Google AI Studio)" oninput="saveGeminiKey()" onchange="saveGeminiKey()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
-      <div id="gemini-key-hint" style="font-size:10px;margin-bottom:6px;min-height:13px"></div>
+      <div id="gemini-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="gemini-model-select" onchange="onModelSelectChange('gemini')"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:#e2e8f0;background:#0d1220;border:1px solid #334155;border-radius:6px;margin-bottom:4px" title="Gemini model">
         <option value="gemini-2.5-pro">Gemini 2.5 Pro — most capable (default)</option>
@@ -682,7 +697,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="font-size:10px;color:#e5e7eb;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">xAI Grok</div>
       <input type="password" id="grok-key-input" placeholder="xAI API key (starts with xai-)" oninput="saveGrokKey()" onchange="saveGrokKey()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
-      <div id="grok-key-hint" style="font-size:10px;margin-bottom:6px;min-height:13px"></div>
+      <div id="grok-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="grok-model-select" onchange="onModelSelectChange('grok')"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:#e2e8f0;background:#0d1220;border:1px solid #334155;border-radius:6px;margin-bottom:4px" title="Grok model">
         <option value="grok-4.3">Grok 4.3 — recommended (default)</option>
@@ -839,7 +854,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="info-box" style="border-color:#a78bfa44;color:#c4b5fd;background:#13102a">
         Enter your research question in PICO terms. The assistant drafts concept blocks and search terms; <b>you</b> edit, restructure, and approve every part. Live result counts come from PubMed&rsquo;s server &mdash; never from the AI.
       </div>
-      <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="grid2">
         <div>
           <label class="pico-lbl" for="pico-p" style="color:#f87171">P &mdash; Population / Problem</label>
           <textarea id="pico-p" rows="2" placeholder="e.g. adult patients undergoing major non-cardiac surgery" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid #334155;background:#0d1220;color:#e2e8f0;resize:vertical"></textarea>
@@ -1019,8 +1034,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
       <!-- ══ SEARCH MODE TOGGLE ══ -->
       <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;background:#0d1220;border:1px solid #1e293b;border-radius:8px;padding:3px;width:fit-content">
-        <button id="mode-simple-btn" onclick="setSearchMode('simple')" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s">Simple</button>
-        <button id="mode-advanced-btn" onclick="setSearchMode('advanced')" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-weight:600;transition:all 0.15s">Advanced</button>
+        <button id="mode-simple-btn" onclick="setSearchMode('simple')" title="One search box, all databases at once &mdash; the fastest way to search" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s">Simple</button>
+        <button id="mode-advanced-btn" onclick="setSearchMode('advanced')" title="Per-database workbench &mdash; native query syntax, PubMed set history, and a result pool you curate" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-weight:600;transition:all 0.15s">Advanced</button>
       </div>
 
       <!-- ══ PRIMARY: PubMed/MEDLINE MeSH strategy (source of truth) ══ -->
@@ -1037,6 +1052,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <button id="query-clear-btn" onclick="document.getElementById('query-input').value='';this.style.display='none';document.getElementById('query-input').focus();" title="Clear" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:#374151;color:#9ca3af;font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
         </div>
         <button id="search-btn" onclick="doSearch()">&#8594; Search</button>
+      </div>
+      <div class="simple-only" style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.5">
+        &#128161; Plain keywords work fine &mdash; use <b style="color:#94a3b8">"quotes"</b> for exact phrases and <b style="color:#94a3b8">AND / OR</b> to combine ideas. This one query searches every ticked database at once, and duplicates are removed automatically.
       </div>
 
       <!-- Search limits — ABOVE the workbench/pool so they're seen (and set)
@@ -1253,7 +1271,12 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
     <div id="empty-results" class="empty">
       <div class="empty-icon">&#128300;</div>
-      <div>No results yet. Run a search first.</div>
+      <div style="margin-bottom:6px">No results yet.</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:14px">Everything your searches find lands here, deduplicated across databases and ready to screen.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="switchTab('search')" style="font-size:12px;padding:8px 20px">&#128269; Run a search</button>
+        <button class="btn" onclick="switchTab('build')" style="font-size:12px;padding:8px 20px;border:1px solid #334155;background:#0d1220;color:#94a3b8">&#129513; Build a search strategy</button>
+      </div>
     </div>
     <div id="results-content" style="display:none">
       <div id="controls-bar">
@@ -1334,7 +1357,11 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="font-size:11px;color:#64748b">🔔 Toggle the bell on any search to save it as an alert. Check for new results any time.</div>
     </div>
     <div id="history-list">
-      <div class="empty" style="padding:40px 0"><div>No searches yet.</div><div style="font-size:12px; color:#64748b; margin-top:6px">Every search you run is recorded here, with one-click re-run and new-result alerts.</div></div>
+      <div class="empty" style="padding:40px 0">
+        <div style="margin-bottom:6px">No searches yet.</div>
+        <div style="font-size:12px; color:#64748b; margin-bottom:14px">Every search you run is recorded here, with one-click re-run and new-result alerts.</div>
+        <button class="btn btn-green" onclick="switchTab('search')" style="font-size:12px;padding:8px 20px">&#128269; Run your first search</button>
+      </div>
     </div>
   </div>
 
@@ -1374,7 +1401,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
 
       <!-- Checklist selector -->
-      <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:14px">
+      <div class="grid2" style="margin-top:16px; gap:14px">
 
         <!-- Quality checklists -->
         <div class="ucl-cl-box collapsed">
@@ -3156,6 +3183,28 @@ function switchTab(name) {
   });
   if (name === 'search') renderCriteriaPreview();
 }
+
+// The header declares role="tablist"/"tab", which promises arrow-key movement
+// (WAI-ARIA tabs pattern) — deliver it: Left/Right cycle, Home/End jump, and
+// focus follows activation, matching native tab strips for keyboard users.
+(function evTabKeyNav() {
+  var bar = document.getElementById('tabs');
+  if (!bar) return;
+  bar.addEventListener('keydown', function(e) {
+    var tabs = Array.prototype.slice.call(bar.querySelectorAll('.tab-btn'));
+    var i = tabs.indexOf(document.activeElement);
+    if (i === -1) return;
+    var j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = tabs.length - 1;
+    if (j === null) return;
+    e.preventDefault();
+    tabs[j].focus();
+    tabs[j].click();
+  });
+})();
 
 // ══════════════════════════════════════════════
 // DOCUMENT SCANNER
@@ -5668,7 +5717,7 @@ function renderWbPanels() {
     }).join('');
 
     var keyWarn = (gid === 'scopus' && !scopusApiKey)
-      ? '<div style="font-size:10px;color:#fbbf24;margin-top:6px">\u26a0\ufe0f Scopus needs an API key in Settings (\u2699 top right) before it can run.</div>'
+      ? '<div style="font-size:11px;color:#fbbf24;margin-top:6px">\u26a0\ufe0f Scopus needs an API key in Settings (\u2699 top right) before it can run.</div>'
       : '';
 
     host.innerHTML =
@@ -5677,7 +5726,7 @@ function renderWbPanels() {
         '<span style="font-size:10px;color:#a78bfa;border:1px solid #a78bfa44;border-radius:4px;padding:1px 6px">' + esc(g.syntax) + '</span>' +
         '<span style="margin-left:auto;display:inline-flex;gap:6px;flex-wrap:wrap">' + memberHtml + '</span>' +
       '</div>' +
-      '<div style="font-size:10px;color:#64748b;margin-bottom:7px;line-height:1.5">' + esc(g.hint) + '</div>' +
+      '<div style="font-size:11px;color:#64748b;margin-bottom:7px;line-height:1.5">' + esc(g.hint) + '</div>' +
       wbDesignBadge(gid) +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         '<input type="text" id="wbq-' + gid + '" placeholder="enter ' + esc(g.syntax) + ' query"' +
