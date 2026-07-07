@@ -2480,7 +2480,7 @@ function extractPdfFromFile(file) {
     if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
     var reader = new FileReader();
     reader.onload = function(e) {
-      pdfjsLib.getDocument({ data: e.target.result, verbosity: 0 }).promise.then(function(pdf) {
+      pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
         var pages = [];
         for (var i = 1; i <= pdf.numPages; i++) {
           pages.push(pdf.getPage(i).then(function(pg) {
@@ -8872,7 +8872,7 @@ function fetchClinicalTrials(query, maxResults, dateFrom, dateTo, design) {
           : '';
 
         return {
-          pmid: nctId,
+          pmid: safeId(nctId),
           pmcid: '',
           doi: '',
           nctId: nctId,
@@ -9182,7 +9182,7 @@ function extractPdfText(pdfUrl) {
   if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl)) return Promise.resolve(null);
 
   function loadViaUrl(url) {
-    return pdfjsLib.getDocument({ url: url, verbosity: 0 }).promise;
+    return pdfjsLib.getDocument({ url: url, verbosity: 0, isEvalSupported: false }).promise;
   }
 
   function tryProxied() {
@@ -9647,7 +9647,7 @@ async function runReferenceScanner() {
         var reader = new FileReader();
         reader.onload = function(e) {
           if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
-          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0 }).promise.then(function(pdf) {
+          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
             var pages = [];
             for (var i = 1; i <= pdf.numPages; i++) pages.push(pdf.getPage(i).then(function(pg) {
               return pg.getTextContent().then(function(tc) { return tc.items.map(function(it){ return it.str; }).join(' '); });
@@ -12539,7 +12539,7 @@ function extractSuppTexts() {
       var reader = new FileReader();
       reader.onload = function(e) {
         if (typeof pdfjsLib === 'undefined') { s.status = 'error'; renderSuppFileList(); resolve(''); return; }
-        pdfjsLib.getDocument({ data: e.target.result, verbosity: 0 }).promise.then(function(pdf) {
+        pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
           var pages = [];
           for (var i = 1; i <= pdf.numPages; i++) {
             pages.push(pdf.getPage(i).then(function(pg) {
@@ -12607,7 +12607,7 @@ function runUploaderChecklist() {
         var reader = new FileReader();
         reader.onload = function(e) {
           if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
-          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0 }).promise.then(function(pdf) {
+          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
             var pagePromises = [];
             for (var i = 1; i <= pdf.numPages; i++) {
               pagePromises.push(pdf.getPage(i).then(function(page) {
