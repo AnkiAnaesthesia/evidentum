@@ -461,7 +461,7 @@ body.mode-advanced .adv-block { display: block !important; }
 /* ══ Evidentum splash ══ */
 #ev-splash { position: fixed; inset: 0; z-index: 99999; background: #0a0f1c;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14px; cursor: pointer; transition: opacity 0.6s ease; }
+  gap: 14px; overflow-y: auto; padding: 24px 12px; transition: opacity 0.6s ease; }
 #ev-splash.ev-out { opacity: 0; pointer-events: none; }
 #ev-splash-art { width: min(520px, 86vw); height: auto; border-radius: 14px;
   box-shadow: 0 18px 60px rgba(0,0,0,0.55); }
@@ -471,6 +471,20 @@ body.mode-advanced .adv-block { display: block !important; }
   -webkit-background-clip: text; background-clip: text; color: transparent; }
 #ev-splash-tag { font-family: 'Inter', sans-serif; font-size: 13px; color: #64748b; letter-spacing: 2.5px; text-transform: uppercase; }
 #ev-splash-hint { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #334155; margin-top: 10px; }
+#ev-splash-cards { display: grid; grid-template-columns: repeat(2, minmax(230px, 300px)); gap: 12px; margin-top: 12px; }
+.ev-card { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left;
+  background: #0d1220; border: 1px solid #1e2d4a; border-radius: 10px; padding: 14px 16px; cursor: pointer;
+  font-family: 'Inter', sans-serif; color: #e2e8f0; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+/* :focus (not :focus-visible) — focus is set programmatically to mark the
+   Enter-key default card, so it must be visible without keyboard interaction */
+.ev-card:hover:not(:disabled), .ev-card:focus:not(:disabled) {
+  border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.35); outline: none; }
+.ev-card:disabled { opacity: 0.38; cursor: default; }
+.ev-card-name { font-size: 14px; font-weight: 650; }
+.ev-card-desc { font-size: 11px; color: #94a3b8; line-height: 1.45; }
+@media (max-width: 560px) { #ev-splash-cards { grid-template-columns: 1fr; } }
+/* Short viewports: the cards are the point — drop the artwork before scrolling */
+@media (max-height: 700px) { #ev-splash-art { display: none; } }
 /* ── Interaction polish ─────────────────────────────────────────────────────
    Buttons ease instead of snapping, with a uniform hover lift — the difference
    between "web page" and "instrument". Scoped to buttons only; layout is
@@ -493,7 +507,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 /* Accessibility: honour the OS-level "reduce motion" preference — spinners and
    fades collapse to (near-)instant so vestibular-sensitive users aren't spun. */
 @media (prefers-reduced-motion: reduce) {
-  #ev-splash { transition: none; }
+  #ev-splash, .ev-card { transition: none; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -517,8 +531,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
      tech announces outcomes (visually hidden, never display:none) -->
 <div id="sr-live" role="status" aria-live="polite" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap"></div>
 
-<!-- ══ EVIDENTUM SPLASH ══ -->
-<div id="ev-splash" role="presentation">
+<!-- ══ EVIDENTUM SPLASH — doubles as the entry router ══ -->
+<div id="ev-splash" role="dialog" aria-modal="true" aria-label="Welcome &mdash; choose where to start">
   <svg id="ev-splash-art" viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <radialGradient id="evg" cx="50%" cy="40%" r="70%">
@@ -546,7 +560,25 @@ button:not(:disabled):active { filter: brightness(0.95); }
   </svg>
   <div id="ev-splash-word">Evidentum <span>Pro</span></div>
   <div id="ev-splash-tag">search · screen · appraise</div>
-  <div id="ev-splash-hint">click anywhere to begin</div>
+  <div id="ev-splash-cards" role="group" aria-label="Choose where to start">
+    <button class="ev-card" id="ev-card-build" onclick="evSplashChoose('build')">
+      <span class="ev-card-name">&#129513; Build a search</span>
+      <span class="ev-card-desc">Start from your clinical question &mdash; concept blocks become ready-made strategies for every database</span>
+    </button>
+    <button class="ev-card" onclick="evSplashChoose('simple')">
+      <span class="ev-card-name">&#128269; Simple search</span>
+      <span class="ev-card-desc">Type one query and search all the databases at once</span>
+    </button>
+    <button class="ev-card" onclick="evSplashChoose('advanced')">
+      <span class="ev-card-name">&#128736;&#65039; Advanced search</span>
+      <span class="ev-card-desc">Per-database workbench in native syntax, with PubMed set history</span>
+    </button>
+    <button class="ev-card" id="ev-card-continue" onclick="evSplashChoose('continue')" disabled>
+      <span class="ev-card-name">&#128193; Continue</span>
+      <span class="ev-card-desc">No saved projects yet</span>
+    </button>
+  </div>
+  <div id="ev-splash-hint">Esc to skip</div>
 </div>
 
 
@@ -10688,6 +10720,8 @@ function openProjDetail(projectId) {
   currentProjectId = projectId;
   var proj = projects.find(function(p){ return p.id === projectId; });
   if (!proj) return;
+  // Stamp last-opened so the splash "Continue" card resumes this project.
+  try { localStorage.setItem('ev_last_proj', projectId); } catch(e) {}
   // Restore this project's screening criteria into the working set (per-project
   // scope). Projects saved before this feature simply have none → keep current.
   if (proj.scanCriteria && proj.scanCriteria.length) { loadCriteria(proj.scanCriteria); syncCriteriaTables(); }
@@ -15347,19 +15381,92 @@ function evRenderWbNote(gid){
 // as a systematic-review search must be. Human refinement happens by editing the bar
 // directly (flagged 'manual' and frozen verbatim).
 
+// ── Splash chooser ───────────────────────────────────────────────────────────
+// The splash doubles as an intent router: rather than dropping everyone into
+// the six-tab UI, it offers the three entry points (guided builder / simple /
+// advanced) plus a state-aware "Continue" that reopens the last project. Shows
+// once per browser session; Esc or a background click skips straight to the
+// app unchanged. No auto-dismiss — a chooser that vanishes mid-read is worse
+// than no chooser.
+
+// Pure: decide the Continue card's state from saved work. Prefers the project
+// last opened (stamped by openProjDetail) over the newest created, so
+// "Continue" resumes what the user was doing, not what they made most recently.
+function splashContinueState(projList, paperMap, lastPid) {
+  var list = (Array.isArray(projList) ? projList : []).filter(Boolean);
+  if (!list.length) return { enabled: false, name: 'Continue', detail: 'No saved projects yet', pid: null };
+  var proj = lastPid ? list.find(function(p){ return p.id === lastPid; }) : null;
+  if (!proj) proj = list.reduce(function(a, b){ return ((b.created || 0) > (a.created || 0)) ? b : a; });
+  var papers = (paperMap && paperMap[proj.id]) || [];
+  var screened = papers.filter(function(p) {
+    if (!p) return false;
+    if (p.decision) return true;
+    var rv = p.reviews || {};
+    return !!((rv.A && rv.A.decision) || (rv.B && rv.B.decision));
+  }).length;
+  return {
+    enabled: true,
+    name: 'Continue — ' + (proj.name || 'Untitled project'),
+    detail: papers.length ? (screened + ' of ' + papers.length + ' screened') : 'no records yet',
+    pid: proj.id
+  };
+}
+
+function evSplashDismiss() {
+  var splash = document.getElementById('ev-splash');
+  if (!splash) return;
+  splash.classList.add('ev-out');
+  try { sessionStorage.setItem('ev_splash_seen', '1'); } catch(e) {}
+  setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 700);
+}
+
+// Card router: land on the right tab first, then fade the splash over it.
+function evSplashChoose(action) {
+  try {
+    if (action === 'build')         switchTab('build');
+    else if (action === 'simple')   { switchTab('search'); setSearchMode('simple'); }
+    else if (action === 'advanced') { switchTab('search'); setSearchMode('advanced'); }
+    else if (action === 'continue') {
+      var lastPid = null;
+      try { lastPid = localStorage.getItem('ev_last_proj'); } catch(e) {}
+      var st = splashContinueState(projects, projectPapers, safeId(lastPid));
+      if (!st.enabled) return;   // greyed-out card — nothing to resume
+      switchTab('projects');
+      if (st.pid) openProjDetail(st.pid);
+    }
+  } catch(e) { console.warn('splash route:', e); }
+  evSplashDismiss();
+}
+
 (function evSplash() {
   var splash = document.getElementById('ev-splash');
   if (!splash) return;
   var seen = false;
   try { seen = sessionStorage.getItem('ev_splash_seen') === '1'; } catch(e) {}
-  function dismiss() {
-    splash.classList.add('ev-out');
-    try { sessionStorage.setItem('ev_splash_seen', '1'); } catch(e) {}
-    setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 700);
-  }
   if (seen) { splash.parentNode.removeChild(splash); return; }
-  splash.addEventListener('click', dismiss);
-  setTimeout(dismiss, 2600); // auto-enter
+  // Background click (outside the cards) or Esc skips to the app as before.
+  splash.addEventListener('click', function(e) { if (e.target === splash) evSplashDismiss(); });
+  document.addEventListener('keydown', function onEsc(e) {
+    if (e.key !== 'Escape') return;
+    document.removeEventListener('keydown', onEsc);
+    evSplashDismiss();
+  });
+  // The Continue card needs the saved projects — loadProjects() runs in an
+  // earlier-registered DOMContentLoaded handler, so this one sees loaded state.
+  document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('ev-card-continue');
+    if (!btn) return;
+    var lastPid = null;
+    try { lastPid = localStorage.getItem('ev_last_proj'); } catch(e) {}
+    var st = splashContinueState(projects, projectPapers, safeId(lastPid));
+    btn.disabled = !st.enabled;
+    // textContent, not innerHTML — project names are user data.
+    btn.querySelector('.ev-card-name').textContent = '📁 ' + st.name;
+    btn.querySelector('.ev-card-desc').textContent = st.detail;
+    // Focus the sensible default so Enter continues (or starts building).
+    var focusEl = st.enabled ? btn : document.getElementById('ev-card-build');
+    if (focusEl) focusEl.focus();
+  });
 })();
 
 // Service worker: offline capability + installability. Only on https/localhost.
