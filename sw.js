@@ -1,7 +1,7 @@
 // Evidentum Pro service worker
 // Strategy: network-first for the page itself (so new builds always win),
 // cache-first for static assets (icons/fonts). Bump CACHE on each release.
-const CACHE = 'evidentum-v1';
+const CACHE = 'evidentum-v2';
 const ASSETS = [
   './',
   './index.html',

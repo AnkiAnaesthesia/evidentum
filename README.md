@@ -33,16 +33,25 @@ Study-design limits (e.g. RCTs only) are applied with each engine's native filte
 - **Dual-reviewer screening** — two reviewers screen independently under blinded A/B lenses; agreements auto-fill the final decision, disagreements surface in a **Conflicts** filter for adjudication, and inter-rater agreement is reported live as **Cohen's κ** (with the Landis–Koch label). Reviewer votes travel in the CSV export.
 - **Two-computer dual review** — no shared account needed: the host exports a **reviewer packet** file (blinded — the host's votes and final decisions are stripped from the file itself), Reviewer B imports it into Evidentum on their own machine, screens under a locked Reviewer B lens, and sends back a votes file that merges with conflict detection and a live κ update. Merges are newest-wins per record, so a stale file can never roll back fresher work.
 - A **decision filter** (To Screen / Included / Maybe / Excluded / Conflicts) that turns the record list into a shrinking screening queue.
+- A **screening burndown** — a progress bar with coverage (screened / total / %) and, from your decision timestamps, an honest **pace and time-to-finish estimate** taken from active screening bursts so breaks between sittings don't skew it. Lens-aware, so each reviewer sees their own progress.
+- **Send all to project** — push a whole result set into a project for screening in one step (no more adding records one at a time).
+- **Update searches (Cochrane MECIR C37)** — re-running a saved strategy later and sending again adds *only new records* to the screening queue (existing ones are skipped); update arrivals are badged **✨ NEW**. The project records each search date and yield, and shows an **amber/red reminder** when the search is ageing past ~6–12 months.
 - A **PRISMA-style identification panel** with per-source counts and a **"Copy for methods"** export (structured and prose) that you can paste straight into a manuscript — now including any active search options (synonym expansion, phrase proximity, field limits) so the documented strategy is reproducible.
+- A **PRISMA-S search report** export — a submission-ready supplement with the full per-database strategies *as executed*, limits, search dates, update-search yields, and the deduplication method, keyed to the PRISMA-S reporting items.
 - A complete **PRISMA 2020 flow diagram** with screening stages, plus structured exclusion reasons.
 - **Projects** — group searches and saved records into named projects.
 - **Retraction sweep** — scan your reference set against retraction data.
 - Citation tooling: *cited-by* and *related articles* lookups, copy citation, reference-manager export (**RIS / BibTeX**), and **CSV export**.
 
+### Data extraction
+- A **structured extraction table** per project — define your own columns once (seeded with a standard set: design, population, N, intervention, comparator, outcomes, results, funding), fill them per study, and export the whole thing as a **wide evidence matrix** (one row per study, one column per field) for your appendix.
+- **AI first-draft** — when the appraisal agent runs, it pre-fills the fields it can already answer (design, population, sample size, key result) and flags them with a 🤖 **VERIFY** badge until a human confirms them; reviewer edits are never overwritten.
+
 ### AI-assisted appraisal
 An optional AI agent reads full text (PMC XML, PDF, or fetched HTML) and drafts structured critical appraisals against standard instruments:
 
-- **Risk of bias** — RoB 2 and ROBINS-I V2 (with **traffic-light plots** you can download as a robvis-style export), plus the Newcastle-Ottawa Scale and the Jadad scale.
+- **Risk of bias** — RoB 2 (randomized trials) and ROBINS-I V2 (non-randomized studies of interventions), with **traffic-light plots** you can download as a robvis-style export; **QUADAS-2** for diagnostic-test-accuracy studies (four bias domains plus the three applicability judgements); and the Newcastle-Ottawa Scale and Jadad scale.
+- **Appraising included reviews** — **AMSTAR 2**, for overviews/umbrella reviews that include other systematic reviews, with its proper **overall confidence rating** (High / Moderate / Low / Critically low) derived from the seven critical domains rather than a raw item score.
 - **Reporting quality** — CONSORT 2025, PRISMA 2020, STROBE, CARE 2013, and AGREE II.
 - **Certainty of evidence** — GRADE, with a **Summary of Findings** export.
 - **Validation harness** — compare the AI's RoB 2 / ROBINS-I V2 judgements for a project against a reference standard (e.g. a published review's consensus judgements): export a reference-template CSV, fill it in, import it back, and read per-domain agreement (raw %, Cohen's κ, linearly weighted κ) with a disagreement list, results CSV, and a copy-ready methods paragraph — the measurement instrument for a formal validation study.
@@ -95,12 +104,12 @@ Evidentum has **no server**. Searches go directly from your browser to each data
 ## Technical notes
 
 - **Single file.** The shipped app is one `index.html` — markup, styles, and logic. No bundler, no dependencies to install at runtime.
-- **Built from modular source.** The development build concatenates partials (`src/01-head.html`, `02-styles.css`, `03-body.html`, `04-app.js`, `05-foot.html`) into the single file with `npm run build`; `npm test` exercises the pure logic against the shipped file, and `npm run verify` checks the two are in sync.
+- **Built from modular source.** The development build concatenates partials (`src/01-head.html`, `02-styles.css`, `03-body.html`, ten ordered app-JS slices `04a`–`04j`, `05-foot.html`) into the single file with `npm run build`; `npm test` exercises the pure logic against the shipped file, and `npm run verify` checks the two are in sync.
 - **PWA assets** in the repo root:
   - `manifest.webmanifest` — app metadata.
   - `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — app icons.
   - `sw.js` — service worker. Uses a **network-first** strategy for the page so a new deploy is always served fresh, and cache-first only for static icons. Bump the `CACHE` version string in `sw.js` on release if you want to force clients to refresh cached assets.
-- External runtime dependencies are limited to `pdf.js` (CDN) and Google Fonts.
+- **Fonts are embedded** (WOFF2 data URIs) — no font-CDN requests, so typography survives offline and on `file://`. The only external runtime dependency is `pdf.js` (CDN, with a graceful fallback).
 
 ---
 
