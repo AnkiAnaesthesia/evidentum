@@ -325,11 +325,18 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 .paper-meta { font-size: 11px; color: var(--ev-text-dim); margin-top: 4px; }
 
 /* ── Scan results chips ── */
-.scan-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.scan-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 9px; }
+.scan-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.scan-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ev-text-faint); font-weight: 700; min-width: 62px; }
 .scan-chip { font-size: 11px; padding: 2px 9px; border-radius: 20px; border: 1px solid; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
 .scan-chip.pass { background: var(--ev-ok-bg); border-color: #22c55e; color: var(--ev-ok-text); }
 .scan-chip.fail { background: var(--ev-danger-bg); border-color: var(--ev-danger-bg); color: var(--ev-danger-text); }
 .scan-chip.unknown { background: var(--ev-surface-2); border-color: var(--ev-text-faint); color: #6b7280; }
+/* Exclusion signals read differently from inclusion: a tripped exclusion (a
+   must-not term was found) is a real flag (amber ⚠); a clean exclusion is muted
+   so it doesn't compete visually with genuine relevance hits. */
+.scan-chip.exclude-hit { background: var(--ev-warn-bg); border-color: #f59e0b; color: var(--ev-warn-text); }
+.scan-chip.exclude-clear { background: var(--ev-surface-2); border-color: var(--ev-border); color: var(--ev-text-dim); }
 .pdf-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 10px; border-radius: 20px; border: 1px solid #16a34a; background: var(--ev-ok-bg); color: var(--ev-ok-text); text-decoration: none; white-space: nowrap; font-family: 'Inter', sans-serif; cursor: pointer; }
 .depth-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; border: 1px solid; white-space: nowrap; font-weight: 600; display: inline-block; }
 .depth-full { border-color: #7c3aed; background: var(--ev-surface-ai); color: var(--ev-ai-text); }
@@ -8241,18 +8248,10 @@ function updateCardScore(p) {
     var passCount = card.querySelector('.pass-count');
     if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
   }
-  // Rebuild criteria chips
+  // Rebuild criteria chips from the shared grouped builder (keeps styling on re-scan)
   if (p.scanResults) {
-    var chipHtml = p.scanResults.map(function(r) {
-      var cls = r.pass ? 'scan-chip pass' : 'scan-chip fail';
-      var icon = r.pass ? '&#10003;' : '&#10007;';
-      var tooltip = (r.type === 'must' ? 'Must contain' : 'Must NOT contain') + ': ' + esc(r.keywords.join(', ')) +
-        (r.matched && r.matched.length ? ' | Matched: ' + r.matched.slice(0,3).join(', ') : '');
-      return '<span class="' + cls + '" title="' + tooltip + '">' + icon + ' ' + esc(r.label) + '</span>';
-    }).join('');
-    // Replace first .scan-row (criteria chips row)
     var scanRows = card.querySelectorAll('.scan-row');
-    if (scanRows[0]) scanRows[0].innerHTML = chipHtml;
+    if (scanRows[0]) scanRows[0].innerHTML = buildScanRowInner(p.scanResults);
   }
 }
 
@@ -8515,6 +8514,40 @@ function buildAgentBadge(p, withId) {
   '</div>';
 }
 
+// ── Keyword-triage chip builder (shared) ─────────────────────────────────────
+// One place builds the triage chips so the grouping + styling survive every
+// re-scan (initial render, full-text deepen, agent run all rebuild from here).
+// Signals are split into two labelled clusters — Relevance (must-contain) and
+// Exclude (must-not) — and a tripped exclusion is flagged distinctly from an
+// unmet inclusion (P1.C slice 4 — separate relevance vs exclusion vs design vs AI).
+function scanChipHtml(r) {
+  var label = esc(r.label) + (r.agent ? ' <span style="font-size:10px;opacity:0.55">AI</span>' : '');
+  var kws = esc((r.keywords || []).join(', '));
+  if (r.type === 'mustnot') {
+    if (r.pass) {
+      // No exclusion term present — clean, shown muted (not competing green).
+      return '<span class="scan-chip exclude-clear" title="Must NOT contain: ' + kws + ' | none found">&#10003; ' + label + '</span>';
+    }
+    // Exclusion term found — a real screening flag.
+    var found = (r.matched && r.matched.length) ? ' | found: ' + esc(r.matched.slice(0,3).join(', ')) : '';
+    return '<span class="scan-chip exclude-hit" title="Must NOT contain: ' + kws + found + '">&#9888; ' + label + '</span>';
+  }
+  // Inclusion signal.
+  var cls = r.pass ? 'scan-chip pass' : 'scan-chip fail';
+  var icon = r.pass ? '&#10003;' : '&#10007;';
+  var matched = (r.matched && r.matched.length) ? ' | matched: ' + esc(r.matched.slice(0,3).join(', ')) : '';
+  return '<span class="' + cls + '" title="Must contain: ' + kws + matched + '">' + icon + ' ' + label + '</span>';
+}
+function buildScanRowInner(scanResults) {
+  if (!scanResults || !scanResults.length) return '';
+  var incl = [], excl = [];
+  scanResults.forEach(function(r){ (r.type === 'mustnot' ? excl : incl).push(r); });
+  var out = '';
+  if (incl.length) out += '<div class="scan-group"><span class="scan-group-label">Relevance</span>' + incl.map(scanChipHtml).join('') + '</div>';
+  if (excl.length) out += '<div class="scan-group"><span class="scan-group-label">Exclude</span>' + excl.map(scanChipHtml).join('') + '</div>';
+  return out;
+}
+
 function renderPapers() {
   var sorted = getSorted();
   var countEl = document.getElementById('paper-count');
@@ -8534,35 +8567,35 @@ function renderPapers() {
     // the workbench strategy already encodes inclusion logic.
     var hideCriteria = (resultsContext === 'pool' && !showCriteriaInPool);
 
-    // Scan result chips (compact, show on card)
-    var chipHtml = '';
-    if (p.scanResults && p.scanResults.length) {
-      chipHtml = p.scanResults.map(function(r) {
-        var icon = r.pass ? '&#10003;' : '&#10007;';
-        var cls = r.pass ? 'scan-chip pass' : 'scan-chip fail';
-        return '<span class="' + cls + '">' + icon + ' ' + esc(r.label) + '</span>';
-      }).join('');
-    }
+    // Scan result chips (compact, show on card) — grouped Relevance / Exclude
+    var chipHtml = buildScanRowInner(p.scanResults);
 
     // Manual tag chips
     var tagHtml = ''; // manual tags removed — screening decisions live in Projects
 
-    // Expanded scan detail
+    // Expanded scan detail — grouped into Relevance signals / Exclusion signals
     var detailHtml = '';
     if (p.scanResults && p.scanResults.length) {
-      detailHtml = '<div class="scan-detail">' +
-        '<div class="sec-label" style="margin-bottom:6px">Scan Criteria Results</div>' +
-        p.scanResults.map(function(r) {
-          var col = r.pass ? '#22c55e' : '#ef4444';
-          var icon = r.pass ? '&#10003;' : '&#10007;';
-          var ruleLabel = r.type === 'must' ? 'Must contain' : 'Must NOT contain';
-          var matchedStr = r.matched && r.matched.length ? 'Matched: ' + r.matched.slice(0,3).join(', ') : (r.type==='mustnot' && r.pass ? 'None found ✓' : 'None found');
+      var detailRows = function(list) {
+        return list.map(function(r) {
+          var isExcl = r.type === 'mustnot';
+          var col = r.pass ? '#22c55e' : (isExcl ? 'var(--ev-warn-text)' : '#ef4444');
+          var icon = r.pass ? '&#10003;' : (isExcl ? '&#9888;' : '&#10007;');
+          var resultTxt = isExcl ? (r.pass ? 'Clear' : 'Found') : (r.pass ? 'Pass' : 'Fail');
+          var ruleLabel = isExcl ? 'Must NOT contain' : 'Must contain';
+          var matchedStr = r.matched && r.matched.length ? 'Matched: ' + esc(r.matched.slice(0,3).join(', ')) : (isExcl && r.pass ? 'None found &#10003;' : 'None found');
           return '<div class="scan-detail-row">' +
             '<div class="scan-detail-name">' + esc(r.label) + '</div>' +
-            '<div class="scan-detail-kws"><span style="color:var(--ev-text-faint);font-size:10px">' + esc(ruleLabel) + '</span><br>' + esc(matchedStr) + '</div>' +
-            '<div class="scan-detail-result" style="color:'+col+'">'+icon+' '+(r.pass?'Pass':'Fail')+'</div>' +
+            '<div class="scan-detail-kws"><span style="color:var(--ev-text-faint);font-size:10px">' + ruleLabel + '</span><br>' + matchedStr + '</div>' +
+            '<div class="scan-detail-result" style="color:'+col+'">'+icon+' '+resultTxt+'</div>' +
           '</div>';
-        }).join('') +
+        }).join('');
+      };
+      var inclD = p.scanResults.filter(function(r){ return r.type !== 'mustnot'; });
+      var exclD = p.scanResults.filter(function(r){ return r.type === 'mustnot'; });
+      detailHtml = '<div class="scan-detail">' +
+        (inclD.length ? '<div class="sec-label" style="margin-bottom:6px">Relevance signals</div>' + detailRows(inclD) : '') +
+        (exclD.length ? '<div class="sec-label" style="margin:10px 0 6px">Exclusion signals</div>' + detailRows(exclD) : '') +
       '</div>';
     }
 
@@ -10014,13 +10047,9 @@ function applyFullText(p, text, depthType, db) {
       if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
     }
 
-    var chips = card.querySelectorAll('.scan-chip.pass, .scan-chip.fail');
-    chips.forEach(function(chip, ci) {
-      if (p.scanResults[ci]) {
-        chip.className = 'scan-chip ' + (p.scanResults[ci].pass ? 'pass' : 'fail');
-        chip.innerHTML = (p.scanResults[ci].pass ? '&#10003;' : '&#10007;') + ' ' + esc(p.scanResults[ci].label);
-      }
-    });
+    // Rebuild the grouped triage row from the shared builder (full-text deepen re-scan)
+    var ftScanRow = card.querySelector('.scan-row');
+    if (ftScanRow && p.scanResults) ftScanRow.innerHTML = buildScanRowInner(p.scanResults);
 
     var clSection = card.querySelector('.checklist-section');
     if (clSection) { clSection.outerHTML = renderChecklistSection(p); }
@@ -16166,14 +16195,10 @@ function applyAgentResults(p, result, fullText, textSource) {
     var passCount = card.querySelector('.pass-count');
     if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
 
-    var chips = card.querySelectorAll('.scan-chip.pass, .scan-chip.fail');
-    chips.forEach(function(chip, ci) {
-      if (p.scanResults && p.scanResults[ci]) {
-        chip.className = 'scan-chip ' + (p.scanResults[ci].pass ? 'pass' : 'fail');
-        chip.innerHTML = (p.scanResults[ci].pass ? '&#10003;' : '&#10007;') + ' ' + esc(p.scanResults[ci].label) +
-          (p.scanResults[ci].agent ? ' <span style="font-size:10px;opacity:0.55">AI</span>' : '');
-      }
-    });
+    // Rebuild the grouped triage row from the shared builder (agent re-scan;
+    // scanChipHtml carries the per-signal AI marker)
+    var agScanRow = card.querySelector('.scan-row');
+    if (agScanRow && p.scanResults) agScanRow.innerHTML = buildScanRowInner(p.scanResults);
 
     var db = document.getElementById('db-' + p.pmid);
     if (db) {
