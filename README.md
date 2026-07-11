@@ -1,7 +1,7 @@
 # Evidentum Pro
 
 **A self-contained systematic review search & appraisal workbench.**
-Search across major biomedical databases, screen and de-duplicate results, run AI-assisted critical appraisal, and assemble PRISMA-ready records — all from a single HTML file that runs in your browser. Installable as an app, offline-capable, and your data never leaves your machine.
+Search across major biomedical databases, screen and de-duplicate results, run AI-assisted critical appraisal, and assemble PRISMA-ready records — all from a single HTML file that runs in your browser. Installable as an app, offline-capable, light or dark theme, and your data never leaves your machine.
 
 > **Status:** Beta. Features and interfaces are still changing between builds.
 
