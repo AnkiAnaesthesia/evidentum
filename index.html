@@ -5189,6 +5189,55 @@ async function buildDraftStrategy() {
 // backend. The key travels in the x-goog-api-key HEADER, not the URL — query
 // strings end up in proxy/server logs and browser history; headers don't.
 // temperature:0 keeps appraisal output as reproducible as the API allows.
+// ── Shared AI transport layer (P1.D) ─────────────────────────────────────────
+// Every AI provider call (OpenAI, Anthropic, Gemini, Grok — appraisal AND
+// strategy generation) goes through aiFetch, which adds a hard timeout and
+// user-cancellation via AbortController. Without this a hung provider connection
+// stalls the whole appraisal queue forever; with it the request aborts, throws a
+// typed error, and the paper is reported as failed/skipped — never stored as a
+// successful appraisal. Aborting is also how "Stop" cancels in-flight requests.
+var AI_TIMEOUT_MS = 120000;                 // 120 s hard cap per request
+var aiActiveControllers = (typeof Set !== 'undefined') ? new Set() : null;
+function abortAllAiRequests() {
+  if (!aiActiveControllers) return;
+  aiActiveControllers.forEach(function (c) { try { c.abort(); } catch (e) {} });
+  aiActiveControllers.clear();
+}
+function aiFetch(url, init, opts) {
+  init = init || {}; opts = opts || {};
+  var ms = opts.timeout || AI_TIMEOUT_MS;
+  if (typeof AbortController === 'undefined') return fetch(url, init);   // very old browser: no timeout
+  var controller = new AbortController();
+  var timedOut = false;
+  var timer = setTimeout(function () { timedOut = true; controller.abort(); }, ms);
+  var merged = {}; for (var k in init) merged[k] = init[k];
+  merged.signal = controller.signal;
+  if (aiActiveControllers) aiActiveControllers.add(controller);
+  function cleanup() { clearTimeout(timer); if (aiActiveControllers) aiActiveControllers.delete(controller); }
+  return fetch(url, merged).then(function (r) {
+    cleanup(); return r;
+  }, function (err) {
+    cleanup();
+    if (timedOut) { var te = new Error('request timed out after ' + Math.round(ms / 1000) + 's'); te.aiTimeout = true; throw te; }
+    if (err && (err.name === 'AbortError' || err.aiCancelled)) { var ce = new Error('request cancelled'); ce.aiCancelled = true; throw ce; }
+    throw err;
+  });
+}
+// Map a provider/transport error to a specific, human-readable cause so the UI
+// can distinguish timeout vs cancellation vs rate-limit vs invalid-key vs
+// malformed-response instead of showing a raw string.
+function describeAiError(e) {
+  if (e && e.aiTimeout) return 'timed out — no response within ' + Math.round(AI_TIMEOUT_MS / 1000) + 's; the paper was skipped, not appraised';
+  if (e && e.aiCancelled) return 'cancelled — stopped before a response returned';
+  var m = (e && e.message) || 'failed';
+  if (/\b429\b|rate.?limit/i.test(m)) return 'rate limited (HTTP 429) — the provider is throttling your key; wait a minute and re-run';
+  if (/\b40[13]\b|invalid.?api.?key|unauthor/i.test(m)) return 'access denied — check the API key for this provider in Settings';
+  if (/\b5\d\d\b/.test(m)) return 'provider error (' + (m.match(/\b5\d\d\b/) || ['5xx'])[0] + ') — usually transient; re-run shortly';
+  if (/JSON|parse|malformed|schema|no text|unparse/i.test(m)) return 'malformed response — the model returned unusable output; try Re-analyse';
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'network unreachable — check your connection and re-run';
+  return m;
+}
+
 async function geminiGenerate(systemPrompt, userText, maxTokens, opts) {
   var body = {
     contents: [{ role: 'user', parts: [{ text: userText }] }],
@@ -5201,11 +5250,11 @@ async function geminiGenerate(systemPrompt, userText, maxTokens, opts) {
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
     encodeURIComponent(aiModelGemini) + ':generateContent';
   var gHeaders = { 'Content-Type': 'application/json', 'x-goog-api-key': activeApiKey };
-  var r = await fetch(url, { method: 'POST', headers: gHeaders, body: JSON.stringify(body) });
+  var r = await aiFetch(url, { method: 'POST', headers: gHeaders, body: JSON.stringify(body) });
   if (r.status === 400 && body.generationConfig.responseMimeType) {
     // Model rejects JSON mode — unbilled 400, retry prompt-only.
     delete body.generationConfig.responseMimeType;
-    r = await fetch(url, { method: 'POST', headers: gHeaders, body: JSON.stringify(body) });
+    r = await aiFetch(url, { method: 'POST', headers: gHeaders, body: JSON.stringify(body) });
   }
   if (!r.ok) { var e = await r.json().catch(function(){ return {}; }); throw new Error('Gemini ' + r.status + ': ' + ((e.error && e.error.message) || 'unknown')); }
   var data = await r.json();
@@ -5230,13 +5279,13 @@ async function grokGenerate(systemPrompt, userText, maxTokens, opts) {
   // JSON reply (our prompts already say "return ONLY JSON", which json_object requires).
   if (opts && opts.json) gkBody.response_format = { type: 'json_object' };
   var gkHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApiKey };
-  var r = await fetch('https://api.x.ai/v1/chat/completions', {
+  var r = await aiFetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST', headers: gkHeaders, body: JSON.stringify(gkBody)
   });
   if (r.status === 400 && gkBody.response_format) {
     // Model rejects JSON mode — unbilled 400, retry prompt-only.
     delete gkBody.response_format;
-    r = await fetch('https://api.x.ai/v1/chat/completions', {
+    r = await aiFetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST', headers: gkHeaders, body: JSON.stringify(gkBody)
     });
   }
@@ -5281,13 +5330,13 @@ async function modelGenerateText(systemPrompt, userText, maxTokens) {
   if (aiProvider === 'anthropic') {
     var aBody = { model: aiModelAnthropic, max_tokens: maxTokens, messages: [{ role: 'user', content: userText }] };
     if (systemPrompt) aBody.system = systemPrompt;
-    var r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: anthropicHeaders(), body: JSON.stringify(aBody) });
+    var r = await aiFetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: anthropicHeaders(), body: JSON.stringify(aBody) });
     if (!r.ok) { var e1 = await r.json().catch(function(){return {};}); throw new Error('Anthropic ' + r.status + ': ' + ((e1.error && e1.error.message) || 'error')); }
     return anthropicExtractText(await r.json());
   }
   if (aiProvider === 'gemini') return geminiGenerate(systemPrompt, userText, maxTokens * 2);
   if (aiProvider === 'grok')   return grokGenerate(systemPrompt, userText, maxTokens);
-  var r2 = await fetch('https://api.openai.com/v1/responses', {
+  var r2 = await aiFetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApiKey },
     body: JSON.stringify({ model: aiModelOpenAI, max_output_tokens: maxTokens, reasoning: { effort: 'low' }, input: [{ role: 'user', content: [{ type: 'input_text', text: (systemPrompt ? systemPrompt + '\n\n' : '') + userText }] }] })
@@ -13870,7 +13919,10 @@ async function runProjPaperAgent(projectId, pmid, force) {
     showToast('🤖 ' + (haveFull ? 'Full-text' : 'Abstract') + ' analysis complete for "' + (p.title || 'paper').slice(0,40) + '…"', 'var(--ev-ai-text)');
     renderProjDetail(); // re-render to show results
   } catch(e) {
-    showToast('⚠️ Agent failed: ' + (e.message || 'unknown error'), '#f59e0b');
+    // Typed cause (timeout / cancelled / rate-limit / invalid key / malformed)
+    var why = (typeof describeAiError === 'function') ? describeAiError(e) : (e.message || 'unknown error');
+    if (e && e.aiCancelled) showToast('■ Analysis cancelled', '#f59e0b');
+    else showToast('⚠️ Agent failed: ' + why, '#f59e0b');
     if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
   }
 }
@@ -15091,6 +15143,7 @@ function startAgentAnalysis() {
 function stopAgentAnalysis() {
   agentStop = true;
   agentRunning = false;
+  abortAllAiRequests();   // cancel in-flight provider calls, not just the queue between papers
   setAgentStatusLine('Agent stopped by user.');
   document.getElementById('agent-run-btn').disabled = false;
   document.getElementById('agent-run-btn').textContent = '🤖 Resume Analysis';
@@ -15174,10 +15227,14 @@ function runAgentQueue(startIndex) {
       if (gen === _agentQueueGen) agentStats.done++;
       updateCardAfterAgentAnalysis(p);
     }).catch(function(err) {
+      // A user Stop aborts in-flight requests (aiCancelled) — that's a deliberate
+      // halt, not a failure: don't inflate the failed tally or log it as an error.
+      if (err && err.aiCancelled) { console.info('Agent cancelled for', p.pmid); return; }
       console.warn('Agent failed for', p.pmid, err);
       if (gen === _agentQueueGen) agentStats.failed++;
-      // The "failed" counter says how many; the issues log must say WHICH and why.
-      logIssue('ai', 'Appraisal failed — ' + ((p.title || p.pmid || '') + '').slice(0, 80) + ': ' + ((err && err.message) || 'unknown'),
+      // The "failed" counter says how many; the issues log must say WHICH and why
+      // — with a specific cause (timeout / rate-limit / invalid key / malformed).
+      logIssue('ai', 'Appraisal failed — ' + ((p.title || p.pmid || '') + '').slice(0, 80) + ': ' + describeAiError(err),
         'Use the card’s Re-analyse to retry this paper; if many fail, check the API key and model in Settings.');
     }).then(function() {
       if (gen === _agentQueueGen) updateAgentCounters();
@@ -15823,13 +15880,13 @@ async function callOpenAIWithPdfUrl(pdfUrl, prompts) {
       }],
       output_config: { format: { type: 'json_schema', schema: buildAppraisalSchema() } }
     };
-    var aResp = await fetch('https://api.anthropic.com/v1/messages', {
+    var aResp = await aiFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: aPdfHeaders, body: JSON.stringify(aPdfBody)
     });
     if (aResp.status === 400 && aPdfBody.output_config) {
       // Model rejects structured outputs — unbilled 400, retry prompt-only.
       delete aPdfBody.output_config;
-      aResp = await fetch('https://api.anthropic.com/v1/messages', {
+      aResp = await aiFetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: aPdfHeaders, body: JSON.stringify(aPdfBody)
       });
     }
@@ -15868,13 +15925,13 @@ async function callOpenAIWithPdfUrl(pdfUrl, prompts) {
       }
     ]
   };
-  var response = await fetch('https://api.openai.com/v1/responses', {
+  var response = await aiFetch('https://api.openai.com/v1/responses', {
     method: 'POST', headers: oPdfHeaders, body: JSON.stringify(oPdfBody)
   });
   if (response.status === 400 && oPdfBody.text) {
     // Model rejects structured outputs — unbilled 400, retry prompt-only.
     delete oPdfBody.text;
-    response = await fetch('https://api.openai.com/v1/responses', {
+    response = await aiFetch('https://api.openai.com/v1/responses', {
       method: 'POST', headers: oPdfHeaders, body: JSON.stringify(oPdfBody)
     });
   }
@@ -15933,7 +15990,7 @@ async function callOpenAIWithText(text, prompts, p, textSource) {
       output_config: { format: { type: 'json_schema', schema: buildAppraisalSchema() } }
     };
     var anthroHeaders = anthropicHeaders();
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await aiFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: anthroHeaders, body: JSON.stringify(aBody)
     });
     if (response.status === 400 && aBody.output_config) {
@@ -15941,7 +15998,7 @@ async function callOpenAIWithText(text, prompts, p, textSource) {
       // id). A 400 is unbilled — retry once without it; the prompt still
       // demands JSON and safeParseAgentJson remains the backstop.
       delete aBody.output_config;
-      response = await fetch('https://api.anthropic.com/v1/messages', {
+      response = await aiFetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: anthroHeaders, body: JSON.stringify(aBody)
       });
     }
@@ -15971,14 +16028,14 @@ async function callOpenAIWithText(text, prompts, p, textSource) {
       input: [{ role: 'user', content: [{ type: 'input_text', text: prompts.systemPrompt + '\n\n' + userPrompt }] }]
     };
     var oaHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApiKey };
-    var response = await fetch('https://api.openai.com/v1/responses', {
+    var response = await aiFetch('https://api.openai.com/v1/responses', {
       method: 'POST', headers: oaHeaders, body: JSON.stringify(oBody)
     });
     if (response.status === 400 && oBody.text) {
       // Model rejects the structured-output parameter — unbilled 400, retry
       // without it (prompt-only JSON + repair parser as before).
       delete oBody.text;
-      response = await fetch('https://api.openai.com/v1/responses', {
+      response = await aiFetch('https://api.openai.com/v1/responses', {
         method: 'POST', headers: oaHeaders, body: JSON.stringify(oBody)
       });
     }
