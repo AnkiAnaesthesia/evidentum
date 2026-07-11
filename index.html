@@ -1323,11 +1323,11 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div class="card simple-only">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span class="step-num">2</span>
-        <div class="card-label" style="margin-bottom:0">Document Scanning Criteria</div>
-        <span style="font-size:11px;color:var(--ev-text-dim);margin-left:4px">— applied to each paper's title &amp; abstract after retrieval</span>
+        <div class="card-label" style="margin-bottom:0">Keyword triage signals</div>
+        <span style="font-size:11px;color:var(--ev-text-dim);margin-left:4px">— a reading-order aid, applied to each title &amp; abstract after retrieval</span>
       </div>
       <div class="info-box">
-        Each criterion scans the title and abstract for your keywords. <b>Must contain</b> = paper flagged ✓ if any keyword found. <b>Must NOT contain</b> = paper flagged ✓ if no keywords found (e.g. use "animal, rat, mouse" to exclude animal studies). Papers passing more criteria score higher. Edit the full criteria set in the table below.
+        Each signal scans the title and abstract for your keywords. <b>Must contain</b> = flagged ✓ if any keyword is found. <b>Must NOT contain</b> = flagged ✓ if no keyword is found (e.g. "animal, rat, mouse" to down-rank animal studies). More signals detected ranks a paper higher for triage. <b>These are simple text matches to help you decide what to read first — they do not determine eligibility, study quality or risk of bias.</b> Edit the signals in the table below.
       </div>
       <!-- Live preview of active criteria -->
       <div id="criteria-preview"></div>
@@ -1440,7 +1440,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <select id="sort-by" onchange="renderPapers()">
             <option value="relevance">Sort: Search Relevance</option>
             <option value="sources">Sort: Most Databases</option>
-            <option value="score">Sort: Criteria Score &#8595;</option>
+            <option value="score">Sort: Triage signals &#8595;</option>
             <option value="agent_rank">Sort: Agent Rank &#8595;</option>
             <option value="citations">Sort: Most Cited &#8595;</option>
             <option value="date_new">Sort: Newest First</option>
@@ -1450,9 +1450,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <select id="filter-type" onchange="renderPapers()"><option value="All">All Study Types</option></select>
           <select id="filter-score" onchange="renderPapers()">
             <option value="-1">All Papers</option>
-            <option value="100">100% criteria met</option>
-            <option value="75">&#8805;75% criteria met</option>
-            <option value="50">&#8805;50% criteria met</option>
+            <option value="100">100% signals detected</option>
+            <option value="75">&#8805;75% signals detected</option>
+            <option value="50">&#8805;50% signals detected</option>
           </select>
           <label id="citation-boost-toggle" title="Adds up to 15 points based on log-normalised citation count. Rewards landmark papers but penalises recent work — toggle off for unbiased criteria-only ranking." style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ev-text-muted);cursor:pointer;padding:5px 10px;border:1px solid var(--ev-border);border-radius:6px;user-select:none;white-space:nowrap">
             <input type="checkbox" id="citation-boost-cb" onchange="renderPapers()" style="accent-color:#3b82f6;cursor:pointer">
@@ -3893,8 +3893,12 @@ function doSearch() {
     // The user can still change the sort dropdown afterwards; this only sets
     // the starting point per search.
     resultsContext = 'simple';
+    // Default to search relevance / retrieval order, not the keyword triage score —
+    // the triage score is a lexical prioritisation aid, not an eligibility ranking,
+    // so it shouldn't be the order a reviewer sees first. Users can still pick
+    // "Sort: Triage signals" explicitly.
     var sortSel = document.getElementById('sort-by');
-    if (sortSel) sortSel.value = (searchMode === 'advanced') ? 'relevance' : 'score';
+    if (sortSel) sortSel.value = 'relevance';
     var pcWrap = document.getElementById('pool-criteria-toggle-wrap');
     if (pcWrap) pcWrap.style.display = 'none';
     // Simple search keeps the keyword-criteria score visible, so citation boost applies here.
@@ -3944,7 +3948,7 @@ function doSearch() {
     document.getElementById('search-success').style.display = 'flex';
     document.getElementById('success-msg').textContent =
       '\u2713 ' + combined.length + ' papers retrieved from ' + dbsUsed +
-      ' \u00b7 scanned against ' + scanCriteria.length + ' criteria \u00b7 ' + allPass + ' passed all \u2014 click to view';
+      ' \u00b7 ' + scanCriteria.length + ' triage signals \u00b7 ' + allPass + ' matched all \u2014 click to view';
     announce('Search complete: ' + combined.length + ' papers retrieved from ' + dbsUsed);
 
     btn.disabled = false; btn.innerHTML = '\u2192 Search';
@@ -8190,7 +8194,7 @@ function updateCardScore(p) {
     var scoreBar = card.querySelector('.score-bar');
     if (scoreBar) { scoreBar.style.width = boostedScore + '%'; scoreBar.style.background = scoreColor; }
     var passCount = card.querySelector('.pass-count');
-    if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' pass';
+    if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
   }
   // Rebuild criteria chips
   if (p.scanResults) {
@@ -8581,10 +8585,10 @@ function renderPapers() {
                 '<div class="score-bar-wrap"><div class="score-bar" style="width:' + Math.min(100, (p.sources||[]).length * 25) + '%;background:' + ((p.sources||[]).length >= 3 ? '#22c55e' : (p.sources||[]).length === 2 ? '#f59e0b' : 'var(--ev-text-dim)') + '"></div></div>' +
               '</div>'
             : '<div class="score-box">' +
-                '<div class="score-label">' + (boost > 0 ? 'Criteria+Cit.' : 'Criteria') + '</div>' +
+                '<div class="score-label" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">' + (boost > 0 ? 'Triage+Cit.' : 'Triage') + '</div>' +
                 '<div class="score-num" style="color:'+scoreColor+'">' + boostedScore + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span></div>' +
                 '<div class="score-bar-wrap"><div class="score-bar" style="width:'+boostedScore+'%;background:'+scoreColor+'"></div></div>' +
-                '<div class="pass-count" style="font-size:10px;color:var(--ev-text-dim);margin-top:2px">'+p.passedCriteria+'/'+p.totalCriteria+' pass</div>' +
+                '<div class="pass-count" style="font-size:10px;color:var(--ev-text-dim);margin-top:2px">'+p.passedCriteria+'/'+p.totalCriteria+' signals</div>' +
                 (boost > 0 ? '<div style="font-size:10px;color:#3b82f6;margin-top:1px" title="'+p.score+'% criteria + '+boost+'pt citation boost ('+((p.citationCount||0))+' citations)">+'+boost+' cit. boost</div>' : '') +
               '</div>') +
           buildChecklistPill(p) +
@@ -9962,7 +9966,7 @@ function applyFullText(p, text, depthType, db) {
       var scoreBar = card.querySelector('.score-bar');
       if (scoreBar) { scoreBar.style.width = p.score + '%'; scoreBar.style.background = scoreColor; }
       var passCount = card.querySelector('.pass-count');
-      if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' pass';
+      if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
     }
 
     var chips = card.querySelectorAll('.scan-chip.pass, .scan-chip.fail');
@@ -16115,7 +16119,7 @@ function applyAgentResults(p, result, fullText, textSource) {
     var scoreBar = card.querySelector('.score-bar');
     if (scoreBar) { scoreBar.style.width = p.score + '%'; scoreBar.style.background = scoreColor; }
     var passCount = card.querySelector('.pass-count');
-    if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' pass';
+    if (passCount) passCount.textContent = p.passedCriteria + '/' + p.totalCriteria + ' signals';
 
     var chips = card.querySelectorAll('.scan-chip.pass, .scan-chip.fail');
     chips.forEach(function(chip, ci) {
