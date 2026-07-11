@@ -1327,7 +1327,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <span style="font-size:11px;color:var(--ev-text-dim);margin-left:4px">— a reading-order aid, applied to each title &amp; abstract after retrieval</span>
       </div>
       <div class="info-box">
-        Each signal scans the title and abstract for your keywords. <b>Must contain</b> = flagged ✓ if any keyword is found. <b>Must NOT contain</b> = flagged ✓ if no keyword is found (e.g. "animal, rat, mouse" to down-rank animal studies). More signals detected ranks a paper higher for triage. <b>These are simple text matches to help you decide what to read first — they do not determine eligibility, study quality or risk of bias.</b> Edit the signals in the table below.
+        Each signal scans the title and abstract for your keywords. <b>Must contain</b> = flagged ✓ if any keyword is found. <b>Must NOT contain</b> = flagged ✓ if no keyword is found (e.g. "animal, rat, mouse" to down-rank animal studies). More signals detected ranks a paper higher for triage. Keywords match at the <b>start of a word</b> (like a database <code>*</code> truncation), so "randomis" catches "randomised" and "randomisation" but "male" won't match "female". <b>These are simple text matches to help you decide what to read first — they do not determine eligibility, study quality or risk of bias.</b> Edit the signals in the table below.
       </div>
       <!-- Live preview of active criteria -->
       <div id="criteria-preview"></div>
@@ -3563,6 +3563,25 @@ function switchTab(name) {
 // ══════════════════════════════════════════════
 // DOCUMENT SCANNER
 // ══════════════════════════════════════════════
+// Word-boundary (truncation) keyword match. A keyword must BEGIN at a word
+// boundary but may be a stem of a longer word — mirroring the database
+// truncation convention (random* → randomised / randomized / randomisation)
+// and the deliberately-stemmed default criteria ("randomis", "randomiz").
+// This replaces bare String.includes(), whose substring matches produced
+// misleading triage hits: "male" matched "female", "AI" matched "brain"/"pain",
+// "men" matched "women"/"management"/"measurement". Anchoring to the start of a
+// word removes those without breaking prefix stems or multi-word phrases.
+// `text` is assumed already lower-cased.
+function keywordHitsText(text, kw) {
+  if (!text || !kw) return false;
+  var from = 0, idx;
+  while ((idx = text.indexOf(kw, from)) !== -1) {
+    // Boundary = start of string, or a non-alphanumeric char immediately before.
+    if (idx === 0 || !/[a-z0-9]/.test(text.charAt(idx - 1))) return true;
+    from = idx + 1;
+  }
+  return false;
+}
 function scanPaper(paper) {
   // Prefer full text when available; fall back to abstract for abstract-only papers
   var body = (paper.fullText && paper.fullText.length > 200) ? paper.fullText : (paper.abstract || '');
@@ -3571,9 +3590,9 @@ function scanPaper(paper) {
 
   scanCriteria.forEach(function(crit) {
     var kws = crit.keywords.map(function(k){ return k.trim().toLowerCase(); }).filter(Boolean);
-    var found = kws.some(function(kw){ return text.includes(kw); });
+    var matchedKws = kws.filter(function(kw){ return keywordHitsText(text, kw); });
+    var found = matchedKws.length > 0;
     var pass = crit.type === 'must' ? found : !found;
-    var matchedKws = found ? kws.filter(function(kw){ return text.includes(kw); }) : [];
     results.push({ label: crit.label, type: crit.type, pass: pass, matched: matchedKws, keywords: kws });
   });
 
