@@ -1670,6 +1670,17 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <span id="proj-pico-saved">&#10003; Saved</span>
       </div>
 
+      <!-- Review protocol (PROSPERO / PRISMA-P style) — collapsed by default -->
+      <div id="proj-protocol-panel" style="margin-bottom:14px; border:1px solid #1e2d4a; border-radius:8px; background:#0d1220">
+        <div id="proj-protocol-header" onclick="toggleProtocol()" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:9px; padding:9px 12px">
+          <span style="font-size:12px; font-weight:600; color:#c4b5fd">&#128203; Review protocol</span>
+          <span id="proj-protocol-status" style="font-size:10px; color:#748399; font-family:'IBM Plex Mono',monospace"></span>
+          <button onclick="event.stopPropagation(); exportProjectProtocol()" title="Export the protocol as a standalone document (PRISMA-P structure)" style="font-size:10px; padding:2px 9px; border-radius:5px; border:1px solid #7c3aed55; background:#1a1033; color:#c4b5fd; cursor:pointer">&#8595; Export</button>
+          <span id="proj-protocol-toggle" style="margin-left:auto; color:#748399">&#9660;</span>
+        </div>
+        <div id="proj-protocol-body" style="display:none; padding:2px 12px 12px"></div>
+      </div>
+
       <!-- Dual-reviewer screening bar (contents rendered by renderDualBar) -->
       <div id="proj-dual-bar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; padding:8px 12px; background:#0d1220; border:1px solid #1e2d4a; border-radius:8px"></div>
 
@@ -11289,6 +11300,15 @@ function openProjDetail(projectId) {
   document.getElementById('proj-detail-desc').textContent = proj.desc || '';
   var picoInput = document.getElementById('proj-pico-input');
   if (picoInput) picoInput.value = proj.picoQuestion || '';
+  // Reset the protocol panel to collapsed + unrendered so it rebuilds for THIS
+  // project on next expand (fields are project-specific).
+  _protocolRendered = false;
+  var pbody = document.getElementById('proj-protocol-body');
+  if (pbody) { pbody.style.display = 'none'; pbody.innerHTML = ''; }
+  var ptoggle = document.getElementById('proj-protocol-toggle');
+  if (ptoggle) ptoggle.innerHTML = '&#9660;';
+  var pstatus = document.getElementById('proj-protocol-status');
+  if (pstatus) { var pc = protocolCompleteness(proj); pstatus.textContent = pc.filled + '/' + pc.total + ' fields'; }
   renderProjDetail();
 }
 
@@ -11320,6 +11340,133 @@ function savePicoQuestion() {
     saved.style.opacity = '1';
     setTimeout(function(){ saved.style.opacity = '0'; }, 1500);
   }
+}
+
+// ── Review protocol (PROSPERO / PRISMA-P style) ───────────────────────────────
+// A structured, pre-registration-style protocol per project — the planned method
+// recorded before results, which non-Cochrane SR workflows still expect. Stored
+// on the project (proj.protocol, keyed by field id); data-driven so the editor and
+// the export share one field list. Reporting structure follows PRISMA-P 2015.
+var PROTOCOL_FIELDS = [
+  { id: 'background',       label: 'Background & rationale',        hint: 'Why the review is needed; what is already known.' },
+  { id: 'objectives',      label: 'Objectives / review question',  hint: 'The question(s) the review answers, framed as PICO.' },
+  { id: 'population',      label: 'Population / participants',      hint: 'Condition, setting, age group — who the review is about.' },
+  { id: 'intervention',   label: 'Intervention / exposure',        hint: 'The intervention(s) or exposure(s) of interest.' },
+  { id: 'comparator',     label: 'Comparator(s)',                  hint: 'What the intervention is compared against.' },
+  { id: 'primaryOutcomes',   label: 'Primary outcome(s)',          hint: 'Main outcome(s), with measurement and timing.' },
+  { id: 'secondaryOutcomes', label: 'Secondary outcome(s)',        hint: 'Additional outcomes to be collected.' },
+  { id: 'studyDesigns',   label: 'Eligible study designs',         hint: 'e.g. RCTs only, or RCTs plus non-randomised studies.' },
+  { id: 'eligibility',    label: 'Other eligibility criteria',     hint: 'Language, date range, settings, key exclusions.' },
+  { id: 'searchSources',  label: 'Information sources',             hint: 'Databases, registers and grey-literature sources to search.' },
+  { id: 'riskOfBiasPlan', label: 'Risk-of-bias assessment',        hint: 'Planned tool (RoB 2, ROBINS-I, QUADAS-2, AMSTAR 2 …) and process.' },
+  { id: 'synthesisPlan',  label: 'Data synthesis plan',            hint: 'Narrative synthesis and/or meta-analysis; heterogeneity, subgroups.' },
+  { id: 'registration',   label: 'Registration',                   hint: 'PROSPERO ID / DOI, or state "not registered".' }
+];
+
+function protocolCompleteness(proj) {
+  var pr = (proj && proj.protocol) || {};
+  var filled = PROTOCOL_FIELDS.filter(function(f){ return pr[f.id] && String(pr[f.id]).trim(); }).length;
+  return { filled: filled, total: PROTOCOL_FIELDS.length };
+}
+
+function updateProtocolField(fieldId, val) {
+  if (!currentProjectId) return;
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj) return;
+  proj.protocol = proj.protocol || {};
+  if (val && val.trim()) proj.protocol[fieldId] = val;
+  else delete proj.protocol[fieldId];
+  saveProjects();
+  var status = document.getElementById('proj-protocol-status');
+  if (status) { var c = protocolCompleteness(proj); status.textContent = c.filled + '/' + c.total + ' fields'; }
+}
+
+// Fill the protocol editor body (lazily, on first expand). Objectives seeds from
+// the quick PICO question when the field is still blank, so the two don't diverge.
+function renderProtocolEditor() {
+  var body = document.getElementById('proj-protocol-body');
+  if (!body || !currentProjectId) return;
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj) return;
+  var pr = proj.protocol || {};
+  body.innerHTML = PROTOCOL_FIELDS.map(function(f) {
+    var val = pr[f.id] || (f.id === 'objectives' && proj.picoQuestion ? proj.picoQuestion : '');
+    return '<div style="margin-bottom:9px">' +
+      '<label style="display:block;font-size:11px;color:#c4b5fd;font-weight:600;margin-bottom:2px">' + esc(f.label) + '</label>' +
+      '<div style="font-size:10px;color:#748399;margin-bottom:3px">' + esc(f.hint) + '</div>' +
+      '<textarea oninput="updateProtocolField(\'' + f.id + '\',this.value)" ' +
+        'style="width:100%;box-sizing:border-box;background:#0a0e1a;border:1px solid #1e2d4a;border-radius:6px;color:#e2e8f0;font-family:IBM Plex Mono,monospace;font-size:11px;padding:6px 9px;resize:vertical;min-height:' + (f.id === 'registration' ? '30' : '46') + 'px">' + esc(val) + '</textarea>' +
+    '</div>';
+  }).join('');
+}
+
+var _protocolRendered = false;
+function toggleProtocol() {
+  var body = document.getElementById('proj-protocol-body');
+  var icon = document.getElementById('proj-protocol-toggle');
+  if (!body) return;
+  var open = body.style.display === 'none' || !body.style.display;
+  if (open && !_protocolRendered) { renderProtocolEditor(); _protocolRendered = true; }
+  body.style.display = open ? 'block' : 'none';
+  if (icon) icon.innerHTML = open ? '&#9650;' : '&#9660;';
+}
+
+// Standalone HTML protocol document keyed to PRISMA-P 2015 reporting items. Pure
+// builder (returns the HTML string) so it is testable. Empty fields are shown as
+// "to be completed" so the author can see what still needs specifying. When the
+// Information-sources field is blank but searches have been run, the databases
+// actually queried are noted from the recorded search events.
+function buildProjectProtocolHtml(proj) {
+  if (!proj) return '';
+  var pr = proj.protocol || {};
+  var sections = PROTOCOL_FIELDS.map(function(f) {
+    var val = pr[f.id] || (f.id === 'objectives' && proj.picoQuestion ? proj.picoQuestion : '');
+    if (f.id === 'searchSources' && (!val || !val.trim())) {
+      var ev = (proj.searchEvents || []);
+      var dbs = {};
+      ev.forEach(function(e){ (e.dbs || []).forEach(function(d){ dbs[d] = 1; }); });
+      var names = Object.keys(dbs);
+      if (names.length) val = 'Databases searched to date: ' + names.join(', ') + '.';
+    }
+    var body = (val && val.trim())
+      ? '<p>' + esc(val).replace(/\n/g, '<br>') + '</p>'
+      : '<p class="todo">(to be completed)</p>';
+    return '<h2>' + esc(f.label) + '</h2>' + body;
+  }).join('');
+
+  var c = protocolCompleteness(proj);
+  var title = (proj.name || 'Project') + ' — Systematic review protocol';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>' + esc(title) + '</title><style>' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:32px;color:#0f172a;background:#fff;max-width:820px;line-height:1.55}' +
+    'h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;margin:22px 0 4px;color:#1e293b}' +
+    '.sub{color:#748399;font-size:12px;margin:0 0 18px}' +
+    'p{font-size:13px;margin:0 0 6px;white-space:normal}' +
+    '.todo{color:#b45309;font-style:italic}' +
+    '.cite{font-size:11px;color:#748399;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px}' +
+    '@media print{body{margin:0}}' +
+    '</style></head><body>' +
+    '<h1>' + esc(title) + '</h1>' +
+    '<p class="sub">Review protocol · ' + c.filled + ' of ' + c.total + ' fields completed · generated ' + esc(new Date().toLocaleDateString()) + '</p>' +
+    sections +
+    '<p class="cite">Protocol structure follows PRISMA-P: Moher D, Shamseer L, Clarke M, et al. Preferred Reporting Items ' +
+    'for Systematic review and Meta-Analysis Protocols (PRISMA-P) 2015 statement. Syst Rev 2015;4:1. ' +
+    'Consider prospective registration on PROSPERO (crd.york.ac.uk/prospero).</p>' +
+    '</body></html>';
+}
+
+function exportProjectProtocol() {
+  if (!currentProjectId) return;
+  var proj = projects.find(function(p){ return p.id === currentProjectId; });
+  if (!proj) return;
+  var doc = buildProjectProtocolHtml(proj);
+  var blob = new Blob([doc], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (proj.name || 'project').replace(/[^a-z0-9]/gi, '_') + '_protocol.html';
+  a.click();
+  showToast('📋 Review protocol exported', '#22c55e');
 }
 
 function renderProjDetail() {
