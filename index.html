@@ -940,6 +940,13 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <span id="s2-key-status" style="font-size:11px;color:var(--ev-text-dim)"></span>
     </div>
 
+    <!-- Credential hygiene -->
+    <div class="settings-section" id="settings-cred-section">
+      <div class="settings-section-title">&#128273; Saved credentials</div>
+      <div style="font-size:11px;color:var(--ev-text-dim);margin-bottom:8px">All the keys above are stored in this browser only. Wipe every one of them — AI provider keys plus Scopus, NCBI and Semantic Scholar — in a single step. Your projects and screening data are not affected.</div>
+      <button class="btn" onclick="removeAllCredentials()" style="font-size:12px;background:var(--ev-danger-bg);border:1px solid #ef4444;color:var(--ev-danger-text)">&#128465; Remove all saved credentials</button>
+    </div>
+
     <!-- Europe PMC options -->
     <div class="settings-section">
       <div class="settings-section-title">&#127757; Europe PMC <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Free · no key</span></div>
@@ -14896,6 +14903,38 @@ function saveGrokKey() {
   if (inp && val !== (inp.value || '').trim()) inp.value = val;
   try { localStorage.setItem('pla_grok_key', val); } catch(e) { /* storage disabled */ }
   refreshActiveProviderFromKeys();
+}
+
+// ── Remove all saved credentials (P1.B) ──────────────────────────────────────
+// One action to wipe every stored credential — AI provider keys plus Scopus /
+// NCBI / Semantic Scholar keys — from BOTH localStorage and sessionStorage, and
+// zero the in-memory copies. Projects and screening data are untouched.
+// purgeCredentialStorage is kept pure (no confirm()/DOM/toast) so it's testable.
+function purgeCredentialStorage() {
+  var n = 0;
+  (typeof BACKUP_SECRET_KEYS !== 'undefined' ? BACKUP_SECRET_KEYS : []).forEach(function(k) {
+    try { if (localStorage.getItem(k) != null) n++; localStorage.removeItem(k); } catch(e) {}
+    try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.removeItem(k); } catch(e) {}
+  });
+  if (typeof activeApiKey    !== 'undefined') activeApiKey    = '';
+  if (typeof scopusApiKey    !== 'undefined') scopusApiKey    = '';
+  if (typeof scopusInstToken !== 'undefined') scopusInstToken = '';
+  if (typeof ncbiApiKey      !== 'undefined') ncbiApiKey      = '';
+  if (typeof s2ApiKey        !== 'undefined') s2ApiKey        = '';
+  return n;
+}
+function removeAllCredentials() {
+  if (typeof confirm === 'function' && !confirm('Remove all saved API keys and credentials from this browser?\n\nYou will need to re-enter them to run AI appraisal or the keyed databases (Scopus, NCBI, Semantic Scholar). Your projects and screening data are NOT affected.')) return;
+  var n = purgeCredentialStorage();
+  ['openai-key-input','anthropic-key-input','gemini-key-input','grok-key-input','scopus-api-key','scopus-inst-token','ncbi-api-key','s2-api-key'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  if (typeof refreshActiveProviderFromKeys === 'function') refreshActiveProviderFromKeys();
+  if (typeof updateKeyBanner === 'function') updateKeyBanner();
+  if (typeof updateKeyFieldHints === 'function') updateKeyFieldHints();
+  var s2s = document.getElementById('s2-key-status'); if (s2s) s2s.textContent = '';
+  var scs = document.getElementById('scopus-key-status'); if (scs) scs.textContent = '';
+  if (typeof showToast === 'function') showToast('🔑 Removed ' + n + ' saved credential' + (n === 1 ? '' : 's') + ' from this browser.', 'var(--ev-ok-text)');
 }
 
 function loadOpenAIKey() {
