@@ -3582,17 +3582,43 @@ function keywordHitsText(text, kw) {
   }
   return false;
 }
+// A criterion is the RCT/randomised *design* signal when its LABEL carries
+// randomisation vocabulary. Keying off the label (not the keywords) is
+// deliberate: the "Adequate sample size" criterion also lists "randomly
+// assigned"/"were randomised" among its keywords, but its label does not — so
+// label-anchoring targets the design signal without catching sample-size.
+function isRctDesignCriterion(crit) {
+  return !!crit && crit.type === 'must' &&
+    /randomis|randomiz|\brct\b/.test(String(crit.label || '').toLowerCase());
+}
+// Secondary-evidence designs (SR / meta-analysis / review) routinely describe
+// the primary trials they synthesise, so a design keyword hit reflects the
+// reviewed studies, not this record's own design. Structured study-type
+// metadata is authoritative here.
+function isSecondaryEvidenceDesign(studyType) {
+  var st = String(studyType || '').toLowerCase();
+  return st.indexOf('systematic review') !== -1 ||
+         st.indexOf('meta-analysis') !== -1 || st === 'review';
+}
 function scanPaper(paper) {
   // Prefer full text when available; fall back to abstract for abstract-only papers
   var body = (paper.fullText && paper.fullText.length > 200) ? paper.fullText : (paper.abstract || '');
   var text = ((paper.title||'') + ' ' + body).toLowerCase();
   var results = [];
 
+  var secondary = isSecondaryEvidenceDesign(paper.studyType);
   scanCriteria.forEach(function(crit) {
     var kws = crit.keywords.map(function(k){ return k.trim().toLowerCase(); }).filter(Boolean);
     var matchedKws = kws.filter(function(kw){ return keywordHitsText(text, kw); });
     var found = matchedKws.length > 0;
     var pass = crit.type === 'must' ? found : !found;
+    // Study-design gating (P1.C slice 3): a systematic review / meta-analysis
+    // that merely reviews RCTs must not pass the RCT/randomised design signal on
+    // abstract wording alone — prefer the structured study-type metadata.
+    if (found && secondary && isRctDesignCriterion(crit)) {
+      pass = false;
+      matchedKws = [];
+    }
     results.push({ label: crit.label, type: crit.type, pass: pass, matched: matchedKws, keywords: kws });
   });
 
