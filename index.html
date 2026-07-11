@@ -932,7 +932,11 @@ button:not(:disabled):active { filter: brightness(0.95); }
         Limit Semantic Scholar to biomedical fields (Medicine, Biology)
       </label>
       <div style="font-size:11px;color:var(--ev-text-dim)">A free key moves Semantic Scholar off the shared anonymous rate-limit pool (fewer “rate limited” errors) — request one at <a href="https://www.semanticscholar.org/product/api" target="_blank" rel="noopener" style="color:var(--ev-text-dim)">semanticscholar.org/product/api</a>. The biomedical-fields limit raises precision but can reduce recall (S2's field tags are imperfect), so leave it off for an exhaustive search and on to cut off-topic noise.</div>
-      <div style="font-size:11px;color:#8b6914;background:var(--ev-warn-bg);border:1px solid #f59e0b33;border-radius:6px;padding:7px 10px;margin-top:8px">&#128274; <b>Privacy note:</b> Semantic Scholar is the one engine allowed to retry through a public CORS proxy (allorigins / codetabs / thingproxy) if the direct request is blocked. When that fallback fires, the full request URL — including your search terms — passes through the proxy operator. Every other database talks directly to its API with no third party in the path. The desktop build never uses a proxy.</div>
+      <label style="display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--ev-text-2);margin:10px 0 6px;cursor:pointer">
+        <input type="checkbox" id="s2-proxy-optin" onchange="saveS2Key()" style="accent-color:#3b82f6;margin:2px 0 0" />
+        <span>Allow the public-proxy fallback for Semantic Scholar (off by default)</span>
+      </label>
+      <div style="font-size:11px;color:#8b6914;background:var(--ev-warn-bg);border:1px solid #f59e0b33;border-radius:6px;padding:7px 10px;margin-top:2px">&#128274; <b>Privacy note:</b> Semantic Scholar usually works with a direct request. Rarely, a browser blocks it (CORS); only then, and <b>only if you tick the box above</b>, Evidentum retries through a public CORS proxy (allorigins / codetabs / thingproxy) — and the full request URL, <b>including your search terms</b>, passes through the proxy operator. With the box unticked (the default) a blocked Semantic Scholar request simply fails and is reported, with no third party in the path. Every other database always talks directly to its API; the desktop build never uses a proxy.</div>
       <span id="s2-key-status" style="font-size:11px;color:var(--ev-text-dim)"></span>
     </div>
 
@@ -4596,6 +4600,18 @@ function fetchWithFallbackRaw(url, allowProxy) {
     // a public proxy. Everything else fails directly rather than routing a
     // query through a third party.
     if (!allowProxy) throw directErr;
+    // The public-proxy fallback is itself OPT-IN and OFF by default (P1.A): even
+    // for Semantic Scholar we do not route the query (with its search terms)
+    // through a third-party proxy unless the user has ticked the Settings box.
+    // When it's off and a direct call was blocked, fail — but surface it so the
+    // reviewer knows recall was affected and how to enable the fallback.
+    if (typeof s2ProxyOptIn !== 'undefined' && !s2ProxyOptIn) {
+      if (typeof logIssue === 'function') {
+        logIssue('search', 'Semantic Scholar was blocked by your browser (CORS)',
+          'Its public-proxy fallback is off. Enable it in Settings → Semantic Scholar to retry via a proxy (routes your search terms through a third party), or ignore — the other databases are unaffected.');
+      }
+      throw directErr;
+    }
     var chain = Promise.reject(new Error('no proxy yet'));
     PROXIES.forEach(function (proxy) {
       chain = chain.catch(function () {
@@ -9296,13 +9312,21 @@ function loadNcbiKey() {
 // anonymous rate-limit pool. s2BiomedOnly gates the fieldsOfStudy restriction.
 var s2ApiKey = '';
 var s2BiomedOnly = false;
+// Public-proxy fallback for Semantic Scholar is OPT-IN and OFF by default (P1.A):
+// only when the user ticks the box does a CORS-blocked S2 request retry through
+// a third-party proxy (which then sees the search terms). Read by
+// fetchWithFallbackRaw before it engages the PROXIES chain.
+var s2ProxyOptIn = false;
 function saveS2Key() {
   s2ApiKey = (document.getElementById('s2-api-key')?.value || '').trim();
   var cb = document.getElementById('s2-biomed-only');
   s2BiomedOnly = !!(cb && cb.checked);
+  var pcb = document.getElementById('s2-proxy-optin');
+  s2ProxyOptIn = !!(pcb && pcb.checked);
   try {
     localStorage.setItem('pla_s2_apikey', s2ApiKey);
     localStorage.setItem('pla_s2_biomed', s2BiomedOnly ? '1' : '');
+    localStorage.setItem('pla_s2_proxy', s2ProxyOptIn ? '1' : '');
   } catch(e) {}
   var status = document.getElementById('s2-key-status');
   if (status) { status.textContent = s2ApiKey ? '✓ API key saved' : ''; status.style.color = 'var(--ev-ok-text)'; }
@@ -9312,11 +9336,14 @@ function loadS2Key() {
   try {
     s2ApiKey = localStorage.getItem('pla_s2_apikey') || '';
     s2BiomedOnly = localStorage.getItem('pla_s2_biomed') === '1';
+    s2ProxyOptIn = localStorage.getItem('pla_s2_proxy') === '1';
   } catch(e) {}
   var el = document.getElementById('s2-api-key');
   if (el && s2ApiKey) el.value = s2ApiKey;
   var cb = document.getElementById('s2-biomed-only');
   if (cb) cb.checked = s2BiomedOnly;
+  var pcb = document.getElementById('s2-proxy-optin');
+  if (pcb) pcb.checked = s2ProxyOptIn;
   if (s2ApiKey) saveS2Key();   // refresh status label
 }
 
@@ -10875,7 +10902,7 @@ function sanitiseProjectData() {
 // Settings the backup always carries (preferences — nothing sensitive).
 var BACKUP_SETTINGS_KEYS = ['pla_ai_provider', 'pla_model_openai', 'pla_model_anthropic',
   'pla_model_gemini', 'pla_model_grok', 'pla_libkey_id', 'pla_epmc_synonym',
-  'pla_proximity', 'pla_s2_biomed'];
+  'pla_proximity', 'pla_s2_biomed', 'pla_s2_proxy'];
 // API keys/tokens are OPT-IN only: a backup JSON travels (email, shared drives,
 // USB sticks) and keys inside it are plain text — exactly the exfil path the
 // security audit closed elsewhere. The nudge banner's one-click backup never
