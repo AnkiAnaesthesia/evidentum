@@ -105,7 +105,7 @@ Evidentum has **no server**. Searches go directly from your browser to each data
 ## Technical notes
 
 - **Single file.** The shipped app is one `index.html` — markup, styles, and logic. No bundler, no dependencies to install at runtime.
-- **Built from modular source.** The development build concatenates partials (`src/01-head.html`, `02-styles.css`, `03-body.html`, ten ordered app-JS slices `04a`–`04j`, `05-foot.html`) into the single file with `npm run build`; `npm test` exercises the pure logic against the shipped file, and `npm run verify` checks the two are in sync.
+- **Generated, not hand-edited.** The single `index.html` is generated from a modular source (HTML/CSS/JS partials) and validated by an automated build and test suite maintained in a separate development workspace. This repository ships the built, self-contained file rather than the build tooling — so there is nothing to install or compile to run it.
 - **PWA assets** in the repo root:
   - `manifest.webmanifest` — app metadata.
   - `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — app icons.
@@ -118,7 +118,7 @@ Evidentum has **no server**. Searches go directly from your browser to each data
 
 Evidentum is a research aid, not a substitute for methodological judgement. AI-generated appraisals and extracted data **must be verified by a human reviewer** before use in any review or publication. Database coverage and API behaviour change over time; always confirm counts and records against the source.
 
-Appraisal instruments are reproduced for use within the app with attribution to their authors; tools under a NonCommercial-NoDerivatives licence are reproduced verbatim and used only because this tool is non-commercial. See the in-app **Settings → References & licences** panel for full citations and licence terms, and always consult the original source for full guidance.
+See **Licensing** below and the in-app **Settings → References & licences** panel for the appraisal-instrument citations and their licence terms, and always consult the original source for full guidance.
 
 ---
 
@@ -132,6 +132,8 @@ If you use Evidentum in a review, please cite it (or use GitHub's *Cite this rep
 
 Built and maintained by [AnkiAnaesthesia](https://ankianaesthesia.com.au). Successor to the PubMed Lab Assistant.
 
-## License
+## Licensing
 
-Released under the **MIT License** — see [`LICENSE`](LICENSE). © 2026 Angus McNally.
+The **application code** is released under the **MIT License** — see [`LICENSE`](LICENSE). © 2026 Angus McNally.
+
+The embedded **appraisal instruments and reporting guidelines** — including RoB 2, ROBINS-I V2, QUADAS-2, AMSTAR 2, the Newcastle–Ottawa Scale, the Jadad scale, PRISMA 2020 / PRISMA-S / PRISMA-P, CONSORT 2025, STROBE, CARE, AGREE II and GRADE — are **not** covered by that MIT licence. Each remains the copyright of its respective authors and is reproduced here, with attribution, solely for **non-commercial** research use under the terms each instrument's licence permits; those under CC BY-NC-ND (e.g. RoB 2, ROBINS-I V2) are reproduced verbatim, without modification. Evidentum is a non-commercial academic instrument — it is not sold and has no paid tier. Full per-instrument citations and licence terms are listed in the app under **Settings → References & licences**. If you reuse or host Evidentum, keep that non-commercial scope and the instrument attributions intact.
