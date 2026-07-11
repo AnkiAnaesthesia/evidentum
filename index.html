@@ -809,7 +809,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </select>
       <input type="text" id="openai-model-input" placeholder="enter exact model id" oninput="saveAiModels()" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom OpenAI model ID" />
-      <div style="font-size:11px;color:var(--ev-text-dim);margin-bottom:14px">Responses API. Pick a model above, or choose Custom for any other ID. <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--ev-text-dim)">platform.openai.com →</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim);margin-bottom:14px">Responses API. Pick a model above, or choose Custom for any other ID. <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">platform.openai.com →</a></div>
       <!-- Anthropic -->
       <div style="font-size:10px;color:var(--ev-warn-text);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Anthropic</div>
       <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." oninput="saveAnthropicKey()" onchange="saveAnthropicKey()" autocomplete="off"
@@ -826,7 +826,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </select>
       <input type="text" id="anthropic-model-input" placeholder="enter exact model id" oninput="saveAiModels()" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Anthropic model ID" />
-      <div style="font-size:11px;color:var(--ev-text-dim)">Messages API. Pick a model above, or choose Custom for any other ID. <a href="https://console.anthropic.com/account/keys" target="_blank" style="color:var(--ev-text-dim)">console.anthropic.com →</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim)">Messages API. Pick a model above, or choose Custom for any other ID. <a href="https://console.anthropic.com/account/keys" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">console.anthropic.com →</a></div>
       <!-- Google Gemini -->
       <div style="font-size:10px;color:var(--ev-ok-text);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">Google Gemini</div>
       <input type="password" id="gemini-key-input" placeholder="Gemini API key (from Google AI Studio)" oninput="saveGeminiKey()" onchange="saveGeminiKey()" autocomplete="off"
@@ -841,7 +841,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </select>
       <input type="text" id="gemini-model-input" placeholder="enter exact model id" oninput="saveAiModels()" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Gemini model ID" />
-      <div style="font-size:11px;color:var(--ev-text-dim)">generativelanguage API — large context &amp; low cost, good for high-volume abstract screening. Free key from <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--ev-text-dim)">Google AI Studio →</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim)">generativelanguage API — large context &amp; low cost, good for high-volume abstract screening. Free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">Google AI Studio →</a></div>
 
       <!-- xAI Grok -->
       <div style="font-size:10px;color:#e5e7eb;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">xAI Grok</div>
@@ -857,13 +857,13 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </select>
       <input type="text" id="grok-model-input" placeholder="enter exact model id" oninput="saveAiModels()" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Grok model ID" />
-      <div style="font-size:11px;color:var(--ev-text-dim)">OpenAI-compatible API. Key from <a href="https://console.x.ai/" target="_blank" style="color:var(--ev-text-dim)">xAI Console →</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim)">OpenAI-compatible API. Key from <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">xAI Console →</a></div>
       <!-- OpenAI account (Sign in with ChatGPT) -->
       <div style="font-size:10px;color:#10a37f;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">OpenAI Account (Sign in with ChatGPT)</div>
       <input type="text" id="ev-oauth-clientid" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" oninput="evSaveOauthClientId()" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:6px" />
       <div id="ev-oauth-status" style="margin-bottom:4px"></div>
-      <div style="font-size:11px;color:var(--ev-text-dim)"><b style="color:#f59e0b">Experimental / not yet functional:</b> this flow only establishes identity (openid/profile/email) — the resulting token is <b>not accepted by OpenAI's API</b> and Evidentum does not use it for analysis. All AI analysis runs on the API keys above. OpenAI's third-party sign-in is a gated program — <a href="https://openai.com" target="_blank" style="color:var(--ev-text-dim)">apply via their developer form →</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim)"><b style="color:#f59e0b">Experimental / not yet functional:</b> this flow only establishes identity (openid/profile/email) — the resulting token is <b>not accepted by OpenAI's API</b> and Evidentum does not use it for analysis. All AI analysis runs on the API keys above. OpenAI's third-party sign-in is a gated program — <a href="https://openai.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">apply via their developer form →</a></div>
     </div>
 
     <!-- LibKey -->
@@ -871,7 +871,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="settings-section-title">&#128218; LibKey — Institutional Library Access</div>
       <input type="text" id="libkey-id" placeholder="e.g. 1271  (from libkey.io/libraries/1271)"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" oninput="saveLibkeyId()" />
-      <div style="font-size:11px;color:var(--ev-text-dim)">One-click full-text access via your institution. <a href="https://libkey.io" target="_blank" style="color:var(--ev-text-dim)">Find your ID at libkey.io</a></div>
+      <div style="font-size:11px;color:var(--ev-text-dim)">One-click full-text access via your institution. <a href="https://libkey.io" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">Find your ID at libkey.io</a></div>
     </div>
 
     <!-- Scopus -->
@@ -884,7 +884,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           style="padding:7px 10px;font-size:12px;width:100%;box-sizing:border-box" oninput="saveScopusKey()" />
         <span id="scopus-key-status" style="font-size:11px;color:var(--ev-text-dim)"></span>
       </div>
-      <div style="font-size:11px;color:var(--ev-text-dim)">Free for academic use. Register at <a href="https://dev.elsevier.com" target="_blank" style="color:var(--ev-text-dim)">dev.elsevier.com</a> · InstToken needed for off-campus access · Enable the Scopus chip on the search tab once keys are entered.</div>
+      <div style="font-size:11px;color:var(--ev-text-dim)">Free for academic use. Register at <a href="https://dev.elsevier.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">dev.elsevier.com</a> · InstToken needed for off-campus access · Enable the Scopus chip on the search tab once keys are entered.</div>
     </div>
 
     <!-- NCBI / PubMed -->
@@ -1176,7 +1176,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         &#128218; <b style="color:var(--ev-ok-text)">Cochrane Reviews</b> searches Europe PMC filtered to the <i>Cochrane Database of Systematic Reviews</i> journal. It is driven by your <b>primary (MeSH)</b> query and merged/deduplicated with other sources.
       </div>
       <div class="info-box" id="scopus-info" style="display:none;border-color:#f59e0b44;color:var(--ev-warn-text);background:var(--ev-warn-bg)">
-        &#128083; <b style="color:var(--ev-warn-text)">Scopus</b> needs an Elsevier API key, entered in Settings (&#9881; top right). Get one free at <a href="https://dev.elsevier.com" target="_blank" style="color:var(--ev-warn-text)">dev.elsevier.com</a>.<br><br>The key works on your institution's network. Off-campus, you also need an InstToken — request one from <a href="https://service.elsevier.com/app/contact/supporthub/researchproductsapis/" target="_blank" style="color:var(--ev-warn-text)">Elsevier API Support</a> using your institutional email.
+        &#128083; <b style="color:var(--ev-warn-text)">Scopus</b> needs an Elsevier API key, entered in Settings (&#9881; top right). Get one free at <a href="https://dev.elsevier.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-warn-text)">dev.elsevier.com</a>.<br><br>The key works on your institution's network. Off-campus, you also need an InstToken — request one from <a href="https://service.elsevier.com/app/contact/supporthub/researchproductsapis/" target="_blank" rel="noopener noreferrer" style="color:var(--ev-warn-text)">Elsevier API Support</a> using your institutional email.
       </div>
       <div class="info-box" id="clinicaltrials-info" style="display:none;border-color:#f4725644;color:var(--ev-warn-text);background:var(--ev-warn-bg)">
         &#129514; <b style="color:var(--ev-warn-text)">ClinicalTrials.gov</b> searches the AACT (Aggregate Analysis of ClinicalTrials.gov) public API for <i>registered and unpublished clinical trials</i>. Results include ongoing, completed, and terminated trials that may not yet appear in PubMed. Useful for identifying grey literature and publication bias. No API key required.
@@ -1479,7 +1479,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <button onclick="document.getElementById('retraction-summary-panel').style.display='none'" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px">×</button>
         </div>
         <div id="retraction-summary-list" style="font-size:12px;color:var(--ev-danger-text);display:flex;flex-direction:column;gap:6px"></div>
-        <div style="font-size:10px;color:#6b7280;margin-top:8px">Source: <a href="https://retractionwatch.com" target="_blank" style="color:#6b7280">Retraction Watch</a> via <a href="https://www.crossref.org" target="_blank" style="color:#6b7280">Crossref</a></div>
+        <div style="font-size:10px;color:#6b7280;margin-top:8px">Source: <a href="https://retractionwatch.com" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Retraction Watch</a> via <a href="https://www.crossref.org" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Crossref</a></div>
       </div>
       <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -11050,13 +11050,45 @@ function deleteProject() {
   closeProjDetail();
 }
 
+// Only a real, source-issued PMID is a reliable identity key — the synthetic
+// placeholders serialisePaper mints for id-less records (proj_… / PREF_…) must
+// never match each other or a real one.
+function realPmid(x) { x = String(x == null ? '' : x); return /^\d+$/.test(x) ? x : ''; }
+function normPmcid(x) { return String(x == null ? '' : x).toUpperCase().replace(/^PMC/, '').replace(/[^0-9]/g, ''); }
+function normNct(x) { x = String(x == null ? '' : x).toUpperCase().trim(); return /^NCT\d+$/.test(x) ? x : ''; }
+
+// Tiered record identity: are these two records the same paper? Checked most-
+// authoritative first (DOI → PMID → PMCID → CT.gov id), each decisive on its own
+// (a DOI mismatch means different papers/versions, so we stop rather than fall
+// through); otherwise a normalized-title match with a tolerant year (online-first
+// vs print differ by ≤1 year, and a missing year on either side doesn't block a
+// clear title match). This replaces the old "PMID or exact title+year" check,
+// which created duplicates when the same paper arrived from different sources
+// with a DOI but different/absent PMIDs or punctuation/casing/year variants.
+function sameProjectRecord(a, b) {
+  var da = normDoi(a.doi), db = normDoi(b.doi);
+  if (da && db) return da === db;
+  var pa = realPmid(a.pmid), pb = realPmid(b.pmid);
+  if (pa && pb) return pa === pb;
+  var ca = normPmcid(a.pmcid), cb = normPmcid(b.pmcid);
+  if (ca && cb) return ca === cb;
+  var na = normNct(a.nctId), nb = normNct(b.nctId);
+  if (na && nb) return na === nb;
+  var ta = normTitleFull(a.title), tb = normTitleFull(b.title);
+  if (ta && tb && ta === tb) {
+    var ya = parseInt(a.year, 10), yb = parseInt(b.year, 10);
+    if (!a.year || !b.year || isNaN(ya) || isNaN(yb)) return true;
+    return Math.abs(ya - yb) <= 1;
+  }
+  return false;
+}
+
 function addPaperToProject(projectId, paperObj, source) {
   if (!projectPapers[projectId]) projectPapers[projectId] = [];
   var serialised = serialisePaper(paperObj, source);
-  // Deduplicate by pmid/title
+  // Deduplicate by tiered record identity (DOI → PMID → PMCID → CT.gov → title+year)
   var exists = projectPapers[projectId].some(function(p) {
-    return (p.pmid && p.pmid === serialised.pmid) ||
-           (p.title && p.title === serialised.title && p.year === serialised.year);
+    return sameProjectRecord(p, serialised);
   });
   if (exists) return false;
   projectPapers[projectId].unshift(serialised);
@@ -11651,13 +11683,10 @@ function renderProjDetail() {
   var biasClass   = { low:'ref-badge-bias-low', some_concerns:'ref-badge-bias-some', high:'ref-badge-bias-high', unclear:'ref-badge-bias-unclear', moderate:'ref-badge-bias-some', serious:'ref-badge-bias-high', critical:'ref-badge-bias-high' };
   var BIAS_TOOLS  = { ROB2:'RoB2', ROBINS2:'ROBINS-I', QUADAS2:'QUADAS-2', NOS:'Newcastle-Ottawa', JADAD:'Jadad' };
 
-  // Fast already-in-project lookup for the scanned-references rows (same keys
-  // addPaperToProject dedups on: pmid, or title+year).
-  var projKeySet = {};
-  (projectPapers[currentProjectId] || []).forEach(function(pp) {
-    if (pp.pmid)  projKeySet['p:' + pp.pmid] = 1;
-    if (pp.title) projKeySet['t:' + pp.title + '|' + pp.year] = 1;
-  });
+  // Already-in-project lookup for the scanned-references rows — uses the SAME
+  // tiered identity as addPaperToProject so the "in project" badge can't disagree
+  // with whether the add is actually skipped.
+  var projPapersForMatch = projectPapers[currentProjectId] || [];
 
   list.innerHTML = papers.map(function(p, idx) {
     var detailId = 'proj-detail-' + p.pmid.replace(/[^a-z0-9]/gi,'_');
@@ -11726,7 +11755,7 @@ function renderProjDetail() {
           : r.resolveState === 'pending'
             ? '<span style="font-size:10px;color:var(--ev-text-dim);white-space:nowrap;flex-shrink:0">locating…</span>'
             : '<span style="font-size:10px;color:var(--ev-text-dim);white-space:nowrap;flex-shrink:0">not located</span>';
-        var inProj = (r.pmid && projKeySet['p:' + r.pmid]) || projKeySet['t:' + r.title + '|' + r.year];
+        var inProj = projPapersForMatch.some(function(pp){ return sameProjectRecord(pp, r); });
         var addBtn = inProj
           ? '<span style="font-size:10px;color:var(--ev-ok-text);white-space:nowrap;flex-shrink:0">&#10003; in project</span>'
           : '<button class="proj-ref-add" onclick="addProjScannedRef(\'' + safeId(currentProjectId) + '\',\'' + safeId(p.pmid) + '\',' + k + ')">+ Add</button>';
@@ -12992,6 +13021,7 @@ function setProjPaperDecision(projectId, pmid, decision) {
     var r = projReviewEnsure(p, lens);
     r.decision = (r.decision === decision) ? '' : decision;   // click again to clear
     r.at = r.decision ? new Date().toISOString() : '';
+    bumpReviewRev(r);
     reconcileDualDecision(p);
   } else {
     p.decision = (p.decision === decision) ? '' : decision;
@@ -13011,6 +13041,7 @@ function setProjPaperReason(projectId, pmid, val) {
     var r = projReviewEnsure(p, lens);
     r.reason = val;
     if (!r.at && val) r.at = new Date().toISOString();
+    bumpReviewRev(r);
   } else {
     p.decisionReason = val;
     if (!p.decisionAt && val) p.decisionAt = new Date().toISOString();
@@ -13049,6 +13080,7 @@ function setProjPaperExclusionReason(projectId, pmid, val) {
     var r = projReviewEnsure(p, lens);
     r.exclusionReason = val;
     if (!r.at && val) r.at = new Date().toISOString();
+    bumpReviewRev(r);
     reconcileDualDecision(p);   // agreed exclusions can inherit an agreed reason
   } else {
     p.exclusionReason = val;
@@ -13080,6 +13112,13 @@ function projReviewEnsure(p, which) {
   p.reviews[which] = p.reviews[which] || {};
   return p.reviews[which];
 }
+// A monotonic per-vote revision counter, bumped locally on every change to a
+// reviewer's vote. It is CLOCK-INDEPENDENT: two-computer reviewer-packet merges
+// use it (not wall-clock timestamps) to decide which version of a B vote is
+// newer — so a device with a wrong or backward-set clock cannot make stale work
+// appear newer and roll back a genuine decision. (Old packets without a rev fall
+// back to the timestamp comparison, so nothing breaks.)
+function bumpReviewRev(r) { r.rev = (typeof r.rev === 'number' ? r.rev : 0) + 1; }
 // The decision the current lens sees — drives the decision filter, the keyboard
 // cursor's notion of "undecided", and the progress tally.
 function projLensDecision(p) {
@@ -13251,7 +13290,7 @@ function buildVotesPacket(proj, papers) {
   (papers || []).forEach(function(p) {
     var b = p && p.reviews && p.reviews.B;
     if (b && (b.decision || b.exclusionReason || b.reason)) {
-      votes.push({ pmid: String(p.pmid), decision: b.decision || '', exclusionReason: b.exclusionReason || '', reason: b.reason || '', at: b.at || '' });
+      votes.push({ pmid: String(p.pmid), decision: b.decision || '', exclusionReason: b.exclusionReason || '', reason: b.reason || '', at: b.at || '', rev: b.rev });
     }
   });
   return {
@@ -13265,6 +13304,19 @@ function buildVotesPacket(proj, papers) {
 // Merge B's votes into the host project. reconcileDualDecision runs per record,
 // so agreements auto-fill the final decision and disagreements surface in the
 // Conflicts filter exactly as if B had voted on this machine.
+// Should an incoming B vote replace the host's current copy? Revision-first and
+// clock-independent: a strictly higher rev wins; an equal/lower rev is a stale
+// packet and is rejected. Only when a revision is absent on either side (old
+// packets) do we fall back to the wall-clock timestamp, and even then we reject
+// only when the local copy is strictly newer. Returns true = apply, false = keep.
+function shouldApplyIncomingVote(cur, v) {
+  var cr = (cur && typeof cur.rev === 'number') ? cur.rev : null;
+  var vr = (v && typeof v.rev === 'number') ? v.rev : null;
+  if (cr != null && vr != null) return vr > cr;
+  if (cur && cur.at && v && v.at) return !(cur.at > v.at);
+  return true;
+}
+
 function applyVotesPacket(packet, papers) {
   var byId = {};
   (papers || []).forEach(function(p) { if (p) byId[String(p.pmid)] = p; });
@@ -13275,12 +13327,13 @@ function applyVotesPacket(packet, papers) {
     if (!p) { summary.missing++; return; }        // record deleted/merged on host since packet went out
     var cur = p.reviews && p.reviews.B;
     var hasCur = !!(cur && (cur.decision || cur.exclusionReason || cur.reason));
-    if (hasCur && cur.at && v.at && cur.at > v.at) { summary.keptNewerLocal++; return; }
+    if (hasCur && !shouldApplyIncomingVote(cur, v)) { summary.keptNewerLocal++; return; }
     var r = projReviewEnsure(p, 'B');
     r.decision = v.decision || '';
     r.exclusionReason = v.exclusionReason || '';
     r.reason = v.reason || '';
     r.at = v.at || new Date().toISOString();
+    if (typeof v.rev === 'number') r.rev = v.rev;   // carry B's revision so later merges compare correctly
     reconcileDualDecision(p);
     if (hasCur) summary.updated++; else summary.applied++;
   });

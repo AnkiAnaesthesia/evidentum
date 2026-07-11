@@ -1,7 +1,7 @@
 # Evidentum Pro
 
 **A self-contained systematic review search & appraisal workbench.**
-Search across major biomedical databases, screen and de-duplicate results, run AI-assisted critical appraisal, and assemble PRISMA-ready records — all from a single HTML file that runs in your browser. Installable as an app, offline-capable, light or dark theme, and your data never leaves your machine.
+Search across major biomedical databases, screen and de-duplicate results, run AI-assisted critical appraisal, and assemble PRISMA-ready records — all from a single HTML file that runs in your browser. Installable as an app, offline-capable, light or dark theme, and with **no project-operated backend** — your projects stay in your browser (see [Privacy & data flow](#privacy--data-flow) for what does travel to external services).
 
 > **Status:** Beta. Features and interfaces are still changing between builds.
 
@@ -92,13 +92,16 @@ In Chrome/Edge, open the live site and use the install icon in the address bar (
 
 ---
 
-## API keys & privacy
+## Privacy & data flow
 
-Evidentum has **no server**. Searches go directly from your browser to each database's public API, and any AI keys you enter are used only for direct calls to that provider.
+Evidentum has **no project-operated backend** — no server run by this project ever receives your data. Your projects, screening decisions, appraisals and API keys live only in your browser's local storage. Because the app talks *directly* to external services, though, some data does leave your device while you use it:
 
-- Enter keys under **⚙ Settings → AI Agent — API Keys** (OpenAI, Anthropic, and Google Gemini), along with Scopus, NCBI, and Semantic Scholar credentials.
-- Keys and your saved data stay in your own browser storage — nothing is transmitted to or stored by this project.
-- Because there's no backend, **clearing site data clears your projects**, so export anything you want to keep.
+- **Search queries** go directly from your browser to whichever scholarly databases you tick — PubMed, Europe PMC, Cochrane, Scopus, OpenAlex, Semantic Scholar, Crossref and ClinicalTrials.gov.
+- **AI appraisal** sends the selected abstract, full text or supplementary text to the **AI provider you configure** (OpenAI / Anthropic / Google / xAI), authenticated with your key. Nothing is sent to any AI provider until you enter a key and start an analysis.
+- **Full-text and metadata lookups** (DOI resolution, open-access PDF discovery) contact services such as Crossref and Unpaywall.
+- **Semantic Scholar** may fall back through a **public CORS proxy** (AllOrigins / CodeTabs / ThingProxy) when a direct request is blocked, which routes that one query through a third-party service.
+
+Keys and saved data are never sent to or stored by *this project* — but note that browser extensions and other same-origin scripts running in your browser can read local storage, including any saved keys. Enter keys under **⚙ Settings → AI Agent — API Keys** (OpenAI, Anthropic, Google Gemini, xAI), along with Scopus, NCBI and Semantic Scholar credentials. Because there's no backend, **clearing site data clears your projects**, so export anything you want to keep.
 
 ---
 
