@@ -789,6 +789,26 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close settings">&#10005;</button>
     </div>
 
+    <!-- Privacy & data flow (in-app disclosure) -->
+    <div class="settings-section" id="settings-privacy-section">
+      <details>
+        <summary style="cursor:pointer;list-style:none;outline:none">
+          <span class="settings-section-title" style="display:inline">&#128274; Privacy &amp; data flow</span>
+          <div style="font-size:11px;color:var(--ev-text-dim);margin-top:5px">Everything runs in this browser — there is no Evidentum server. Tap for exactly what leaves your browser, and when.</div>
+        </summary>
+        <div style="font-size:12px;line-height:1.6;color:var(--ev-text-2);margin-top:10px">
+          Your projects, screening decisions, notes and API keys are stored <b>locally</b> in this browser (localStorage / IndexedDB) and are never uploaded by the app. Data leaves your browser only when you act:
+          <ul style="margin:8px 0 8px 18px;padding:0">
+            <li><b>Searching</b> sends your query to each database you tick — PubMed/NCBI, Europe PMC, Cochrane, Crossref, OpenAlex, Semantic Scholar, Scopus/Elsevier, ClinicalTrials.gov — directly to that provider’s API.</li>
+            <li><b>AI appraisal</b> sends the paper’s title/abstract (and fetched full text) plus the prompt to whichever AI provider’s key you entered (OpenAI, Anthropic, Google, xAI). It runs only when you start it, and is billed to your key.</li>
+            <li><b>Semantic Scholar</b> may retry through a public CORS proxy if the direct call is blocked — then your search terms pass through the proxy operator (see the Semantic Scholar section below). No other database uses a proxy.</li>
+            <li><b>API keys</b> live in this browser’s localStorage; browser extensions or scripts running on this page could read them. Backups exclude keys unless you opt in.</li>
+          </ul>
+          AI output is an advisory draft for a human reviewer to verify — never a final eligibility or risk-of-bias judgement.
+        </div>
+      </details>
+    </div>
+
     <!-- AI Agent API Keys -->
     <div class="settings-section" id="settings-key-section">
       <div class="settings-section-title">&#129302; AI Agent — API Keys</div>
@@ -13758,6 +13778,13 @@ async function runProjPaperAgent(projectId, pmid, force) {
   var p = papers.find(function(x){ return String(x.pmid) === String(pmid); });
   if (!p) return;
 
+  // First-AI-analysis disclosure gate (P1.A) — acknowledge before content leaves
+  // the browser (covers the citation-scan auto-run path too).
+  if (typeof aiDisclosureGateOk === 'function' && !aiDisclosureGateOk()) {
+    var okAck = await ensureAiDisclosureAsync();
+    if (!okAck) return;
+  }
+
   var btn = document.getElementById('proj-agent-btn-' + pmid);
   var btnLabel = (btn && btn.textContent) || (force ? '🔁 Re-analyse' : '🤖 Run AI Analysis');
   if (btn) { btn.disabled = true; btn.textContent = force ? '🔁 Re-analysing…' : '🤖 Analysing…'; }
@@ -14873,12 +14900,80 @@ var agentStop = false;
 var searchInProgress = false;  // true while search + background PDF fetching active
 var agentStats = { done: 0, failed: 0, skipped: 0, total: 0 };
 
+// ── First-AI-analysis disclosure (P1.A) ──────────────────────────────────────
+// The paper's title, abstract and any fetched full text — plus the appraisal
+// prompt — leave the browser for the selected AI provider's API the moment an
+// appraisal runs. Require an explicit, one-time acknowledgement before that
+// first outbound call. Persisted per-browser (ev_ai_ack); a session flag lets a
+// user who declines "don't show again" proceed without re-prompting every run.
+var aiDisclosureSessionOk = false;
+function aiDisclosureAck() {
+  try { return localStorage.getItem('ev_ai_ack') === '1'; } catch (e) { return false; }
+}
+function markAiDisclosureAck() {
+  try { localStorage.setItem('ev_ai_ack', '1'); } catch (e) {}
+}
+function aiDisclosureGateOk() { return aiDisclosureAck() || aiDisclosureSessionOk; }
+function showAiDisclosureModal(onDecision) {
+  if (aiDisclosureGateOk()) { onDecision(true); return; }
+  var prov = (typeof providerLabel === 'function' && providerLabel()) ? providerLabel() : 'the selected AI provider';
+  var old = document.getElementById('ai-disclosure-overlay');
+  if (old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'ai-disclosure-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'AI analysis — data disclosure');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML =
+    '<div style="max-width:520px;width:100%;background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:12px;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,0.4)">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--ev-text-body);margin-bottom:10px">&#129302; Before your first AI appraisal</div>' +
+      '<div style="font-size:12px;line-height:1.6;color:var(--ev-text-2)">' +
+        'Running an appraisal sends this content <b>out of your browser</b> to <b>' + esc(prov) + '</b>’s API over the network:' +
+        '<ul style="margin:8px 0 8px 18px;padding:0">' +
+          '<li>the paper’s <b>title and abstract</b> (and the <b>full text</b> when a free copy has been fetched),</li>' +
+          '<li>the appraisal <b>prompt and checklist</b> for the selected tool.</li>' +
+        '</ul>' +
+        'It uses <b>your own API key</b>, so the request is billed to you and governed by ' + esc(prov) + '’s terms and data-retention policy. ' +
+        'Results are an <b>advisory draft for a human reviewer to verify</b> — never a final eligibility or risk-of-bias judgement. ' +
+        'Nothing is sent until you continue; other databases are contacted only for searching.' +
+      '</div>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ev-text-2);margin:14px 0 4px;cursor:pointer">' +
+        '<input type="checkbox" id="ai-disclosure-dontshow" checked style="accent-color:#3b82f6;margin:0" /> Don’t show this again on this browser' +
+      '</label>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">' +
+        '<button id="ai-disclosure-cancel" class="btn" style="font-size:12px">Cancel</button>' +
+        '<button id="ai-disclosure-ok" class="btn btn-blue" style="font-size:12px">I understand — continue</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  function done(ok) {
+    if (ok) {
+      aiDisclosureSessionOk = true;
+      var cb = document.getElementById('ai-disclosure-dontshow');
+      if (cb && cb.checked) markAiDisclosureAck();
+    }
+    ov.remove();
+    onDecision(ok);
+  }
+  var okBtn = document.getElementById('ai-disclosure-ok');
+  var cancelBtn = document.getElementById('ai-disclosure-cancel');
+  if (okBtn) okBtn.onclick = function(){ done(true); };
+  if (cancelBtn) cancelBtn.onclick = function(){ done(false); };
+  ov.addEventListener('click', function(e){ if (e.target === ov) done(false); });
+}
+function ensureAiDisclosureAsync() {
+  return new Promise(function(resolve){ showAiDisclosureModal(resolve); });
+}
+
 function startAgentAnalysis() {
   if (!hasValidKey()) {
     showToast('⚠️ Please enter your ' + providerLabel() + ' API key in Settings (⚙ top right) first.', '#f59e0b');
     return;
   }
   if (!papers.length) return;
+  // First-AI-analysis disclosure gate (P1.A) — acknowledge before any content leaves.
+  if (!aiDisclosureGateOk()) { showAiDisclosureModal(function(ok){ if (ok) startAgentAnalysis(); }); return; }
 
   // If stuck running for some reason, force reset and proceed
   if (agentRunning) {
