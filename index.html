@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-R4967+lOw4/VkTFmaTEiCyPvooEMGayMcxD3Ta8D7q4=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-noitxRzRTrJF2N/R5RYyX/f00M6A9SL4H+wyZguIQRc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -7459,6 +7459,7 @@ function renderProvenancePanel(prov) {
         '<button data-evclick="h151" style="margin-left:auto;font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;font-family:\'IBM Plex Mono\',monospace">&#128202; PRISMA diagram</button>' +
         '<button data-evclick="h152" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;font-family:\'IBM Plex Mono\',monospace">&#128203; Copy for methods</button>' +
         '<button data-evclick="h153" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;font-family:\'IBM Plex Mono\',monospace" title="Copy a prose methods paragraph for the write-up">&#9997; Methods prose</button>' +
+        '<button data-evclick="h178" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid #16a34a55;background:var(--ev-ok-bg);color:var(--ev-ok-text);cursor:pointer;font-family:\'IBM Plex Mono\',monospace" title="File this search strategy into the open project&#39;s protocol (Information sources)">&#65291; Add to protocol</button>' +
       '</div>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
         block('&#128300; Primary stream', 'MeSH &middot; PubMed / Europe PMC / Cochrane', primarySrc, prov.primaryRaw, 'var(--ev-link-3)') +
@@ -7493,9 +7494,9 @@ function searchLimitDescriptions() {
   return out;
 }
 
-function copyProvenanceText() {
-  var p = lastSearchProvenance;
-  if (!p) return;
+// Builds the PRISMA search-identification methods text — shared by "Copy for methods"
+// and "Add to protocol" so the two never drift.
+function buildProvenanceMethodsText(p) {
   var lines = [];
   lines.push('Search identification (PRISMA)');
   lines.push('Search date: ' + (p.searchedAt ? p.searchedAt.slice(0, 10) : new Date().toISOString().slice(0, 10)));
@@ -7537,13 +7538,37 @@ function copyProvenanceText() {
   lines.push('Total identified: ' + p.totalIdentified);
   lines.push('Duplicates removed: ' + p.duplicatesRemoved);
   lines.push('Unique records screened: ' + p.uniqueRecords);
-  var text = lines.join('\n');
+  return lines.join('\n');
+}
+function copyProvenanceText() {
+  var p = lastSearchProvenance;
+  if (!p) return;
+  var text = buildProvenanceMethodsText(p);
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function(){ showToast('Copied PRISMA summary to clipboard', '#22c55e'); },
       function(){ showToast('Copy failed', '#ef4444'); });
   } else {
     showToast('Clipboard not available', '#f59e0b');
   }
+}
+// U4 — file the executed search strategy straight into the open project's protocol
+// (Information sources), so the methods notes go into the review in one click instead
+// of copy-paste. Appends (never overwrites); needs a project open.
+function addMethodsToProtocol() {
+  var p = lastSearchProvenance;
+  if (!p) { showToast('Run a search first — there are no search methods to add yet.', '#f59e0b'); return; }
+  if (typeof currentProjectId === 'undefined' || !currentProjectId) {
+    showToast('Open (or create) a project first — then this files the search methods into its protocol.', '#f59e0b');
+    return;
+  }
+  var proj = (typeof projects !== 'undefined' ? projects : []).find(function(x){ return x.id === currentProjectId; });
+  if (!proj) { showToast('No project is open to add to.', '#f59e0b'); return; }
+  var text = buildProvenanceMethodsText(p);
+  proj.protocol = proj.protocol || {};
+  var existing = (proj.protocol.searchSources || '').trim();
+  proj.protocol.searchSources = existing ? (existing + '\n\n' + text) : text;
+  if (typeof saveProjects === 'function') saveProjects();
+  showToast('Added the search methods to “' + (proj.name || 'project') + '” → protocol · Information sources', '#22c55e');
 }
 
 // Build a PRISMA-2020-style flow diagram (identification + de-duplication +
@@ -8411,12 +8436,17 @@ function updateCardScore(p) {
   var boost = citationBoostScore(p);
   var boostedScore = Math.min(100, p.score + boost);
   var scoreColor = boostedScore >= 80 ? '#22c55e' : boostedScore >= 50 ? '#f59e0b' : '#ef4444';
-  // In pool screening (criteria hidden) the score box shows Sources, not the
-  // keyword score — don't overwrite it when a paper's text deepens later.
-  var poolBox = (resultsContext === 'pool' && !showCriteriaInPool);
-  if (!poolBox) {
+  // Pool cards lead with "Sources" (a fixed DB count) and carry the triage score as a
+  // labelled sub-line when it's surfaced — only that sub-line changes as a paper's text
+  // deepens. Non-pool cards are the triage box and update fully.
+  if (resultsContext === 'pool') {
+    if (showCriteriaInPool) {
+      var poolTriage = card.querySelector('.score-triage-line');
+      if (poolTriage) { poolTriage.style.color = scoreColor; poolTriage.innerHTML = 'Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : ''); }
+    }
+  } else {
     var scoreLabel = card.querySelector('.score-label');
-    if (scoreLabel) scoreLabel.textContent = boost > 0 ? 'Criteria+Cit.' : 'Criteria';
+    if (scoreLabel) scoreLabel.textContent = boost > 0 ? 'Triage+Cit.' : 'Triage';
     var scoreNum = card.querySelector('.score-num');
     if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = boostedScore + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
     var scoreBar = card.querySelector('.score-bar');
@@ -8829,14 +8859,18 @@ function renderPapers() {
             '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span id="ft-'+p.pmid+'" class="pdf-checking">'+(p.nctId ? '' : p.doi ? '&#8635; checking for free PDF…' : '')+'</span>'+(p.nctId ? '<a class="pdf-btn" href="https://clinicaltrials.gov/study/'+(/^NCT\d+$/i.test(p.nctId)?p.nctId:'')+'" target="_blank" rel="noopener" style="border-color:#f47256;background:var(--ev-warn-bg);color:var(--ev-warn-text)">&#129514; View on ClinicalTrials.gov</a>' : p.fullTextUrl ? '<a class="pdf-btn" href="'+esc(safeUrl(p.fullTextUrl))+'" target="_blank" rel="noopener">&#128196; Free PDF <span style="font-size:10px;opacity:0.7">('+esc(p.fullTextSource)+')</span></a>' : '')+buildLibkeyLink(p)+'</div>' +
             (hideCriteria ? '' : '<div class="scan-row">'+chipHtml+'</div>') +
           '</div>' +
-          (hideCriteria
-            // Pool screening: the strategy already encodes inclusion logic, so the
-            // card leads with cross-database corroboration — the cheapest honest
-            // relevance signal — instead of a keyword score.
+          // Pool screening leads with cross-database corroboration (the cheapest honest
+          // relevance signal) and KEEPS it as the box's primary meaning — surfacing the
+          // keyword triage score adds a labelled sub-line rather than replacing "Sources"
+          // with a percentage (which read as the box mysteriously turning into a score).
+          ((resultsContext === 'pool')
             ? '<div class="score-box" title="Found by ' + (p.sources||[]).length + ' database' + ((p.sources||[]).length===1?'':'s') + ': ' + esc((p.sources||[]).join(', ')) + '">' +
                 '<div class="score-label">Sources</div>' +
                 '<div class="score-num" style="color:' + ((p.sources||[]).length >= 3 ? '#22c55e' : (p.sources||[]).length === 2 ? '#f59e0b' : 'var(--ev-text-dim)') + '">' + (p.sources||[]).length + '<span style="font-size:11px;color:var(--ev-text-dim)"> DB' + ((p.sources||[]).length===1?'':'s') + '</span></div>' +
                 '<div class="score-bar-wrap"><div class="score-bar" style="width:' + Math.min(100, (p.sources||[]).length * 25) + '%;background:' + ((p.sources||[]).length >= 3 ? '#22c55e' : (p.sources||[]).length === 2 ? '#f59e0b' : 'var(--ev-text-dim)') + '"></div></div>' +
+                (showCriteriaInPool
+                  ? '<div class="score-triage-line" style="font-size:10px;color:' + scoreColor + ';margin-top:4px" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : '') + '</div>'
+                  : '') +
               '</div>'
             : '<div class="score-box">' +
                 '<div class="score-label" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">' + (boost > 0 ? 'Triage+Cit.' : 'Triage') + '</div>' +
@@ -18395,6 +18429,7 @@ evOn('h174', function (event) { evOauthSignOut(); });   // evOauthSignOut()
 evOn('h175', function (event) { evOauthSignIn(); });   // evOauthSignIn()
 evOn('h176', function (event) { evValDownloadResults(); });   // evValDownloadResults()
 evOn('h177', function (event) { evValCopyMethods(); });   // evValCopyMethods()
+evOn('h178', function (event) { addMethodsToProtocol(); });   // addMethodsToProtocol() — U4
 /* @@REGISTRY-AUTO-END@@ */
 
 // ── Handlers that closed over runtime data (hand-written) ─────────────────────
