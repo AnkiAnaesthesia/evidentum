@@ -10891,34 +10891,134 @@ var pendingBulkAdd = null;  // { items: [paper objects], source: 'reference'|'se
 var PROJ_STORE_KEY = 'evidentum_projects';
 var PROJ_PAPERS_KEY = 'evidentum_project_papers';
 
-// ── Persistence ──────────────────────────────────────────────────────────────
-function saveProjects() {
+// ── Persistence: IndexedDB primary, localStorage fallback (P2.C) ─────────────
+// Projects + their papers used to live in localStorage, which is per-origin and
+// capped at ~5 MB — a large review (hundreds of papers with full appraisals)
+// could hit "storage full" and lose work. They now live in IndexedDB (a separate
+// `evidentum-projects` DB, a single key/value store), written in ONE atomic
+// transaction so a project and its papers can't be left half-saved. localStorage
+// remains the fallback when IndexedDB is unavailable (private mode / disabled),
+// and old localStorage data is migrated to IndexedDB once, then removed. The
+// backup file format is unchanged — export/import still read/write the in-memory
+// `projects`/`projectPapers`, so backups round-trip across the migration.
+var PROJ_DB_NAME = 'evidentum-projects', PROJ_DB_VERSION = 1, PROJ_KV_STORE = 'kv';
+var PROJ_SCHEMA_VERSION = 1;
+var _projIdbUnavailable = false;   // set once IndexedDB is known-bad → use localStorage
+function projIdbSupported() { return !_projIdbUnavailable && typeof indexedDB !== 'undefined' && !!indexedDB; }
+
+function projDbOpen() {
+  return new Promise(function(resolve, reject) {
+    if (typeof indexedDB === 'undefined' || !indexedDB) { reject(new Error('no IndexedDB')); return; }
+    var req = indexedDB.open(PROJ_DB_NAME, PROJ_DB_VERSION);
+    req.onupgradeneeded = function() {
+      var db = req.result;
+      if (!db.objectStoreNames.contains(PROJ_KV_STORE)) db.createObjectStore(PROJ_KV_STORE);
+    };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error || new Error('IndexedDB open failed')); };
+  });
+}
+function projDbGetAll() {
+  return projDbOpen().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var out = {}, tx = db.transaction(PROJ_KV_STORE, 'readonly'), st = tx.objectStore(PROJ_KV_STORE);
+      var rProj = st.get('projects'), rPapers = st.get('papers'), rSchema = st.get('schema');
+      tx.oncomplete = function() { out.projects = rProj.result; out.papers = rPapers.result; out.schema = rSchema.result; try { db.close(); } catch(e) {} resolve(out); };
+      tx.onerror = function() { try { db.close(); } catch(e) {} reject(tx.error); };
+    });
+  });
+}
+function projDbPut(projectsVal, papersVal) {
+  return projDbOpen().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      // One readwrite transaction for BOTH values → atomic: a partial failure
+      // aborts the whole thing rather than leaving projects without their papers.
+      var tx = db.transaction(PROJ_KV_STORE, 'readwrite'), st = tx.objectStore(PROJ_KV_STORE);
+      st.put(projectsVal, 'projects');
+      st.put(papersVal, 'papers');
+      st.put(PROJ_SCHEMA_VERSION, 'schema');
+      tx.oncomplete = function() { try { db.close(); } catch(e) {} resolve(); };
+      tx.onerror  = function() { try { db.close(); } catch(e) {} reject(tx.error || new Error('IndexedDB write failed')); };
+      tx.onabort  = function() { try { db.close(); } catch(e) {} reject(tx.error || new Error('IndexedDB transaction aborted')); };
+    });
+  });
+}
+// Best-effort localStorage mirror — the fallback store, and the sole store when
+// IndexedDB is unavailable. Bounded by the ~5 MB cap (hence the IDB move).
+function saveProjectsToLocalStorage() {
   try {
     localStorage.setItem(PROJ_STORE_KEY, JSON.stringify(projects));
     localStorage.setItem(PROJ_PAPERS_KEY, JSON.stringify(projectPapers));
-    bumpBackupCounter();
   } catch(e) {
     showToast('⚠️ Storage full — try removing some papers from projects.', '#f59e0b');
   }
+}
+function loadProjectsFromLocalStorage() {
+  var had = false;
+  try {
+    var p = localStorage.getItem(PROJ_STORE_KEY);
+    var pp = localStorage.getItem(PROJ_PAPERS_KEY);
+    if (p)  { projects = JSON.parse(p); had = true; }
+    if (pp) { projectPapers = JSON.parse(pp); had = true; }
+  } catch(e) { projects = []; projectPapers = {}; }
+  return had;
+}
+
+function saveProjects() {
+  bumpBackupCounter();
   // Ask the browser to protect this origin's storage from automatic eviction
   // (does nothing against a manual "clear site data" — that's what backups are
-  // for — but stops the silent under-storage-pressure eviction path). Silent in
-  // Chromium; once per session is plenty.
+  // for — but stops the silent under-storage-pressure eviction path).
   if (!saveProjects._persistAsked) {
     saveProjects._persistAsked = true;
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){}); } catch(e) {}
   }
+  if (!projIdbSupported()) { saveProjectsToLocalStorage(); return; }
+  // IndexedDB primary. On failure (quota / disabled mid-session) fall back to
+  // localStorage so the current session's work is not lost.
+  projDbPut(projects, projectPapers).catch(function(err) {
+    console.warn('project IndexedDB save failed — falling back to localStorage:', err && err.message);
+    saveProjectsToLocalStorage();
+  });
 }
 
-function loadProjects() {
-  try {
-    var p = localStorage.getItem(PROJ_STORE_KEY);
-    var pp = localStorage.getItem(PROJ_PAPERS_KEY);
-    if (p) projects = JSON.parse(p);
-    if (pp) projectPapers = JSON.parse(pp);
-  } catch(e) { projects = []; projectPapers = {}; }
-  sanitiseProjectData();
+// Async: reads IndexedDB, migrating any legacy localStorage data on first run.
+// Returns a promise resolving to a short status string (for logging/tests). The
+// synchronous-looking loadProjects() shim delegates here and returns the promise
+// so the boot code can await it before rendering.
+function loadProjectsAsync() {
+  if (!projIdbSupported()) {
+    // No IndexedDB (private mode / disabled) → localStorage only.
+    _projIdbUnavailable = true;
+    loadProjectsFromLocalStorage();
+    sanitiseProjectData();
+    return Promise.resolve('localStorage-nodb');
+  }
+  return projDbGetAll().then(function(kv) {
+    if (kv && (kv.projects != null || kv.papers != null)) {
+      projects = Array.isArray(kv.projects) ? kv.projects : [];
+      projectPapers = (kv.papers && typeof kv.papers === 'object') ? kv.papers : {};
+      sanitiseProjectData();
+      return 'idb';
+    }
+    // IndexedDB is empty → one-time migration from legacy localStorage.
+    var had = loadProjectsFromLocalStorage();
+    sanitiseProjectData();
+    if (!had) return 'empty';
+    return projDbPut(projects, projectPapers).then(function() {
+      // Only remove the old keys once the IndexedDB copy is confirmed written.
+      try { localStorage.removeItem(PROJ_STORE_KEY); localStorage.removeItem(PROJ_PAPERS_KEY); } catch(e) {}
+      return 'migrated';
+    }).catch(function() { return 'localStorage'; });   // migration write failed → keep localStorage
+  }).catch(function() {
+    // No IndexedDB at all (private mode / disabled) → localStorage only.
+    _projIdbUnavailable = true;
+    loadProjectsFromLocalStorage();
+    sanitiseProjectData();
+    return 'localStorage-nodb';
+  });
 }
+function loadProjects() { return loadProjectsAsync(); }
 
 // ── Import-boundary sanitisation ─────────────────────────────────────────────
 // Loaded/imported data (backups can come from ANYONE — the portable-pack flow
@@ -13022,8 +13122,15 @@ function exportProjectGradeSoF() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  loadProjects();
-  renderProjList();
+  // Loading is now async (IndexedDB) — render once it resolves. The splash
+  // "Continue" card also depends on loaded projects, so refresh it here too.
+  loadProjects().then(function() {
+    renderProjList();
+    if (typeof refreshSplashContinue === 'function') refreshSplashContinue();
+  }).catch(function(e) {
+    console.warn('loadProjects failed:', e);
+    renderProjList();
+  });
 });
 
 function toggleProjPaperDetail(detailId, btn) {
@@ -17176,23 +17283,32 @@ function evSplashChoose(action) {
     document.removeEventListener('keydown', onEsc);
     evSplashDismiss();
   });
-  // The Continue card needs the saved projects — loadProjects() runs in an
-  // earlier-registered DOMContentLoaded handler, so this one sees loaded state.
-  document.addEventListener('DOMContentLoaded', function() {
-    var btn = document.getElementById('ev-card-continue');
-    if (!btn) return;
-    var lastPid = null;
-    try { lastPid = localStorage.getItem('ev_last_proj'); } catch(e) {}
-    var st = splashContinueState(projects, projectPapers, safeId(lastPid));
-    btn.disabled = !st.enabled;
-    // textContent, not innerHTML — project names are user data.
-    btn.querySelector('.ev-card-name').textContent = '📁 ' + st.name;
-    btn.querySelector('.ev-card-desc').textContent = st.detail;
-    // Focus the sensible default so Enter continues (or starts building).
-    var focusEl = st.enabled ? btn : document.getElementById('ev-card-build');
-    if (focusEl) focusEl.focus();
-  });
+  // The Continue card needs the saved projects. Loading is async (IndexedDB), so
+  // this runs once at DOMContentLoaded for the initial state AND is re-invoked by
+  // loadProjects()'s completion (refreshSplashContinue is a top-level function).
+  document.addEventListener('DOMContentLoaded', function() { refreshSplashContinue(true); });
 })();
+// Refresh the splash "Continue" card from the current in-memory projects. Called
+// at boot and again once the async project load resolves. `focusReset` only moves
+// focus on the initial call, so a later refresh doesn't yank focus mid-interaction.
+function refreshSplashContinue(focusReset) {
+  var btn = document.getElementById('ev-card-continue');
+  if (!btn) return;
+  var lastPid = null;
+  try { lastPid = localStorage.getItem('ev_last_proj'); } catch(e) {}
+  var st = splashContinueState(projects, projectPapers, safeId(lastPid));
+  btn.disabled = !st.enabled;
+  // textContent, not innerHTML — project names are user data.
+  var nameEl = btn.querySelector('.ev-card-name'); if (nameEl) nameEl.textContent = '📁 ' + st.name;
+  var descEl = btn.querySelector('.ev-card-desc'); if (descEl) descEl.textContent = st.detail;
+  // Focus the sensible default so Enter continues (or starts building) — only on
+  // the initial boot pass, and only if the splash is still the active surface.
+  if (focusReset) {
+    var splash = document.getElementById('ev-splash');
+    var splashVisible = splash && splash.style.display !== 'none';
+    if (splashVisible) { var focusEl = st.enabled ? btn : document.getElementById('ev-card-build'); if (focusEl) focusEl.focus(); }
+  }
+}
 
 // Service worker: offline capability + installability. Only on https/localhost.
 // Also detects when a newer build has been deployed (a new SW reaches 'installed'
