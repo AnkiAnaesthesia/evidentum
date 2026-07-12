@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Content Security Policy (P1.B). Delivered via <meta> since GitHub Pages sets no
+     response headers. Inline event handlers are gone (see 04k-events.js), so script-src
+     drops 'unsafe-inline': the two inline <script> blocks are allowed by build-time
+     sha256 hashes (build.js computes them from the shipped bytes → they can't drift).
+     connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
+     calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
+     STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-J0oobd9mTKIcGSs0Xbau/638Dt3uTA3EfSxBIjWqLIg=' 'sha256-mK7NctkH0JgZuCw02U1PJNM1J0zIxSVccGzjB36ShRc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -14,9 +22,10 @@
 <!-- Fonts are embedded as data: URIs in the stylesheet (see src/02a-fonts.css):
      typography works fully offline / from file:// and no font CDN sees page loads. -->
 <!-- pdf.js is vendored locally (pdf.min.js + pdf.worker.min.js deployed alongside this file)
-     so PDF extraction works offline and no CDN sees the traffic. If the local copy is
-     missing (files not deployed), fall back to cdnjs so the feature still works online. -->
-<script src="pdf.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=function(){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';};document.head.appendChild(s);"></script>
+     so PDF extraction works offline and no CDN sees the traffic. The onerror CDN fallback
+     was removed (inline handlers are CSP-forbidden); if the local copy is missing the app
+     JS loads cdnjs instead — see loadPdfJsFallback() in 04f-fulltext.js. -->
+<script src="pdf.min.js"></script>
 <style>
 /* ── Embedded fonts (2026-07-08) ──────────────────────────────────────────────
    Latin-subset WOFF2s inlined as data: URIs so typography survives offline and
@@ -10047,10 +10056,24 @@ function fetchAndRescanPMCPapers() {
 // ══════════════════════════════════════════════
 // PDF.js SETUP
 // ══════════════════════════════════════════════
+// The <head> loads the vendored pdf.min.js (same-origin, CSP 'self'). By the time
+// this runs it has loaded or errored. If it errored (local copy absent, e.g. dev),
+// load pdf.js from cdnjs instead — CSP allows cdnjs in script-src/connect-src, and
+// the CDN worker via worker-src blob:. This replaces the old inline onerror handler
+// that a strict script-src would block.
+function loadPdfJsFallback() {
+  if (typeof pdfjsLib !== 'undefined') return;
+  if (typeof document === 'undefined' || !document.head || !document.createElement) return;
+  var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  var s = document.createElement('script');
+  s.src = CDN + 'pdf.min.js';
+  s.onload = function () { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = CDN + 'pdf.worker.min.js'; };
+  document.head.appendChild(s);
+}
 if (typeof pdfjsLib !== 'undefined') {
-  // Local vendored worker — the CDN-fallback path in <head> overrides this if the
-  // local pdf.min.js failed to load (see the script tag's onerror handler).
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+} else {
+  loadPdfJsFallback();
 }
 
 // Race a promise against a timeout

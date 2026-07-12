@@ -5,7 +5,7 @@
 // CACHE version below is non-critical (bumping it just evicts the old offline
 // copy). The SW only manages the Cache API — it never touches IndexedDB or
 // localStorage, so an update can't clear projects, appraisals or credentials.
-const CACHE = 'evidentum-v3';
+const CACHE = 'evidentum-v4';
 const ASSETS = [
   './',
   './index.html',
