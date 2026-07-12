@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-J0oobd9mTKIcGSs0Xbau/638Dt3uTA3EfSxBIjWqLIg=' 'sha256-mK7NctkH0JgZuCw02U1PJNM1J0zIxSVccGzjB36ShRc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-J0oobd9mTKIcGSs0Xbau/638Dt3uTA3EfSxBIjWqLIg=' 'sha256-92T1nwschQY+ukd1YSRZIwkXN69SOqvJWFm+sKcbEso=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -1258,7 +1258,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="db-search-row simple-only">
         <div style="position:relative;flex:1;min-width:0;">
           <input type="text" id="query-input" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' data-evkeydown="h62" data-evinput="h63" />
-          <button id="query-clear-btn" data-evclick="h64" title="Clear" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
+          <button id="query-clear-btn" data-evclick="h64" title="Clear" aria-label="Clear search box" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
         </div>
         <button id="search-btn" data-evclick="h65">&#8594; Search</button>
       </div>
@@ -1535,7 +1535,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div id="retraction-summary-panel" style="display:none;background:var(--ev-danger-bg);border:1px solid var(--ev-danger-bg);border-radius:8px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:13px;font-weight:700;color:#ef4444">⚠️ Retracted Papers Detected</div>
-          <button data-evclick="h96" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px">×</button>
+          <button data-evclick="h96" aria-label="Dismiss retraction alert" title="Dismiss" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px">×</button>
         </div>
         <div id="retraction-summary-list" style="font-size:12px;color:var(--ev-danger-text);display:flex;flex-direction:column;gap:6px"></div>
         <div style="font-size:10px;color:#6b7280;margin-top:8px">Source: <a href="https://retractionwatch.com" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Retraction Watch</a> via <a href="https://www.crossref.org" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Crossref</a></div>
@@ -4401,6 +4401,7 @@ var ISSUE_KINDS = {
   cap:    { icon: '✂️', label: 'Incomplete' },     // ✂️ retrieval capped below the true match count
   pdf:    { icon: '📄', label: 'PDF' },            // 📄 a PDF could not be read/parsed
   ai:     { icon: '🤖', label: 'AI' },             // 🤖 an AI appraisal/translation call failed
+  storage:{ icon: '💾', label: 'Storage' },        // 💾 a project save hit a quota / storage limit
   error:  { icon: '⚠️', label: 'Error' }           // ⚠️ everything else (auto-captured red toasts)
 };
 
@@ -7360,7 +7361,7 @@ function renderSetHistory() {
       '<button ' + evAttr('click', 'insertSetRef', [n]) + ' title="Insert #' + n + ' into the combination box" style="flex-shrink:0;font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:700;color:var(--ev-link);background:var(--ev-surface-2);border:1px solid var(--ev-info-bg);border-radius:5px;padding:3px 8px;cursor:pointer">#' + n + '</button>' +
       '<span style="flex:1;min-width:0;font-size:11px;color:var(--ev-text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(s.query) + '">' + esc(s.query) + '</span>' +
       '<span style="flex-shrink:0;font-size:11px;font-weight:600;color:var(--ev-ok-text);font-variant-numeric:tabular-nums">' + s.count.toLocaleString() + '</span>' +
-      '<button ' + evAttr('click', 'removePubmedSet', [n]) + ' title="Remove set" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;line-height:1">&#10005;</button>' +
+      '<button ' + evAttr('click', 'removePubmedSet', [n]) + ' title="Remove set" aria-label="Remove set" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;line-height:1">&#10005;</button>' +
     '</div>';
   }).join('');
   panel.innerHTML = rows;
@@ -11026,8 +11027,16 @@ function saveProjectsToLocalStorage() {
   try {
     localStorage.setItem(PROJ_STORE_KEY, JSON.stringify(projects));
     localStorage.setItem(PROJ_PAPERS_KEY, JSON.stringify(projectPapers));
+    return true;
   } catch(e) {
-    showToast('⚠️ Storage full — try removing some papers from projects.', '#f59e0b');
+    // Quota exceeded (or storage disabled): the change is NOT saved — never let that
+    // pass silently. Surface it both transiently (toast) and persistently (issues
+    // panel), and point the user at the recovery path (back up, then prune).
+    showToast('⚠️ Storage full — your latest change was NOT saved. Export a backup, then remove some papers/projects.', '#f59e0b');
+    if (typeof logIssue === 'function') logIssue('storage',
+      'Browser storage is full — a project change could not be saved.',
+      'Export a full backup now, then delete papers or projects you no longer need to free space.');
+    return false;
   }
 }
 function loadProjectsFromLocalStorage() {
@@ -11055,7 +11064,13 @@ function saveProjects() {
   // localStorage so the current session's work is not lost.
   projDbPut(projects, projectPapers).catch(function(err) {
     console.warn('project IndexedDB save failed — falling back to localStorage:', err && err.message);
-    saveProjectsToLocalStorage();
+    var savedToLs = saveProjectsToLocalStorage();
+    // If IndexedDB dropped out mid-session but localStorage still took the write, the
+    // work is safe — but note the degraded (smaller, less durable) store so a later
+    // silent quota failure isn't a surprise. logIssue dedups repeats into ×N.
+    if (savedToLs && typeof logIssue === 'function') logIssue('storage',
+      'IndexedDB was unavailable — saved to localStorage instead this session.',
+      'Your work is saved but in a smaller store; export a backup to be safe.');
   });
 }
 
@@ -13404,7 +13419,7 @@ function renderProjExtractionSection(p) {
     return '<div style="margin-bottom:7px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' +
         '<span style="font-size:11px;color:var(--ev-text-muted);font-weight:600">' + esc(f.label) + '</span>' + aiFlag +
-        '<button ' + evAttr('click', 'removeProjExtractionField', [f.id]) + ' title="Remove this column from the project" ' +
+        '<button ' + evAttr('click', 'removeProjExtractionField', [f.id]) + ' title="Remove this column from the project" aria-label="Remove extraction column" ' +
           'style="margin-left:auto;font-size:10px;line-height:1;padding:1px 5px;border-radius:4px;border:1px solid #47556955;background:transparent;color:var(--ev-text-dim);cursor:pointer">&#10005;</button>' +
       '</div>' +
       '<textarea style="width:100%;box-sizing:border-box;background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body);font-family:IBM Plex Mono,monospace;font-size:11px;padding:6px 9px;resize:vertical;min-height:34px" ' +
@@ -14333,7 +14348,7 @@ function renderSuppFileList() {
       statusIcon +
       '<span style="font-size:11px;color:var(--ev-text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s.file.name) + '</span>' +
       '<span style="font-size:10px;color:var(--ev-text-dim)">' + (s.file.size / 1024).toFixed(0) + ' KB</span>' +
-      '<button ' + evAttr('click', 'removeSuppFile', [i]) + ' style="padding:1px 6px;font-size:10px;border:1px solid var(--ev-text-faint);border-radius:4px;background:transparent;color:#6b7280;cursor:pointer">✕</button>' +
+      '<button ' + evAttr('click', 'removeSuppFile', [i]) + ' title="Remove file" aria-label="Remove supplementary file" style="padding:1px 6px;font-size:10px;border:1px solid var(--ev-text-faint);border-radius:4px;background:transparent;color:#6b7280;cursor:pointer">✕</button>' +
     '</div>';
   }).join('');
 }
@@ -17056,7 +17071,7 @@ function showRob2Viz() {
         '<div style="font-size:16px;font-weight:700;color:#f1f5f9">&#128202; Risk of Bias Visualisation</div>' +
         '<div style="font-size:11px;color:#748399;margin-top:2px">robvis-style · ' + robPapers.length + ' paper(s) with RoB2 assessments</div>' +
       '</div>' +
-      '<button data-evclick="h166" style="background:none;border:none;color:#748399;font-size:22px;cursor:pointer;line-height:1">&times;</button>' +
+      '<button data-evclick="h166" aria-label="Close" title="Close" style="background:none;border:none;color:#748399;font-size:22px;cursor:pointer;line-height:1">&times;</button>' +
     '</div>' +
     (robPapers.length === 0 ?
       '<div style="text-align:center;padding:40px;color:#748399">No RoB2 assessments found.<br><span style="font-size:12px">Run &#129302; Agent Analysis first.</span></div>' :
