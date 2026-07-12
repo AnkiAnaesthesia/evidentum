@@ -92,6 +92,7 @@
    / search-report / RoB / GRADE-SoF HTML) keep fixed print colours — they are
    separate documents with no access to these tokens. */
 :root {
+  color-scheme: dark;   /* native date pickers, select popups, scrollbars follow the theme */
   --ev-bg: #0a0e1a;
   --ev-surface: #0d1220;
   --ev-surface-2: #111827;
@@ -120,6 +121,7 @@
   --ev-info-bg: #1e3a5f;
 }
 :root[data-theme="light"] {
+  color-scheme: light;
   --ev-bg: #eef1f5;
   --ev-surface: #ffffff;
   --ev-surface-2: #f6f8fb;
@@ -185,7 +187,7 @@ a:hover { text-decoration: underline; }
 
 /* ── PICO question bar ── */
 #proj-pico-bar { display:flex; align-items:center; gap:10px; background:var(--ev-surface); border:1px solid var(--ev-info-bg); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
-#proj-pico-bar .pico-label { font-size:10px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; white-space:nowrap; flex-shrink:0; }
+#proj-pico-bar .pico-label { font-size:10px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; white-space:nowrap; flex-shrink:0; }
 #proj-pico-input { flex:1; background:transparent; border:none; color:var(--ev-text-body); font-family:'IBM Plex Mono',monospace; font-size:12px; outline:none; padding:0; }
 #proj-pico-input::placeholder { color:var(--ev-border-strong); }
 #proj-pico-saved { font-size:10px; color:var(--ev-ok-text); opacity:0; transition:opacity 0.4s; white-space:nowrap; flex-shrink:0; }
@@ -234,7 +236,7 @@ a:hover { text-decoration: underline; }
 .settings-close-btn:hover { color:var(--ev-text); }
 .settings-section { padding:16px 20px; border-bottom:1px solid var(--ev-border); }
 .settings-section:last-child { border-bottom:none; }
-.settings-section-title { font-size:11px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:12px; }
+.settings-section-title { font-size:11px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:12px; }
 .settings-section details { border:1px solid var(--ev-border); border-radius:8px; background:var(--ev-bg); margin-bottom:8px; }
 .settings-section details[open] { background:var(--ev-surface-2); }
 .settings-section summary { cursor:pointer; list-style:none; padding:10px 12px; font-size:12px; font-weight:600; color:var(--ev-text-2); display:flex; align-items:center; gap:8px; user-select:none; }
@@ -252,8 +254,8 @@ a:hover { text-decoration: underline; }
 /* ── Layout ── */
 #main { max-width: 1400px; margin: 0 auto; padding: 22px; }
 .card { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
-.card-label { font-size: 10px; color: #3b82f6; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 11px; font-weight: 600; }
-.sec-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+.card-label { font-size: 10px; color: #3b82f6; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 11px; font-weight: 600; }
+.sec-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
 .tab-panel { display: none; } .tab-panel.active { display: block; }
 
 /* ── Inputs ── */
@@ -297,7 +299,7 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 /* ── Search section divider ── */
 .search-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; }
 .search-divider-line { flex: 1; height: 1px; background: var(--ev-border); }
-.search-divider-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+.search-divider-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
 
 /* ── Scan criteria builder ── */
 .criteria-table { width: 100%; border-collapse: collapse; }
@@ -336,7 +338,7 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 /* ── Scan results chips ── */
 .scan-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 9px; }
 .scan-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.scan-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ev-text-faint); font-weight: 700; min-width: 62px; }
+.scan-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ev-text-faint); font-weight: 700; min-width: 62px; }
 .scan-chip { font-size: 11px; padding: 2px 9px; border-radius: 20px; border: 1px solid; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
 .scan-chip.pass { background: var(--ev-ok-bg); border-color: #22c55e; color: var(--ev-ok-text); }
 .scan-chip.fail { background: var(--ev-danger-bg); border-color: var(--ev-danger-bg); color: var(--ev-danger-text); }
@@ -362,7 +364,7 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 
 /* ── Score ── */
 .score-box { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; }
-.score-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.score-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
 .score-num { font-size: 21px; font-weight: 700; line-height: 1; }
 .score-bar-wrap { width: 44px; height: 3px; background: var(--ev-border); border-radius: 2px; }
 .score-bar { height: 100%; border-radius: 2px; }
@@ -407,7 +409,7 @@ body.mode-advanced .adv-block { display: block !important; }
 
 /* ── Database selector ── */
 .db-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 13px; align-items: center; }
-.db-selector-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-right: 4px; flex-shrink: 0; }
+.db-selector-label { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; flex-shrink: 0; }
 .db-chip { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--ev-border); cursor: pointer; font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; user-select: none; transition: background 0.15s, border-color 0.15s, color 0.15s; background: transparent; color: var(--ev-text-dim); }
 .db-chip input[type=checkbox] { display: none; }
 .db-chip.active { border-color: #3b82f6; background: var(--ev-info-bg); color: var(--ev-link-2); }
@@ -431,7 +433,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .cl-pill-partial { border-color: #f59e0b44; background: var(--ev-warn-bg); color: var(--ev-warn-text); }
 .cl-pill-pending { border-color: #37415144; background: transparent; color: var(--ev-text-dim); }
 .cl-pill-blocked { border-color: #d9770644; background: var(--ev-warn-bg); color: var(--ev-warn-text); }
-.cl-pill-label { font-size: 8px; color: var(--ev-text-faint); text-transform: uppercase; letter-spacing: 0.07em; }
+.cl-pill-label { font-size: 8px; color: var(--ev-text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
 .checklist-header { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: var(--ev-bg); cursor: pointer; user-select: none; }
 .checklist-header:hover { background: var(--ev-surface); }
 .checklist-title { font-size: 11px; font-weight: 700; color: var(--ev-text-muted); text-transform: uppercase; letter-spacing: 0.08em; flex: 1; }
@@ -465,7 +467,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .cl-status-na   { background: var(--ev-surface-2); border-color: var(--ev-text-faint); color: #6b7280; }
 .cl-status-unclear { background: var(--ev-surface-2); border-color: var(--ev-text-faint); color: #6b7280; }
 .rob-domain { margin-bottom: 8px; padding: 8px 10px; border-radius: 6px; background: var(--ev-bg); border: 1px solid var(--ev-surface-3); }
-.rob-domain-title { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.rob-domain-title { font-size: 10px; color: var(--ev-text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
 .rob-judgement-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .rob-judgement-label { font-size: 10px; color: var(--ev-text-dim); min-width: 80px; }
 .rob-judgement-select { padding: 3px 7px; font-size: 10px; border-radius: 4px; cursor: pointer; }
@@ -568,7 +570,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .proj-paper-detail { margin-top:10px; border-top:1px solid var(--ev-border); padding-top:10px; display:none; }
 .proj-paper-detail.open { display:block; }
 .proj-cl-section { margin-bottom:10px; }
-.proj-cl-section-title { font-size:10px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:6px; }
+.proj-cl-section-title { font-size:10px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:6px; }
 .proj-cl-row { display:flex; justify-content:space-between; align-items:baseline; font-size:11px; padding:3px 0; border-bottom:1px solid var(--ev-surface); gap:8px; }
 .proj-cl-row:last-child { border-bottom:none; }
 .proj-cl-label { color:var(--ev-text-muted); flex:1; }
@@ -695,7 +697,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 }
 
 /* Build tab */
-.pico-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px; }
+.pico-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
 .cblock { background:#0a1020; border:1px solid var(--ev-border-soft); border-radius:9px; padding:11px 13px; margin-bottom:9px; }
 .cblock-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .cterm { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 9px; border-radius:14px; margin:0 5px 5px 0; cursor:pointer; border:1px solid; font-family:'Inter',sans-serif; font-weight:600; }
@@ -1278,7 +1280,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="grid4" style="margin-top:12px;margin-bottom:12px">
         <div class="simple-only">
           <div class="sec-label">Limit by Study Type <span style="font-size:10px;color:var(--ev-text-dim)">(tick any — PubMed)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px 9px;max-height:96px;overflow:auto;padding:8px 9px;border:1px solid var(--ev-border);border-radius:7px;background:var(--ev-surface)">
+          <div style="display:flex;flex-wrap:wrap;gap:5px 9px;max-height:96px;overflow:auto;padding:8px 9px;border:1px solid var(--ev-border-soft);border-radius:7px;background:var(--ev-bg)">
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Randomized Controlled Trial[pt]" style="accent-color:#3b82f6;margin:0">RCT</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Systematic Review[pt]" style="accent-color:#3b82f6;margin:0">Systematic Review</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Meta-Analysis[pt]" style="accent-color:#3b82f6;margin:0">Meta-Analysis</label>
