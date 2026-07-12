@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-oD9txWrp3LmysNgtfNOxh72qczdVo13EvuKugNEpqYM=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-R4967+lOw4/VkTFmaTEiCyPvooEMGayMcxD3Ta8D7q4=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -899,8 +899,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div id="grok-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="grok-model-select" aria-label="xAI Grok model" data-evchange="h26"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="Grok model">
-        <option value="grok-4.3">Grok 4.3 — recommended (default)</option>
-        <option value="grok-4.20">Grok 4.20 — newest, multi-agent</option>
+        <option value="grok-4.5">Grok 4.5 — newest, recommended (default)</option>
+        <option value="grok-4.3">Grok 4.3 — flagship</option>
+        <option value="grok-4.20">Grok 4.20 — multi-agent</option>
         <option value="grok-4-fast">Grok 4 Fast — faster, cheaper</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
@@ -1461,16 +1462,16 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <button class="cite-tab-btn" data-cite="bibtex" data-evclick="h85">BibTeX</button>
       </div>
       <div id="cite-apa" class="cite-panel active">
-        <div class="cite-text">McNally, A., &amp; Duckworth, A. (<span class="cite-year"></span>). <i>Evidentum Pro: AI-powered systematic literature review tool</i> (Version <span class="cite-ver">1.0</span>) [Software]. Retrieved from https://ankianaesthesia.github.io/pubmedsearch/</div>
+        <div class="cite-text">McNally, A., &amp; Duckworth, A. (<span class="cite-year"></span>). <i>Evidentum Pro: AI-powered systematic literature review tool</i> (Version <span class="cite-ver">1.0</span>) [Software]. Retrieved from https://ankianaesthesia.github.io/evidentum/</div>
       </div>
       <div id="cite-vancouver" class="cite-panel" style="display:none">
-        <div class="cite-text">McNally A, Duckworth A. Evidentum Pro: AI-powered systematic literature review tool [Software]. Version <span class="cite-ver">1.0</span>. <span class="cite-year"></span>. Available from: https://ankianaesthesia.github.io/pubmedsearch/</div>
+        <div class="cite-text">McNally A, Duckworth A. Evidentum Pro: AI-powered systematic literature review tool [Software]. Version <span class="cite-ver">1.0</span>. <span class="cite-year"></span>. Available from: https://ankianaesthesia.github.io/evidentum/</div>
       </div>
       <div id="cite-harvard" class="cite-panel" style="display:none">
-        <div class="cite-text">McNally, A. and Duckworth, A. (<span class="cite-year"></span>) <i>Evidentum Pro: AI-powered systematic literature review tool</i>, Version <span class="cite-ver">1.0</span> [Software]. Available at: https://ankianaesthesia.github.io/pubmedsearch/</div>
+        <div class="cite-text">McNally, A. and Duckworth, A. (<span class="cite-year"></span>) <i>Evidentum Pro: AI-powered systematic literature review tool</i>, Version <span class="cite-ver">1.0</span> [Software]. Available at: https://ankianaesthesia.github.io/evidentum/</div>
       </div>
       <div id="cite-bibtex" class="cite-panel" style="display:none">
-        <div class="cite-text">@software{mcnally<span class="cite-year"></span>evidentum,<br>&nbsp;&nbsp;author = {McNally, Angus and Duckworth, Andrew},<br>&nbsp;&nbsp;title = {Evidentum Pro: AI-powered systematic literature review tool},<br>&nbsp;&nbsp;year = {<span class="cite-year"></span>},<br>&nbsp;&nbsp;version = {1.0},<br>&nbsp;&nbsp;url = {https://ankianaesthesia.github.io/pubmedsearch/}<br>}</div>
+        <div class="cite-text">@software{mcnally<span class="cite-year"></span>evidentum,<br>&nbsp;&nbsp;author = {McNally, Angus and Duckworth, Andrew},<br>&nbsp;&nbsp;title = {Evidentum Pro: AI-powered systematic literature review tool},<br>&nbsp;&nbsp;year = {<span class="cite-year"></span>},<br>&nbsp;&nbsp;version = {1.0},<br>&nbsp;&nbsp;url = {https://ankianaesthesia.github.io/evidentum/}<br>}</div>
       </div>
       <button class="btn btn-ghost" style="margin-top:10px; font-size:11px" data-evclick="h86">&#128203; Copy citation</button>
       <span id="cite-copy-confirm" style="font-size:11px; color:var(--ev-ok-text); margin-left:10px; display:none">&#10003; Copied!</span>
@@ -3327,8 +3328,11 @@ async function analyseSinglePaper(pmid) {
   } catch(err) {
     console.error('Single paper agent error:', err);
     if (btn) { btn.disabled = false; btn.textContent = '🤖 Analyse'; }
-    showToast('Agent error: ' + (err.message || 'unknown'), '#ef4444',
-      { kind: 'ai', hint: 'The paper was not appraised. Check the API key and model in Settings, then use Re-analyse.' });
+    var evNoText = /no text available/i.test((err && err.message) || '');
+    showToast('Agent error: ' + (typeof describeAiError === 'function' ? describeAiError(err) : (err.message || 'unknown')), '#ef4444',
+      { kind: 'ai', hint: evNoText
+          ? 'This record has no abstract or full text to appraise — fetch the full text (or add an abstract) first, then Re-analyse. Your API key is fine.'
+          : 'The paper was not appraised. Check the API key and model in Settings, then use Re-analyse.' });
   } finally {
     if (card) card.classList.remove('agent-processing-card');
   }
@@ -5319,7 +5323,8 @@ function describeAiError(e) {
   if (/\b429\b|rate.?limit/i.test(m)) return 'rate limited (HTTP 429) — the provider is throttling your key; wait a minute and re-run';
   if (/\b40[13]\b|invalid.?api.?key|unauthor/i.test(m)) return 'access denied — check the API key for this provider in Settings';
   if (/\b5\d\d\b/.test(m)) return 'provider error (' + (m.match(/\b5\d\d\b/) || ['5xx'])[0] + ') — usually transient; re-run shortly';
-  if (/JSON|parse|malformed|schema|no text|unparse/i.test(m)) return 'malformed response — the model returned unusable output; try Re-analyse';
+  if (/no text available/i.test(m)) return 'no abstract or full text available to appraise — fetch the full text or add an abstract, then Re-analyse (not an API-key problem)';
+  if (/JSON|parse|malformed|schema|unparse/i.test(m)) return 'malformed response — the model returned unusable output; try Re-analyse';
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'network unreachable — check your connection and re-run';
   return m;
 }
@@ -14998,9 +15003,10 @@ var MODEL_CATALOG = {
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', note: 'faster, cheaper' },
     { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', note: 'fast, low-cost, high-volume' }
   ]},
-  grok: { label: 'xAI Grok', 'default': 'grok-4.3', models: [
-    { id: 'grok-4.3',    name: 'Grok 4.3',    note: 'recommended (default)' },
-    { id: 'grok-4.20',   name: 'Grok 4.20',   note: 'newest, multi-agent' },
+  grok: { label: 'xAI Grok', 'default': 'grok-4.5', models: [
+    { id: 'grok-4.5',    name: 'Grok 4.5',    note: 'newest, recommended (default)' },
+    { id: 'grok-4.3',    name: 'Grok 4.3',    note: 'flagship' },
+    { id: 'grok-4.20',   name: 'Grok 4.20',   note: 'multi-agent' },
     { id: 'grok-4-fast', name: 'Grok 4 Fast', note: 'faster, cheaper' }
   ]}
 };
