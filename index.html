@@ -885,12 +885,18 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <input type="text" id="grok-model-input" placeholder="enter exact model id" oninput="saveAiModels()" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Grok model ID" />
       <div style="font-size:11px;color:var(--ev-text-dim)">OpenAI-compatible API. Key from <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">xAI Console →</a></div>
-      <!-- OpenAI account (Sign in with ChatGPT) -->
-      <div style="font-size:10px;color:#10a37f;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">OpenAI Account (Sign in with ChatGPT)</div>
-      <input type="text" id="ev-oauth-clientid" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" oninput="evSaveOauthClientId()" autocomplete="off"
-        style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:6px" />
-      <div id="ev-oauth-status" style="margin-bottom:4px"></div>
-      <div style="font-size:11px;color:var(--ev-text-dim)"><b style="color:#f59e0b">Experimental / not yet functional:</b> this flow only establishes identity (openid/profile/email) — the resulting token is <b>not accepted by OpenAI's API</b> and Evidentum does not use it for analysis. All AI analysis runs on the API keys above. OpenAI's third-party sign-in is a gated program — <a href="https://openai.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">apply via their developer form →</a></div>
+      <!-- OpenAI account (Sign in with ChatGPT) — non-functional; hidden behind a
+           default-collapsed Experimental toggle (P2.B) so it isn't presented as a
+           working sign-in option. The flow only establishes identity; the token is
+           not accepted by OpenAI's API, so no AI analysis uses it. -->
+      <details id="ev-oauth-experimental" style="margin-top:14px">
+        <summary style="cursor:pointer;font-size:10px;color:var(--ev-text-dim);font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Experimental features <span style="font-weight:400;text-transform:none;letter-spacing:0">— OpenAI "Sign in with ChatGPT" (not functional)</span></summary>
+        <div style="font-size:10px;color:#10a37f;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:10px 0 5px">OpenAI Account (Sign in with ChatGPT)</div>
+        <input type="text" id="ev-oauth-clientid" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" oninput="evSaveOauthClientId()" autocomplete="off"
+          style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:6px" />
+        <div id="ev-oauth-status" style="margin-bottom:4px"></div>
+        <div style="font-size:11px;color:var(--ev-text-dim)"><b style="color:#f59e0b">Experimental / not yet functional:</b> this flow only establishes identity (openid/profile/email) — the resulting token is <b>not accepted by OpenAI's API</b> and Evidentum does not use it for analysis. All AI analysis runs on the API keys above. OpenAI's third-party sign-in is a gated program — <a href="https://openai.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">apply via their developer form →</a></div>
+      </details>
     </div>
 
     <!-- LibKey -->
@@ -16554,6 +16560,87 @@ document.addEventListener('DOMContentLoaded', function() {
   loadOpenAIKey();
   updateKeyBanner();
 });
+
+// ══════════════════════════════════════════════
+// MODAL ACCESSIBILITY — shared focus-trap controller (P2.D)
+// Keep keyboard focus inside an open dialog (Tab/Shift+Tab wrap), move focus
+// into it on open, and restore focus to the trigger on close. Applies to every
+// dialog overlay generically so each modal doesn't reimplement it.
+// ══════════════════════════════════════════════
+var MODAL_A11Y_SELECTOR = '#settings-overlay, #proj-modal-overlay, #addtoproj-modal-overlay, #evval-overlay, #ai-disclosure-overlay';
+// Pure + testable: given a modal's focusable elements, the active element, and
+// whether Shift is held, return the element Tab should wrap to — or null to let
+// the browser tab normally within the dialog.
+function modalTrapTarget(focusables, active, shiftKey) {
+  if (!focusables || !focusables.length) return null;
+  var first = focusables[0], last = focusables[focusables.length - 1];
+  var idx = focusables.indexOf(active);
+  if (idx === -1) return first;                    // focus escaped the modal → pull it back
+  if (shiftKey && active === first) return last;   // wrap to the end
+  if (!shiftKey && active === last) return first;  // wrap to the start
+  return null;                                     // normal tabbing, no wrap needed
+}
+(function initModalA11y() {
+  if (typeof document === 'undefined' || !document.addEventListener || !document.querySelectorAll) return;
+  var FOCUS_SEL = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  var lastFocus = null;
+  function visible(el) {
+    if (!el) return false;
+    try { if (el.hidden) return false; var s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden'; }
+    catch (e) { return !!(el.style && el.style.display && el.style.display !== 'none'); }
+  }
+  function topModal() {
+    var open = [];
+    document.querySelectorAll(MODAL_A11Y_SELECTOR).forEach(function (n) { if (visible(n)) open.push(n); });
+    return open.length ? open[open.length - 1] : null;   // last in DOM ≈ visually topmost
+  }
+  function focusablesIn(root) {
+    return Array.prototype.slice.call(root.querySelectorAll(FOCUS_SEL))
+      .filter(function (el) { return el.offsetParent !== null || el === document.activeElement; });
+  }
+  // Trap Tab/Shift+Tab inside the open dialog.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    var modal = topModal(); if (!modal) return;
+    var target = modalTrapTarget(focusablesIn(modal), document.activeElement, e.shiftKey);
+    if (target) { e.preventDefault(); try { target.focus(); } catch (err) {} }
+  }, true);
+  function onOpen(el) {
+    if (el._evModalOpen) return;
+    el._evModalOpen = true;
+    lastFocus = document.activeElement;
+    var f = focusablesIn(el);
+    if (f[0]) setTimeout(function () { try { f[0].focus(); } catch (e) {} }, 0);
+  }
+  function onClose(el) {
+    if (!el._evModalOpen) return;
+    el._evModalOpen = false;
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+    lastFocus = null;
+  }
+  function check(el) {
+    if (!el || !el.matches || !el.matches(MODAL_A11Y_SELECTOR)) return;
+    if (visible(el)) onOpen(el); else onClose(el);
+  }
+  if (typeof MutationObserver === 'undefined') return;
+  var mo = new MutationObserver(function (muts) { muts.forEach(function (m) { check(m.target); }); });
+  function observe(el) { try { mo.observe(el, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] }); } catch (e) {} }
+  document.querySelectorAll(MODAL_A11Y_SELECTOR).forEach(observe);
+  // Dialogs created at runtime (e.g. the first-AI disclosure modal) appear/vanish
+  // as body children rather than via an attribute flip — watch for those too.
+  try {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        Array.prototype.forEach.call(m.addedNodes || [], function (n) {
+          if (n.nodeType === 1 && n.matches && n.matches(MODAL_A11Y_SELECTOR)) { observe(n); check(n); }
+        });
+        Array.prototype.forEach.call(m.removedNodes || [], function (n) {
+          if (n.nodeType === 1 && n._evModalOpen) onClose(n);
+        });
+      });
+    }).observe(document.body, { childList: true });
+  } catch (e) {}
+})();
 
 // ══════════════════════════════════════════════
 // ROB2 VISUALISATION — robvis-style charts
