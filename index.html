@@ -802,7 +802,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
             <li><b>Searching</b> sends your query to each database you tick — PubMed/NCBI, Europe PMC, Cochrane, Crossref, OpenAlex, Semantic Scholar, Scopus/Elsevier, ClinicalTrials.gov — directly to that provider’s API.</li>
             <li><b>AI appraisal</b> sends the paper’s title/abstract (and fetched full text) plus the prompt to whichever AI provider’s key you entered (OpenAI, Anthropic, Google, xAI). It runs only when you start it, and is billed to your key.</li>
             <li><b>Semantic Scholar</b> may retry through a public CORS proxy if the direct call is blocked — then your search terms pass through the proxy operator (see the Semantic Scholar section below). No other database uses a proxy.</li>
-            <li><b>API keys</b> live in this browser’s localStorage; browser extensions or scripts running on this page could read them. Backups exclude keys unless you opt in.</li>
+            <li><b>API keys</b> are saved in this browser (localStorage by default; browser extensions or scripts running on this page could read them). Untick <b>“Remember keys on this device”</b> in the AI keys section to keep them for the current tab only — cleared when you close it. Backups exclude keys unless you opt in.</li>
           </ul>
           AI output is an advisory draft for a human reviewer to verify — never a final eligibility or risk-of-bias judgement.
         </div>
@@ -818,6 +818,11 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <span id="settings-model-label" style="font-size:10px;color:var(--ev-text-dim);margin-left:auto">model: gpt-5.6</span>
       </div>
       <div id="model-catalog-date" style="font-size:10px;color:var(--ev-text-faint);margin:-8px 0 12px"></div>
+      <!-- Remember-on-device toggle (P1.B): default ON = keys persist in this browser. -->
+      <label id="remember-keys-row" for="remember-keys-toggle" style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--ev-text-dim);margin:0 0 14px;cursor:pointer">
+        <input type="checkbox" id="remember-keys-toggle" checked onchange="onRememberKeysToggle(this.checked)" style="accent-color:#3b82f6;margin:1px 0 0;flex:none" />
+        <span>Remember keys on this device. When on, keys stay saved in this browser. Turn off to keep them for this tab only — cleared when you close it.<span id="remember-keys-state" style="font-weight:600"></span></span>
+      </label>
       <!-- OpenAI -->
       <div style="font-size:10px;color:var(--ev-link-2);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">OpenAI</div>
       <input type="password" id="openai-key-input" placeholder="sk-..." oninput="saveOpenAIKey()" onchange="saveOpenAIKey()" autocomplete="off"
@@ -1983,6 +1988,55 @@ function syncThemeButton() {
   btn.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
 }
 document.addEventListener('DOMContentLoaded', syncThemeButton);
+
+// ── Credential storage location (P1.B: persist-with-opt-out) ──────────────────
+// API keys / tokens persist to localStorage by DEFAULT — the single-user
+// workflow is unchanged. A user can turn OFF "Remember on this device" to route
+// credentials to sessionStorage instead: they survive reloads within the tab but
+// are cleared when the tab/browser closes (nothing durable left on disk). The
+// preference flag itself (pla_remember_keys) is not a secret and always lives in
+// localStorage. Reads consult whichever store holds the value; writes go to the
+// active store and clear the other so a credential never lingers in the wrong
+// place. Only credentials (BACKUP_SECRET_KEYS) route through here — plain
+// settings keep using localStorage directly.
+function credRememberEnabled() {
+  try { return localStorage.getItem('pla_remember_keys') !== '0'; } catch (e) { return true; }
+}
+function credWrite(key, val) {
+  if (credRememberEnabled()) {
+    try { localStorage.setItem(key, val); } catch (e) {}
+    try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.removeItem(key); } catch (e) {}
+  } else {
+    try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.setItem(key, val); } catch (e) {}
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+}
+function credRead(key) {
+  try { var v = localStorage.getItem(key); if (v != null && v !== '') return v; } catch (e) {}
+  try {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage) {
+      var s = sessionStorage.getItem(key);
+      if (s != null && s !== '') return s;
+    }
+  } catch (e) {}
+  return '';
+}
+// Flip the remember flag and migrate every stored credential to the now-active
+// store (both directions). Reads each value BEFORE flipping so credWrite lands it
+// in the right place and clears the stale copy.
+function credSetRemember(on) {
+  var keys = (typeof BACKUP_SECRET_KEYS !== 'undefined') ? BACKUP_SECRET_KEYS : [];
+  var vals = {};
+  keys.forEach(function (k) { vals[k] = credRead(k); });
+  try { localStorage.setItem('pla_remember_keys', on ? '1' : '0'); } catch (e) {}
+  keys.forEach(function (k) {
+    if (vals[k]) { credWrite(k, vals[k]); }
+    else {
+      try { localStorage.removeItem(k); } catch (e) {}
+      try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.removeItem(k); } catch (e) {}
+    }
+  });
+}
 
 // ══════════════════════════════════════════════
 // SECURITY HELPERS
@@ -9329,10 +9383,8 @@ var scopusInstToken = '';
 function saveScopusKey() {
   scopusApiKey   = (document.getElementById('scopus-api-key')?.value   || '').trim();
   scopusInstToken = (document.getElementById('scopus-inst-token')?.value || '').trim();
-  try {
-    localStorage.setItem('pla_scopus_apikey',    scopusApiKey);
-    localStorage.setItem('pla_scopus_insttoken', scopusInstToken);
-  } catch(e) {}
+  credWrite('pla_scopus_apikey',    scopusApiKey);
+  credWrite('pla_scopus_insttoken', scopusInstToken);
   var status = document.getElementById('scopus-key-status');
   if (status) {
     if (scopusApiKey) {
@@ -9349,8 +9401,8 @@ function saveScopusKey() {
 
 function loadScopusKey() {
   try {
-    scopusApiKey    = localStorage.getItem('pla_scopus_apikey')    || '';
-    scopusInstToken = localStorage.getItem('pla_scopus_insttoken') || '';
+    scopusApiKey    = credRead('pla_scopus_apikey');
+    scopusInstToken = credRead('pla_scopus_insttoken');
   } catch(e) {}
   if (scopusApiKey) {
     var el = document.getElementById('scopus-api-key');
@@ -9364,10 +9416,10 @@ function loadScopusKey() {
 // NCBI / PubMed API key — optional; raises E-utilities rate limit 3→10 req/sec.
 function saveNcbiKey() {
   ncbiApiKey = (document.getElementById('ncbi-api-key')?.value || '').trim();
-  try { localStorage.setItem('pla_ncbi_apikey', ncbiApiKey); } catch(e) {}
+  credWrite('pla_ncbi_apikey', ncbiApiKey);
 }
 function loadNcbiKey() {
-  try { ncbiApiKey = localStorage.getItem('pla_ncbi_apikey') || ''; } catch(e) {}
+  try { ncbiApiKey = credRead('pla_ncbi_apikey'); } catch(e) {}
   var el = document.getElementById('ncbi-api-key');
   if (el && ncbiApiKey) el.value = ncbiApiKey;
 }
@@ -9387,8 +9439,8 @@ function saveS2Key() {
   s2BiomedOnly = !!(cb && cb.checked);
   var pcb = document.getElementById('s2-proxy-optin');
   s2ProxyOptIn = !!(pcb && pcb.checked);
+  credWrite('pla_s2_apikey', s2ApiKey);
   try {
-    localStorage.setItem('pla_s2_apikey', s2ApiKey);
     localStorage.setItem('pla_s2_biomed', s2BiomedOnly ? '1' : '');
     localStorage.setItem('pla_s2_proxy', s2ProxyOptIn ? '1' : '');
   } catch(e) {}
@@ -9398,7 +9450,7 @@ function saveS2Key() {
 }
 function loadS2Key() {
   try {
-    s2ApiKey = localStorage.getItem('pla_s2_apikey') || '';
+    s2ApiKey = credRead('pla_s2_apikey');
     s2BiomedOnly = localStorage.getItem('pla_s2_biomed') === '1';
     s2ProxyOptIn = localStorage.getItem('pla_s2_proxy') === '1';
   } catch(e) {}
@@ -11078,7 +11130,17 @@ var BACKUP_SECRET_KEYS = ['pla_openai_key', 'pla_anthropic_key', 'pla_gemini_key
 function collectStoredKeys(list) {
   var out = {};
   list.forEach(function(k) {
-    try { var v = localStorage.getItem(k); if (v !== null && v !== '') out[k] = v; } catch (e) {}
+    try {
+      var v = localStorage.getItem(k);
+      // Credentials may live in sessionStorage when "Remember on this device" is
+      // off (P1.B) — fall back so an opt-in backup still captures them. Settings
+      // keys are never session-only, so this is a no-op for them.
+      if ((v === null || v === '') && typeof sessionStorage !== 'undefined' && sessionStorage) {
+        var s = sessionStorage.getItem(k);
+        if (s !== null && s !== '') v = s;
+      }
+      if (v !== null && v !== '') out[k] = v;
+    } catch (e) {}
   });
   return out;
 }
@@ -11164,7 +11226,14 @@ function importFullBackup(input) {
       if (!bag || typeof bag !== 'object') return;
       Object.keys(bag).forEach(function(k) {
         if (/^pla_[a-z0-9_]+$/.test(k) && typeof bag[k] === 'string') {
-          try { localStorage.setItem(k, bag[k]); settingsApplied = true; } catch (e) {}
+          try {
+            // Restore credentials through the storage abstraction so an import
+            // honours the current "Remember on this device" choice (P1.B); plain
+            // settings go straight to localStorage.
+            if (BACKUP_SECRET_KEYS.indexOf(k) !== -1 && typeof credWrite === 'function') credWrite(k, bag[k]);
+            else localStorage.setItem(k, bag[k]);
+            settingsApplied = true;
+          } catch (e) {}
         }
       });
     });
@@ -14789,7 +14858,7 @@ function resolveActiveProvider(saved, oaiKey, antKey, gemKey, grokKey) {
 // keyed provider if the active one isn't usable, then refresh the banner/chip.
 function refreshActiveProviderFromKeys() {
   var oai = '', ant = '', gem = '', grok = '';
-  try { oai = localStorage.getItem('pla_openai_key') || ''; ant = localStorage.getItem('pla_anthropic_key') || ''; gem = localStorage.getItem('pla_gemini_key') || ''; grok = localStorage.getItem('pla_grok_key') || ''; } catch(e) { /* storage disabled */ }
+  try { oai = credRead('pla_openai_key'); ant = credRead('pla_anthropic_key'); gem = credRead('pla_gemini_key'); grok = credRead('pla_grok_key'); } catch(e) { /* storage disabled */ }
   var next = resolveActiveProvider(aiProvider, oai, ant, gem, grok);
   if (next !== aiProvider) { setAiProvider(next); updateKeyFieldHints(); return; }   // setAiProvider refreshes the rest
   activeApiKey = aiProvider === 'anthropic' ? ant : aiProvider === 'gemini' ? gem : aiProvider === 'grok' ? grok : oai;
@@ -15104,7 +15173,7 @@ function saveOpenAIKey() {
   var val = normalizeApiKey(inp && inp.value);
   // Reflect the cleaned key back into the field so the user sees exactly what's stored.
   if (inp && val !== (inp.value || '').trim()) inp.value = val;
-  try { localStorage.setItem('pla_openai_key', val); } catch(e) { /* storage disabled */ }
+  credWrite('pla_openai_key', val);
   refreshActiveProviderFromKeys();
 }
 
@@ -15112,7 +15181,7 @@ function saveAnthropicKey() {
   var inp = document.getElementById('anthropic-key-input');
   var val = normalizeApiKey(inp && inp.value);
   if (inp && val !== (inp.value || '').trim()) inp.value = val;
-  try { localStorage.setItem('pla_anthropic_key', val); } catch(e) { /* storage disabled */ }
+  credWrite('pla_anthropic_key', val);
   refreshActiveProviderFromKeys();
 }
 
@@ -15120,7 +15189,7 @@ function saveGeminiKey() {
   var inp = document.getElementById('gemini-key-input');
   var val = normalizeApiKey(inp && inp.value);
   if (inp && val !== (inp.value || '').trim()) inp.value = val;
-  try { localStorage.setItem('pla_gemini_key', val); } catch(e) { /* storage disabled */ }
+  credWrite('pla_gemini_key', val);
   refreshActiveProviderFromKeys();
 }
 
@@ -15128,8 +15197,33 @@ function saveGrokKey() {
   var inp = document.getElementById('grok-key-input');
   var val = normalizeApiKey(inp && inp.value);
   if (inp && val !== (inp.value || '').trim()) inp.value = val;
-  try { localStorage.setItem('pla_grok_key', val); } catch(e) { /* storage disabled */ }
+  credWrite('pla_grok_key', val);
   refreshActiveProviderFromKeys();
+}
+
+// ── "Remember on this device" toggle (P1.B: persist-with-opt-out) ─────────────
+// Default ON = credentials persist in localStorage (unchanged workflow). Turning
+// it OFF migrates every stored credential to sessionStorage (tab-lifetime only)
+// and clears the localStorage copies; turning it back ON migrates them back.
+function onRememberKeysToggle(on) {
+  credSetRemember(on);
+  updateRememberKeysHint();
+  if (typeof showToast === 'function') {
+    showToast(on
+      ? '🔒 API keys will be remembered on this device.'
+      : '🕶 API keys kept for this browser tab only — cleared when you close it.',
+      'var(--ev-ok-text)');
+  }
+}
+function updateRememberKeysHint() {
+  var on = credRememberEnabled();
+  var cb = document.getElementById('remember-keys-toggle');
+  if (cb) cb.checked = on;
+  var st = document.getElementById('remember-keys-state');
+  if (st) {
+    st.textContent = on ? '' : ' Currently: this tab only.';
+    st.style.color = on ? '' : 'var(--ev-warn-text)';
+  }
 }
 
 // ── Remove all saved credentials (P1.B) ──────────────────────────────────────
@@ -15169,10 +15263,10 @@ function loadOpenAIKey() {
   var oaiStored = '', antStored = '', gemStored = '', grokStored = '';
   try {
     aiProvider = localStorage.getItem('pla_ai_provider') || 'openai';
-    oaiStored = localStorage.getItem('pla_openai_key') || '';
-    antStored = localStorage.getItem('pla_anthropic_key') || '';
-    gemStored = localStorage.getItem('pla_gemini_key') || '';
-    grokStored = localStorage.getItem('pla_grok_key') || '';
+    oaiStored = credRead('pla_openai_key');
+    antStored = credRead('pla_anthropic_key');
+    gemStored = credRead('pla_gemini_key');
+    grokStored = credRead('pla_grok_key');
   } catch(e) { aiProvider = aiProvider || 'openai'; /* storage disabled */ }
   // Adopt a keyed provider on startup if the saved one isn't usable, so a valid
   // stored key isn't shown as "Not set" after reload just because of the default.
@@ -15189,6 +15283,7 @@ function loadOpenAIKey() {
   if (grokInp && grokStored) grokInp.value = grokStored;
   updateKeyBanner();
   updateKeyFieldHints();
+  updateRememberKeysHint();
   // The restored provider may differ from the default ('openai'); refresh the header
   // model chip so it shows the active provider's model, not the startup default.
   if (typeof updateModelLabel === 'function') updateModelLabel();
