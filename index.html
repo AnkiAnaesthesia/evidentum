@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-sT4z86YEYWZ5KssGxDkgJMzo2yotCOtXYKFlWDnVV64=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-oD9txWrp3LmysNgtfNOxh72qczdVo13EvuKugNEpqYM=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -4514,7 +4514,7 @@ function showToast(msg, colour, issueMeta) {
     'position:fixed', 'bottom:24px', 'right:24px',
     'background:var(--ev-surface)', 'border:1px solid ' + colour,
     'color:var(--ev-text-body)', 'font-size:12px', 'font-family:Inter,sans-serif',
-    'padding:10px 16px', 'border-radius:8px', 'z-index:9999',
+    'padding:10px 16px', 'border-radius:10px', 'z-index:9999',
     'box-shadow:0 4px 20px rgba(0,0,0,0.5)', 'max-width:320px',
     'transition:opacity 0.3s ease-out', 'opacity:1'
   ].join(';');
@@ -5485,10 +5485,10 @@ function renderBuildBlocks() {
           '<input type="checkbox"' + (notSearched ? '' : ' checked') + ' ' + evAttr('change', 'toggleBuildBlockSearch', [bi], ['chk']) + ' style="cursor:pointer;margin:0" />' +
           (notSearched ? 'not searched' : 'searched') +
         '</label>' +
-        '<select ' + evAttr('change', 'setBuildBlockRole', [bi], ['val']) + ' title="PICO role — field-targets the ClinicalTrials.gov expert search (condition→ConditionSearch, intervention→InterventionSearch, outcome→OutcomeSearch). Comparator is documented but not searched by default." style="font-size:10px;padding:3px 6px;border-radius:5px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer">' +
+        '<select ' + evAttr('change', 'setBuildBlockRole', [bi], ['val']) + ' title="PICO role — field-targets the ClinicalTrials.gov expert search (condition→ConditionSearch, intervention→InterventionSearch, outcome→OutcomeSearch). Comparator is documented but not searched by default." style="font-size:10px;padding:3px 6px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer">' +
           PICO_ROLES.map(function(rk){ return '<option value="' + rk + '"' + ((b.role || 'other') === rk ? ' selected' : '') + '>' + PICO_ROLE_LABEL[rk] + '</option>'; }).join('') +
         '</select>' +
-        '<button ' + evAttr('click', 'removeBuildBlock', [bi]) + ' style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--ev-danger-bg);background:var(--ev-danger-bg);color:var(--ev-danger-text);cursor:pointer">remove block</button>' +
+        '<button ' + evAttr('click', 'removeBuildBlock', [bi]) + ' style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--ev-danger-bg);background:var(--ev-danger-bg);color:var(--ev-danger-text);cursor:pointer">remove block</button>' +
       '</div>' +
       '<div>' + terms + '</div>' +
       '<div style="display:flex;gap:6px;margin-top:7px">' +
@@ -6404,7 +6404,7 @@ function wbDesignBadge(gid) {
     else parts.push('study-design terms auto-stripped (every record is already a trial)');
   } else return '';
   if (!parts.length) return '';
-  return '<div style="font-size:10px;color:var(--ev-ok-text);background:var(--ev-ok-bg);border:1px solid var(--ev-ok-bg);border-radius:5px;padding:4px 9px;margin-bottom:7px">' +
+  return '<div style="font-size:10px;color:var(--ev-ok-text);background:var(--ev-ok-bg);border:1px solid var(--ev-ok-bg);border-radius:6px;padding:4px 9px;margin-bottom:7px">' +
     '⚖️ Study design (' + esc(f.label) + ') applied at search — ' + esc(parts.join(' · ')) + '</div>';
 }
 
@@ -6432,7 +6432,7 @@ function renderWbPanels() {
       if (slice && addAllTarget(slice.total, slice.count, ADD_ALL_CAP)) {
         addAll = addAllInProgress[id]
           ? '<span class="spinner" title="fetching all matches…" style="margin-left:1px"></span>'
-          : '<button ' + evAttr('click', 'addAllForDb', [id]) + ' title="Pull all ' + slice.total.toLocaleString() + ' matched records (up to ' + ADD_ALL_CAP.toLocaleString() + ') into the pool" style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--ev-ok-bg);background:var(--ev-ok-bg);color:var(--ev-ok-text);cursor:pointer;white-space:nowrap;margin-left:1px">+ all ' + Math.min(slice.total, ADD_ALL_CAP).toLocaleString() + '</button>';
+          : '<button ' + evAttr('click', 'addAllForDb', [id]) + ' title="Pull all ' + slice.total.toLocaleString() + ' matched records (up to ' + ADD_ALL_CAP.toLocaleString() + ') into the pool" style="font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid var(--ev-ok-bg);background:var(--ev-ok-bg);color:var(--ev-ok-text);cursor:pointer;white-space:nowrap;margin-left:1px">+ all ' + Math.min(slice.total, ADD_ALL_CAP).toLocaleString() + '</button>';
       }
       return '<span style="display:inline-flex;align-items:center;gap:3px">' +
         '<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ev-text-2);border:1px solid var(--ev-border);border-radius:6px;padding:4px 9px;cursor:' + (g.members.length>1?'pointer':'default') + '">' +
@@ -6454,13 +6454,13 @@ function renderWbPanels() {
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         '<input type="text" id="wbq-' + gid + '" placeholder="enter ' + esc(g.syntax) + ' query"' +
           ' value="' + esc(wbQueries[gid] || '') + '"' +
-          ' style="flex:1;min-width:200px;box-sizing:border-box;padding:11px 13px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:\'IBM Plex Mono\',monospace"' +
+          ' style="flex:1;min-width:200px;box-sizing:border-box;padding:11px 13px;font-size:13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:\'IBM Plex Mono\',monospace"' +
           ' ' + evAttr('input', 'evSetWbQuery', [gid], ['val']) +
           ' ' + evAttr('keydown', 'evEnterRunWbGroup', [gid], ['event']) + ' />' +
         (gid !== 'pubmed'
-          ? '<button ' + evAttr('click', 'prefillWb', [gid]) + ' title="Re-derive this database from your concept blocks \u2014 the single deterministic source of truth (same translation that gets frozen &amp; reported)" style="font-size:11px;padding:9px 13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;white-space:nowrap">\u21c4 re-derive</button>'
+          ? '<button ' + evAttr('click', 'prefillWb', [gid]) + ' title="Re-derive this database from your concept blocks \u2014 the single deterministic source of truth (same translation that gets frozen &amp; reported)" style="font-size:11px;padding:9px 13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;white-space:nowrap">\u21c4 re-derive</button>'
           : '') +
-        '<button ' + evAttr('click', 'runWbGroup', [gid]) + ' id="wbrun-' + gid + '" style="font-size:12px;padding:9px 16px;border-radius:7px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">Run \u2192 add to pool</button>' +
+        '<button ' + evAttr('click', 'runWbGroup', [gid]) + ' id="wbrun-' + gid + '" style="font-size:12px;padding:9px 16px;border-radius:6px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">Run \u2192 add to pool</button>' +
       '</div>' + keyWarn +
       '<div id="wbstatus-' + gid + '" style="margin-top:8px;font-size:11px;min-height:6px"></div>' +
       '<div id="wbnote-' + gid + '" style="margin-top:6px;font-size:10px;line-height:1.6"></div>';
@@ -6715,7 +6715,7 @@ function logWbSearch(id, query, count, replacing) {
 var PROTOCOL_FORMAT = 'evidentum-search-protocol/v1';
 var PROTOCOL_GROUPS = { pubmed:['pubmed'], epmc:['europepmc','cochrane'], scopus:['scopus'], keyword:['semantic'], clinicaltrials:['clinicaltrials'], openalex:['openalex'] };
 var PROTOCOL_GROUP_LABEL = { pubmed:'PubMed', epmc:'Europe PMC + Cochrane', scopus:'Scopus', keyword:'Semantic Scholar', clinicaltrials:'ClinicalTrials.gov', openalex:'OpenAlex' };
-var PROTO_BTN = 'font-size:12px;padding:8px 13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-2);cursor:pointer';
+var PROTO_BTN = 'font-size:12px;padding:8px 13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-2);cursor:pointer';
 
 // Pure: assemble the PubMed string from a stored skeleton. Mirrors buildPubmedQuery()
 // but parameterised so it runs on a saved protocol, not just the live globals — this
@@ -7128,7 +7128,7 @@ function renderProtocolPanel() {
   if (!sp) {
     html += '<div style="font-size:13px;color:var(--ev-text-muted);line-height:1.6;margin-bottom:12px">Freeze the concept-block strategy above into an immutable, versioned protocol. The skeleton and the per-database query strings are stored, so the strategy can be re-assembled and verified byte-for-byte later, and every run is snapshotted for a reproducibility diff.</div>';
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-    html += '<button data-evclick="h146" style="font-size:13px;padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,var(--ev-ai-text));color:#fff;cursor:pointer;font-weight:650">\ud83d\udd12 Freeze current search as protocol</button>';
+    html += '<button data-evclick="h146" style="font-size:13px;padding:10px 16px;border-radius:6px;border:none;background:linear-gradient(135deg,#7c3aed,var(--ev-ai-text));color:#fff;cursor:pointer;font-weight:650">\ud83d\udd12 Freeze current search as protocol</button>';
     html += '<label style="' + PROTO_BTN + '">\ud83d\udce5 Import protocol<input type="file" accept=".json,application/json" data-evchange="h147" style="display:none"></label>';
     html += '</div>';
   } else {
@@ -7153,8 +7153,8 @@ function renderProtocolPanel() {
 
     html += '<div id="protocol-status" style="margin:12px 0 6px;font-size:12px;color:var(--ev-text-muted);min-height:6px"></div>';
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-    html += '<button data-evclick="h148" style="font-size:12px;padding:8px 13px;border-radius:7px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:650">\ud83d\udcf8 Run &amp; snapshot</button>';
-    html += '<button data-evclick="h149" style="font-size:12px;padding:8px 13px;border-radius:7px;border:1px solid #a78bfa55;background:#2e1f4f33;color:var(--ev-ai-text);cursor:pointer;font-weight:650">\ud83d\udd01 Re-test reproducibility</button>';
+    html += '<button data-evclick="h148" style="font-size:12px;padding:8px 13px;border-radius:6px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:650">\ud83d\udcf8 Run &amp; snapshot</button>';
+    html += '<button data-evclick="h149" style="font-size:12px;padding:8px 13px;border-radius:6px;border:1px solid #a78bfa55;background:#2e1f4f33;color:var(--ev-ai-text);cursor:pointer;font-weight:650">\ud83d\udd01 Re-test reproducibility</button>';
     html += '<button data-evclick="h146" style="' + PROTO_BTN + '">\ud83d\udd12 Re-freeze (new version)</button>';
     html += '<button data-evclick="h150" style="' + PROTO_BTN + '">\u2b07 Export JSON</button>';
     html += '<label style="' + PROTO_BTN + '">\ud83d\udce5 Import<input type="file" accept=".json,application/json" data-evchange="h147" style="display:none"></label>';
@@ -7167,7 +7167,7 @@ function renderProtocolPanel() {
 function renderRetestReport(strategyOk, baseline, diff, groupProvenance) {
   var el = document.getElementById('retest-report');
   if (!el) return;
-  var html = '<div style="background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:8px;padding:12px 14px">';
+  var html = '<div style="background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:10px;padding:12px 14px">';
   html += '<div style="font-weight:700;color:var(--ev-text);margin-bottom:8px">\ud83d\udd01 Reproducibility report</div>';
   html += '<div style="font-size:13px;margin-bottom:10px;line-height:1.5">Strategy <span style="color:var(--ev-text-dim)">(offline, deterministic)</span>: ' +
     (strategyOk
@@ -7364,8 +7364,8 @@ function renderSetHistory() {
   }
   var rows = nums.map(function(n){
     var s = pubmedSets[n];
-    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--ev-border-soft);border-radius:7px;margin-bottom:5px;background:var(--ev-surface)">' +
-      '<button ' + evAttr('click', 'insertSetRef', [n]) + ' title="Insert #' + n + ' into the combination box" style="flex-shrink:0;font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:700;color:var(--ev-link);background:var(--ev-surface-2);border:1px solid var(--ev-info-bg);border-radius:5px;padding:3px 8px;cursor:pointer">#' + n + '</button>' +
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--ev-border-soft);border-radius:6px;margin-bottom:5px;background:var(--ev-surface)">' +
+      '<button ' + evAttr('click', 'insertSetRef', [n]) + ' title="Insert #' + n + ' into the combination box" style="flex-shrink:0;font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:700;color:var(--ev-link);background:var(--ev-surface-2);border:1px solid var(--ev-info-bg);border-radius:6px;padding:3px 8px;cursor:pointer">#' + n + '</button>' +
       '<span style="flex:1;min-width:0;font-size:11px;color:var(--ev-text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(s.query) + '">' + esc(s.query) + '</span>' +
       '<span style="flex-shrink:0;font-size:11px;font-weight:600;color:var(--ev-ok-text);font-variant-numeric:tabular-nums">' + s.count.toLocaleString() + '</span>' +
       '<button ' + evAttr('click', 'removePubmedSet', [n]) + ' title="Remove set" aria-label="Remove set" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;line-height:1">&#10005;</button>' +
@@ -7439,7 +7439,7 @@ function renderProvenancePanel(prov) {
     // Fall back to the sum of this stream's per-source counts if the caller didn't
     // supply a stream total — never render "undefined" in the Identified line.
     if (rawTotal == null) rawTotal = srcList.reduce(function(s, nm){ return s + ((prov.perSource && prov.perSource[nm]) || 0); }, 0);
-    return '<div style="flex:1;min-width:180px;background:var(--ev-surface);border:1px solid ' + colour + '33;border-radius:8px;padding:11px 13px">' +
+    return '<div style="flex:1;min-width:180px;background:var(--ev-surface);border:1px solid ' + colour + '33;border-radius:10px;padding:11px 13px">' +
       '<div style="font-size:11px;font-weight:600;color:' + colour + ';margin-bottom:2px">' + title + '</div>' +
       '<div style="font-size:10px;color:var(--ev-text-dim);font-family:\'IBM Plex Mono\',monospace;margin-bottom:7px">' + sub + '</div>' +
       rows +
@@ -7469,7 +7469,7 @@ function renderProvenancePanel(prov) {
         '<div style="margin-top:6px">' +
         Object.keys(prov.perSourceQueries).filter(function(k){ return prov.perSourceQueries[k]; }).map(function(k) {
           return '<div style="margin-bottom:5px"><span style="font-size:10px;color:var(--ev-text-muted)">' + esc(k) + '</span>' +
-            '<div style="font-size:10px;color:var(--ev-text-2);font-family:\'IBM Plex Mono\',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:5px;padding:5px 8px;margin-top:2px;word-break:break-all">' + esc(prov.perSourceQueries[k]) + '</div></div>';
+            '<div style="font-size:10px;color:var(--ev-text-2);font-family:\'IBM Plex Mono\',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:5px 8px;margin-top:2px;word-break:break-all">' + esc(prov.perSourceQueries[k]) + '</div></div>';
         }).join('') +
         '</div></details>' : '') +
     '</div>';
@@ -8586,7 +8586,7 @@ function renderDupReviewBar() {
 
   bar.style.display = 'block';
   bar.innerHTML =
-    '<div style="background:var(--ev-surface);border:1px solid #f59e0b55;border-radius:8px;padding:10px 14px">' +
+    '<div style="background:var(--ev-surface);border:1px solid #f59e0b55;border-radius:10px;padding:10px 14px">' +
       '<div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px">&#9888;&#65039; ' +
         pending.length + ' possible duplicate pair' + (pending.length > 1 ? 's' : '') +
         ' need' + (pending.length > 1 ? '' : 's') + ' review &mdash; not auto-merged because the records disagree</div>' +
@@ -9125,7 +9125,7 @@ function renderDrawerCriteriaTable() {
       '<td><input class="crit-label-input" aria-label="Label — ' + cn + '" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelSync', [i], ['val']) + ' /></td>' +
       '<td><input class="crit-kw-input" aria-label="Keywords — ' + cn + '" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywordsSync', [i], ['val']) + ' /></td>' +
       '<td><select class="crit-type-select" aria-label="Match type — ' + cn + '" ' + evAttr('change', 'evSetCritType', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
-      '<td style="white-space:nowrap"><button title="AI: suggest keyword synonyms" ' + evAttr('click', 'suggestSynonyms', [i]) + ' style="padding:2px 8px;font-size:12px;border-radius:5px;border:1px solid #7c3aed66;background:var(--ev-surface-ai);color:var(--ev-ai-text);cursor:pointer">&#10024;</button> ' +
+      '<td style="white-space:nowrap"><button title="AI: suggest keyword synonyms" ' + evAttr('click', 'suggestSynonyms', [i]) + ' style="padding:2px 8px;font-size:12px;border-radius:6px;border:1px solid #7c3aed66;background:var(--ev-surface-ai);color:var(--ev-ai-text);cursor:pointer">&#10024;</button> ' +
         '<button class="btn btn-red" style="padding:2px 9px;font-size:11px" aria-label="Remove criterion" ' + evAttr('click', 'drawerRemoveCriterion', [i]) + '>&#10005;</button></td>' +
     '</tr>';
   }).join('');
@@ -9247,7 +9247,7 @@ function renderCriteriaSuggestions() {
       (s.items.length ? '<button data-evclick="h155" style="font-size:11px;padding:3px 11px;border-radius:14px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600">+ add all</button>' : '') +
     '</div>';
   }
-  el.innerHTML = '<div style="margin-top:10px;padding:10px 12px;background:var(--ev-surface-ai);border:1px solid var(--ev-surface-ai);border-radius:8px">' + head + body + '</div>';
+  el.innerHTML = '<div style="margin-top:10px;padding:10px 12px;background:var(--ev-surface-ai);border:1px solid var(--ev-surface-ai);border-radius:10px">' + head + body + '</div>';
 }
 
 function acceptSuggestion(kw) {
@@ -10754,7 +10754,7 @@ function renderRefResults() {
     } else {
       locateHtml = '<span style="font-size:10px;color:var(--ev-warn-text)">&#9888; ' + (rs === 'error' ? 'Lookup failed (network)' : 'Couldn’t locate this paper online — citation may be garbled or not indexed') + '</span>' +
         ' <a href="' + esc(pubmedSearch) + '" target="_blank" rel="noopener" style="font-size:10px;color:var(--ev-link)">search PubMed &#8599;</a>' +
-        ' <button ' + evAttr('click', 'retryRefResolve', [ri], ['self']) + ' style="font-size:10px;padding:1px 7px;border-radius:5px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer">&#8635; retry</button>';
+        ' <button ' + evAttr('click', 'retryRefResolve', [ri], ['self']) + ' style="font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer">&#8635; retry</button>';
     }
 
     // AI appraisal of the actual paper (not the citation guess): available once
@@ -12118,7 +12118,7 @@ function renderProjDetail() {
   if (nudgeEl) {
     var nudge = projSearchAgeNudge(projObj);
     if (nudge) {
-      nudgeEl.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;' +
+      nudgeEl.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:8px 12px;border-radius:10px;font-size:11px;line-height:1.5;' +
         'color:' + nudge.colour + ';background:' + nudge.bg + ';border:1px solid ' + nudge.border;
       nudgeEl.innerHTML = '<span>' + (nudge.level === 'overdue' ? '&#9888;&#65039;' : '&#9203;') + ' ' + esc(nudge.text) + '</span>' +
         '<button data-evclick="h158" style="margin-left:auto;font-size:11px;padding:3px 11px;border-radius:6px;border:1px solid ' + nudge.border + ';background:transparent;color:' + nudge.colour + ';cursor:pointer;font-weight:600;white-space:nowrap">&#8635; Update search</button>';
@@ -12197,7 +12197,7 @@ function renderProjDetail() {
       links += '<a href="' + esc(safeUrl(ftLink)) + '" target="_blank" rel="noopener" style="font-size:11px;color:var(--ev-ok-text);margin-right:10px">&#128196; Free PDF' + (p.fullTextSource ? ' <span style="opacity:0.6">(' + esc(p.fullTextSource) + ')</span>' : '') + ' &#8599;</a>';
     } else if (p.doi && !p.nctId) {
       // Not captured at add time (resolution is async) — let the user fetch it now.
-      links += '<button ' + evAttr('click', 'findProjPaperPdf', [safeId(currentProjectId), safeId(p.pmid)], ['self']) + ' style="font-size:11px;padding:2px 9px;border-radius:5px;border:1px solid #16a34a55;background:var(--ev-surface);color:var(--ev-ok-text);cursor:pointer;margin-right:10px">&#8635; Find free PDF</button>';
+      links += '<button ' + evAttr('click', 'findProjPaperPdf', [safeId(currentProjectId), safeId(p.pmid)], ['self']) + ' style="font-size:11px;padding:2px 9px;border-radius:6px;border:1px solid #16a34a55;background:var(--ev-surface);color:var(--ev-ok-text);cursor:pointer;margin-right:10px">&#8635; Find free PDF</button>';
     }
     var lk = (typeof buildLibkeyLink === 'function') ? buildLibkeyLink(p) : '';
     if (lk) links += lk;
@@ -12333,7 +12333,7 @@ function renderProjDetail() {
     function decBtn(val, label, color) {
       var on = dec === val;
       return '<button ' + evAttr('click', 'setProjPaperDecision', [safeId(currentProjectId), safeId(p.pmid), val]) + ' ' +
-        'title="Toggle ' + label + '" style="font-size:10px;padding:3px 10px;border-radius:5px;cursor:pointer;font-family:inherit;' +
+        'title="Toggle ' + label + '" style="font-size:10px;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit;' +
         (on ? 'background:' + color + ';color:var(--ev-bg);border:1px solid ' + color + ';font-weight:700'
             : 'background:transparent;color:' + color + ';border:1px solid ' + color + '55') + '">' + label + '</button>';
     }
@@ -12350,7 +12350,7 @@ function renderProjDetail() {
         }).join('');
       exclusionSelect =
         '<select ' + evAttr('change', 'setProjPaperExclusionReason', [currentProjectId, p.pmid], ['val']) + ' ' +
-          'style="margin-top:5px;width:100%;box-sizing:border-box;background:var(--ev-bg);border:1px solid #ef444444;border-radius:5px;color:var(--ev-danger-text);font-family:inherit;font-size:10px;padding:5px 8px">' +
+          'style="margin-top:5px;width:100%;box-sizing:border-box;background:var(--ev-bg);border:1px solid #ef444444;border-radius:6px;color:var(--ev-danger-text);font-family:inherit;font-size:10px;padding:5px 8px">' +
           exOpts + '</select>';
     }
     // Final lens in dual mode: show both votes side by side + a conflict flag,
@@ -12379,7 +12379,7 @@ function renderProjDetail() {
       exclusionSelect +
       '<input type="text" placeholder="Reason for the decision (recorded for the screening audit trail)" value="' + esc(decRsn) + '" ' +
         evAttr('change', 'setProjPaperReason', [currentProjectId, p.pmid], ['val']) + ' ' +
-        'style="margin-top:5px;width:100%;box-sizing:border-box;background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:5px;color:var(--ev-text-body);font-family:inherit;font-size:10px;padding:5px 8px" />';
+        'style="margin-top:5px;width:100%;box-sizing:border-box;background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body);font-family:inherit;font-size:10px;padding:5px 8px" />';
 
     return '<div class="proj-paper-card' + (p.retracted ? ' retracted-card' : '') + '" id="proj-card-' + esc(p.pmid) + '" data-pmid="' + esc(p.pmid) + '">' +
       (p.retracted ? retractionBannerHtml(p) : '') +
@@ -13202,12 +13202,12 @@ function renderGradeSection() {
     var certBadge = '<span style="font-size:11px;font-weight:700;color:' + cert.info.color + '" title="' +
       (cert.overridden ? 'Manually set' : 'Auto-derived from design & domain ratings') + '">' + cert.info.symbol + ' ' + cert.info.label + '</span>';
 
-    return '<div style="border:1px solid var(--ev-border);border-radius:8px;padding:11px;margin-bottom:8px;background:var(--ev-bg)">' +
+    return '<div style="border:1px solid var(--ev-border);border-radius:10px;padding:11px;margin-bottom:8px;background:var(--ev-bg)">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">' +
         '<input type="text" value="' + esc(o.name || '') + '" placeholder="Outcome (e.g. All-cause mortality at 30 days)" ' +
           evAttr('change', 'updateGradeField', [oid, 'name'], ['val']) + ' ' +
-          'style="flex:1;background:var(--ev-surface);border:1px solid var(--ev-border);border-radius:5px;color:var(--ev-text-body);font-family:inherit;font-size:11px;padding:5px 8px" />' +
-        '<button ' + evAttr('click', 'removeGradeOutcome', [oid]) + ' title="Remove outcome" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--ev-danger-bg);background:var(--ev-danger-bg);color:var(--ev-danger-text);cursor:pointer">✕</button>' +
+          'style="flex:1;background:var(--ev-surface);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body);font-family:inherit;font-size:11px;padding:5px 8px" />' +
+        '<button ' + evAttr('click', 'removeGradeOutcome', [oid]) + ' title="Remove outcome" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--ev-danger-bg);background:var(--ev-danger-bg);color:var(--ev-danger-text);cursor:pointer">✕</button>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:7px">' +
         '<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:10px;color:var(--ev-text-dim)">Design</span>' +
@@ -13223,7 +13223,7 @@ function renderGradeSection() {
         '<span style="font-size:10px;color:var(--ev-text-dim);text-transform:uppercase;letter-spacing:0.06em">Certainty</span>' + certBadge +
         sel(o.certaintyOverride || '', [['','(auto)'],['high','High'],['moderate','Moderate'],['low','Low'],['very_low','Very low']], 'updateGradeField', [oid, 'certaintyOverride']) +
         '<input type="text" value="' + esc(o.finding || '') + '" placeholder="Plain-language summary of finding" ' + evAttr('change', 'updateGradeField', [oid, 'finding'], ['val']) + ' ' +
-          'style="flex:1;min-width:160px;background:var(--ev-surface);border:1px solid var(--ev-border);border-radius:5px;color:var(--ev-text-body);font-family:inherit;font-size:10px;padding:5px 8px" />' +
+          'style="flex:1;min-width:160px;background:var(--ev-surface);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body);font-family:inherit;font-size:10px;padding:5px 8px" />' +
       '</div>' +
     '</div>';
   }).join('');
@@ -13424,7 +13424,7 @@ function renderProjExtractionSection(p) {
   var aiSet = p.extractionAi || [];
   var rows = fields.map(function(f) {
     var aiFlag = aiSet.indexOf(f.id) !== -1
-      ? '<span title="AI-suggested from the appraisal — review and correct" style="font-size:10px;font-weight:700;letter-spacing:0.03em;color:var(--ev-ai-text);border:1px solid #7c3aed55;border-radius:8px;padding:0 5px">&#129302; VERIFY</span>'
+      ? '<span title="AI-suggested from the appraisal — review and correct" style="font-size:10px;font-weight:700;letter-spacing:0.03em;color:var(--ev-ai-text);border:1px solid #7c3aed55;border-radius:10px;padding:0 5px">&#129302; VERIFY</span>'
       : '';
     return '<div style="margin-bottom:7px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' +
@@ -13439,7 +13439,7 @@ function renderProjExtractionSection(p) {
   return '<div class="proj-cl-section">' +
     '<div class="proj-cl-section-title" style="display:flex;align-items:center;gap:8px">Data extraction' +
       '<button data-evclick="h161" title="Add an extraction column to this project" ' +
-        'style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid #3b82f655;background:#0a1020;color:var(--ev-link);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">&#43; Field</button>' +
+        'style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #3b82f655;background:#0a1020;color:var(--ev-link);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">&#43; Field</button>' +
     '</div>' +
     rows +
   '</div>';
@@ -13677,14 +13677,14 @@ function renderDualBar() {
     bar.innerHTML =
       '<span style="font-size:11px;color:#c084fc;font-weight:700">&#8646; Reviewer B packet</span>' +
       '<span style="font-size:10px;color:var(--ev-text-dim)">screen each record, then send your votes back to the host reviewer</span>' +
-      '<button data-evclick="h162" title="Download your Reviewer B votes as a file to send back to the host reviewer" style="font-size:11px;padding:3px 12px;border-radius:12px;cursor:pointer;font-family:inherit;background:#c084fc;color:var(--ev-bg);border:1px solid #c084fc;font-weight:700;margin-left:auto">&#8687; Export votes for host</button>';
+      '<button data-evclick="h162" title="Download your Reviewer B votes as a file to send back to the host reviewer" style="font-size:11px;padding:3px 12px;border-radius:10px;cursor:pointer;font-family:inherit;background:#c084fc;color:var(--ev-bg);border:1px solid #c084fc;font-weight:700;margin-left:auto">&#8687; Export votes for host</button>';
     return;
   }
   var dual = !!proj.dualReviewer;
   var lens = dualLens(proj);
   function chip(val, label, color) {
     var on = lens === val;
-    return '<button ' + evAttr('click', 'setActiveReviewer', [val]) + ' style="font-size:11px;padding:3px 12px;border-radius:12px;cursor:pointer;font-family:inherit;' +
+    return '<button ' + evAttr('click', 'setActiveReviewer', [val]) + ' style="font-size:11px;padding:3px 12px;border-radius:10px;cursor:pointer;font-family:inherit;' +
       (on ? 'background:' + color + ';color:var(--ev-bg);border:1px solid ' + color + ';font-weight:700'
           : 'background:transparent;color:' + color + ';border:1px solid ' + color + '55') + '">' + label + '</button>';
   }
@@ -13701,8 +13701,8 @@ function renderDualBar() {
     if (kap) html += '<span style="font-size:11px;color:var(--ev-text-muted)" title="Cohen&#39;s kappa — inter-rater agreement over the ' + kap.n + ' records both reviewers have decided (Landis &amp; Koch benchmark). Not estimable when every shared decision falls in one category (no variance to correct for chance).">&kappa; ' + (kap.kappa === null ? 'n/a' : kap.kappa.toFixed(2)) + ' &middot; ' + kappaLabel(kap.kappa) + ' (' + kap.agreePct + '% raw, n=' + kap.n + ')</span>';
     html += '<span style="display:flex;gap:6px;align-items:center;margin-left:auto">' +
       (lens !== 'final' ? '<span style="font-size:10px;color:var(--ev-text-dim)">blinded &mdash; the other reviewer&#39;s votes are hidden in this lens</span>' : '') +
-      '<button data-evclick="h164" title="Export a blinded copy of this project for Reviewer B to screen on their own computer — your votes and final decisions are stripped from the file" style="font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;background:transparent;color:var(--ev-text-muted);border:1px solid #47556955">&#8687; Packet for B</button>' +
-      '<label title="Merge the votes file Reviewer B sent back into this project" style="font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;background:transparent;color:var(--ev-text-muted);border:1px solid #47556955">&#8689; Import B votes<input type="file" accept="application/json,.json" data-evchange="h165" style="display:none"></label>' +
+      '<button data-evclick="h164" title="Export a blinded copy of this project for Reviewer B to screen on their own computer — your votes and final decisions are stripped from the file" style="font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;font-family:inherit;background:transparent;color:var(--ev-text-muted);border:1px solid #47556955">&#8687; Packet for B</button>' +
+      '<label title="Merge the votes file Reviewer B sent back into this project" style="font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;font-family:inherit;background:transparent;color:var(--ev-text-muted);border:1px solid #47556955">&#8689; Import B votes<input type="file" accept="application/json,.json" data-evchange="h165" style="display:none"></label>' +
     '</span>';
   }
   bar.innerHTML = html;
@@ -14117,8 +14117,8 @@ function updateProjScreenProgress() {
         : '';
       bar.style.cssText = 'display:flex;align-items:center;gap:10px;margin:8px 0 4px';
       bar.innerHTML =
-        '<div style="flex:1;height:6px;background:var(--ev-border);border-radius:3px;overflow:hidden;max-width:340px">' +
-          '<div style="height:100%;width:' + bd.percent + '%;background:' + fillColour + ';border-radius:3px;transition:width .3s"></div>' +
+        '<div style="flex:1;height:6px;background:var(--ev-border);border-radius:4px;overflow:hidden;max-width:340px">' +
+          '<div style="height:100%;width:' + bd.percent + '%;background:' + fillColour + ';border-radius:4px;transition:width .3s"></div>' +
         '</div>' +
         '<span style="font-size:11px;color:var(--ev-text-dim);white-space:nowrap">' + bd.screened + '/' + bd.total + ' screened (' + bd.percent + '%)' + pace + '</span>';
     }
@@ -15207,7 +15207,7 @@ function renderLicences() {
     var isNC = /NC|NonCommercial|non-commercial/i.test(l.licence);
     var badge = '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;border:1px solid;border-radius:10px;padding:1px 7px;' + (isNC ? ncStyle : openStyle) + '">' + esc(l.licence) + '</span>';
     var link = l.url ? ' <a href="' + esc(l.url) + '" target="_blank" rel="noopener" style="color:var(--ev-text-dim);font-size:10px">source &#8599;</a>' : '';
-    return '<div style="background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:8px;padding:9px 11px">'
+    return '<div style="background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:10px;padding:9px 11px">'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
       + '<span style="font-size:12px;font-weight:700;color:var(--ev-text-body)">' + esc(l.name) + '</span>'
       + '<span style="font-size:10px;color:var(--ev-text-dim)">' + esc(l.kind) + '</span>'
@@ -15432,7 +15432,7 @@ function showAiDisclosureModal(onDecision) {
   ov.setAttribute('aria-label', 'AI analysis — data disclosure');
   ov.style.cssText = 'position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML =
-    '<div style="max-width:520px;width:100%;background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:12px;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,0.4)">' +
+    '<div style="max-width:520px;width:100%;background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:10px;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,0.4)">' +
       '<div style="font-size:15px;font-weight:700;color:var(--ev-text-body);margin-bottom:10px">&#129302; Before your first AI appraisal</div>' +
       '<div style="font-size:12px;line-height:1.6;color:var(--ev-text-2)">' +
         'Running an appraisal sends this content <b>out of your browser</b> to <b>' + esc(prov) + '</b>’s API over the network:' +
@@ -17098,7 +17098,7 @@ function showRob2Viz() {
   modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 
   var box = document.createElement('div');
-  box.style.cssText = 'background:#0d1220;border:1px solid #1e2d4a;border-radius:12px;max-width:960px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;position:relative;box-sizing:border-box';
+  box.style.cssText = 'background:#0d1220;border:1px solid #1e2d4a;border-radius:10px;max-width:960px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;position:relative;box-sizing:border-box';
 
   box.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
@@ -17120,7 +17120,7 @@ function showRob2Viz() {
         '</span>' +
       '</div>' +
       '<div id="rob2-legend" style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap"></div>' +
-      '<div id="rob2-canvas-wrap" style="overflow-x:auto;background:#090d18;border-radius:8px;padding:12px">' +
+      '<div id="rob2-canvas-wrap" style="overflow-x:auto;background:#090d18;border-radius:10px;padding:12px">' +
         '<canvas id="rob2-canvas" style="display:block"></canvas>' +
       '</div>' +
       '<div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">' +
@@ -17165,7 +17165,7 @@ function updateRob2Legend() {
     ['unclear', 'Unclear / NI']
   ].map(function(pair) {
     return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8">' +
-      '<div style="width:13px;height:13px;border-radius:3px;background:' + (pal[pair[0]] || '#888') + '"></div>' +
+      '<div style="width:13px;height:13px;border-radius:4px;background:' + (pal[pair[0]] || '#888') + '"></div>' +
       pair[1] +
     '</div>';
   }).join('');
@@ -17749,9 +17749,9 @@ function evRenderOauthStatus() {
   var el = document.getElementById('ev-oauth-status');
   if (!el) return;
   if (evOauthToken && evOauthToken.access_token) {
-    el.innerHTML = '<span style="color:#4ade80">\u25cf signed in</span> <span style="color:#748399;font-size:10px">(identity only \u2014 analysis still uses your API key)</span> &nbsp;<button data-evclick="h174" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid #334155;background:#0d1220;color:#94a3b8;cursor:pointer">sign out</button>';
+    el.innerHTML = '<span style="color:#4ade80">\u25cf signed in</span> <span style="color:#748399;font-size:10px">(identity only \u2014 analysis still uses your API key)</span> &nbsp;<button data-evclick="h174" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid #334155;background:#0d1220;color:#94a3b8;cursor:pointer">sign out</button>';
   } else if (EV_OAUTH.clientId) {
-    el.innerHTML = '<button data-evclick="h175" style="font-size:11px;padding:7px 13px;border-radius:7px;border:none;background:#10a37f;color:#fff;cursor:pointer;font-weight:600">Sign in with ChatGPT</button>';
+    el.innerHTML = '<button data-evclick="h175" style="font-size:11px;padding:7px 13px;border-radius:6px;border:none;background:#10a37f;color:#fff;cursor:pointer;font-weight:600">Sign in with ChatGPT</button>';
   } else {
     el.innerHTML = '<span style="color:#748399;font-size:11px">Awaiting a client ID from OpenAI\u2019s third-party sign-in program. Apply via OpenAI\u2019s developer interest form, register this app\u2019s URL as the redirect URI, then paste the client ID above. API keys work in the meantime.</span>';
   }
