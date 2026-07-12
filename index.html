@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Eoh/EfArBd05j8eBQi3YxYKJH7TmfaBd7RbsN+G31Do=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-sT4z86YEYWZ5KssGxDkgJMzo2yotCOtXYKFlWDnVV64=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -503,9 +503,14 @@ body.mode-advanced .adv-block { display: block !important; }
 .ucl-cl-box-summary { margin-top:5px; display:flex; flex-wrap:wrap; gap:4px; }
 .ucl-cl-box-summary-pill { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--ev-info-bg); color:var(--ev-link-3); font-weight:600; }
 .ucl-cl-box-bias .ucl-cl-box-summary-pill { background:var(--ev-surface-ai); color:#c084fc; }
-#ucl-checklist-grid-quality, #ucl-checklist-grid-bias { overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s ease; max-height:600px; opacity:1; }
+/* Collapse via grid-template-rows 1fr↔0fr — animates to the content's TRUE height
+   (no 600px cap to clip long lists) and only touches the row track + opacity, never a
+   layout-thrashing max-height tween. The inner .ucl-cl-cards wrapper needs min-height:0
+   + overflow:hidden so it can shrink to zero. Reduced-motion collapses it (global clamp). */
+#ucl-checklist-grid-quality, #ucl-checklist-grid-bias { display:grid; grid-template-rows:1fr; transition:grid-template-rows 0.25s ease, opacity 0.2s ease; opacity:1; }
+#ucl-checklist-grid-quality > .ucl-cl-cards, #ucl-checklist-grid-bias > .ucl-cl-cards { min-height:0; overflow:hidden; }
 .ucl-cl-box.collapsed #ucl-checklist-grid-quality,
-.ucl-cl-box.collapsed #ucl-checklist-grid-bias { max-height:0; opacity:0; pointer-events:none; }
+.ucl-cl-box.collapsed #ucl-checklist-grid-bias { grid-template-rows:0fr; opacity:0; pointer-events:none; }
 .ucl-cl-box.collapsed .ucl-cl-box-header { border-bottom:none; padding-bottom:0; }
 
 
@@ -634,12 +639,12 @@ body.mode-advanced .adv-block { display: block !important; }
 /* ══ Evidentum splash ══ */
 #ev-splash { position: fixed; inset: 0; z-index: 99999; background: var(--ev-bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14px; overflow-y: auto; padding: 24px 12px; transition: opacity 0.6s ease; }
+  gap: 14px; overflow-y: auto; padding: 24px 12px; transition: opacity 0.35s ease-out; }
 #ev-splash.ev-out { opacity: 0; pointer-events: none; }
 #ev-splash-art { width: min(520px, 86vw); height: auto; border-radius: 14px;
   box-shadow: 0 18px 60px rgba(0,0,0,0.55); }
 #ev-splash-word { font-family: 'Fraunces', Georgia, serif; font-size: clamp(30px, 6vw, 46px);
-  font-weight: 650; color: var(--ev-text-body); letter-spacing: 0.5px; }
+  font-weight: 650; color: var(--ev-text-body); letter-spacing: -0.02em; line-height: 1.05; }
 #ev-splash-word span { background: linear-gradient(135deg, #f59e0b, #ef4444);
   -webkit-background-clip: text; background-clip: text; color: transparent; }
 #ev-splash-tag { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ev-text-dim); letter-spacing: 2.5px; text-transform: uppercase; }
@@ -759,7 +764,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <div id="logo">
     <div id="logo-icon">🔬</div>
     <div>
-      <div id="logo-title" style="font-family:'Fraunces',Georgia,serif;font-weight:650;letter-spacing:0.2px">Evidentum <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:700;vertical-align:middle;margin-left:4px;font-family:'Inter',sans-serif">PRO</span></div>
+      <div id="logo-title" style="font-family:'Fraunces',Georgia,serif;font-weight:650;letter-spacing:-0.01em">Evidentum <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:700;vertical-align:middle;margin-left:4px;font-family:'Inter',sans-serif">PRO</span></div>
       <div id="logo-sub">AI-powered systematic literature review</div>
     </div>
   </div>
@@ -1243,8 +1248,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
       <!-- ══ SEARCH MODE TOGGLE ══ -->
       <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:8px;padding:3px;width:fit-content">
-        <button id="mode-simple-btn" data-evclick="h60" title="One search box, all databases at once &mdash; the fastest way to search" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s">Simple</button>
-        <button id="mode-advanced-btn" data-evclick="h61" title="Per-database workbench &mdash; native query syntax, PubMed set history, and a result pool you curate" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:var(--ev-text-muted);cursor:pointer;font-weight:600;transition:all 0.15s">Advanced</button>
+        <button id="mode-simple-btn" data-evclick="h60" title="One search box, all databases at once &mdash; the fastest way to search" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;transition:background 0.15s, color 0.15s">Simple</button>
+        <button id="mode-advanced-btn" data-evclick="h61" title="Per-database workbench &mdash; native query syntax, PubMed set history, and a result pool you curate" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:var(--ev-text-muted);cursor:pointer;font-weight:600;transition:background 0.15s, color 0.15s">Advanced</button>
       </div>
 
       <!-- ══ PRIMARY: PubMed/MEDLINE MeSH strategy (source of truth) ══ -->
@@ -1624,7 +1629,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
             </div>
             <span id="ucl-chevron-quality" class="ucl-cl-chevron">&#9650;</span>
           </div>
-          <div id="ucl-checklist-grid-quality">
+          <div id="ucl-checklist-grid-quality"><div class="ucl-cl-cards">
             <label class="ucl-cl-card">
               <input type="checkbox" value="CONSORT" data-evchange="h106">
               <div class="ucl-cl-card-inner">
@@ -1665,7 +1670,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
                 <div class="ucl-cl-tag">Clinical Guideline</div>
               </div>
             </label>
-          </div>
+          </div></div>
         </div>
 
         <!-- Bias checklists -->
@@ -1679,7 +1684,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
             </div>
             <span id="ucl-chevron-bias" class="ucl-cl-chevron">&#9650;</span>
           </div>
-          <div id="ucl-checklist-grid-bias">
+          <div id="ucl-checklist-grid-bias"><div class="ucl-cl-cards">
             <label class="ucl-cl-card">
               <input type="checkbox" value="ROB2" data-evchange="h106">
               <div class="ucl-cl-card-inner">
@@ -1712,7 +1717,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
                 <div class="ucl-cl-tag">RCT</div>
               </div>
             </label>
-          </div>
+          </div></div>
         </div>
 
       </div>
@@ -4509,7 +4514,7 @@ function showToast(msg, colour, issueMeta) {
     'color:var(--ev-text-body)', 'font-size:12px', 'font-family:Inter,sans-serif',
     'padding:10px 16px', 'border-radius:8px', 'z-index:9999',
     'box-shadow:0 4px 20px rgba(0,0,0,0.5)', 'max-width:320px',
-    'transition:opacity 0.5s', 'opacity:1'
+    'transition:opacity 0.3s ease-out', 'opacity:1'
   ].join(';');
   toast.textContent = msg;
   document.body.appendChild(toast);
@@ -13961,7 +13966,10 @@ function kbScreenApply(scroll) {
   cards.forEach(function(c){ c.classList.remove('kb-current'); });
   if (idx === -1) return;
   cards[idx].classList.add('kb-current');
-  if (scroll && cards[idx].scrollIntoView) cards[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // Instant (never smooth) — this fires on every J/K/N screening keypress (100+/day);
+  // a smooth-scroll animation lags the hot path and, as an explicit behavior, would also
+  // override the reduced-motion `scroll-behavior:auto` CSS. behavior:'auto' fixes both.
+  if (scroll && cards[idx].scrollIntoView) cards[idx].scrollIntoView({ block: 'nearest', behavior: 'auto' });
 }
 function kbScreenMove(delta) {
   var cards = kbScreenCards();
