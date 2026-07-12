@@ -1,11 +1,15 @@
 // Evidentum Pro service worker
-// Strategy: NETWORK-FIRST for everything — online users always get the latest
-// build; the cache is only an offline fallback. Because nothing is served from
-// cache while the network is reachable, a stale asset can never ship, so the
-// CACHE version below is non-critical (bumping it just evicts the old offline
-// copy). The SW only manages the Cache API — it never touches IndexedDB or
-// localStorage, so an update can't clear projects, appraisals or credentials.
-const CACHE = 'evidentum-v4';
+// Strategy: NETWORK-FIRST, and ONLY for SAME-ORIGIN app assets — online users
+// always get the latest build; the cache is only an offline fallback. Cross-origin
+// requests (scholarly-database + AI-provider APIs, CORS proxies, the pdf.js CDN)
+// are never intercepted or cached, so search terms, query URLs and credential-
+// bearing URLs (e.g. NCBI ?api_key=…) never persist in the Cache API and the cache
+// can't grow unbounded with opaque cross-origin responses. The SW only manages the
+// Cache API — it never touches IndexedDB or localStorage, so an update can't clear
+// projects, appraisals or credentials.
+// v5: scoped caching to same-origin (was catch-all); bump evicts the old cache,
+// which may have held cross-origin API/credential-bearing responses.
+const CACHE = 'evidentum-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -31,15 +35,21 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // Network-first for EVERYTHING (page, manifest, icons): the freshest response
-  // always wins online; we refresh the cache copy as we go. The cache is used
-  // only when the network fails — a true offline fallback, never a stale-while-
-  // online source. Navigations fall back to the cached index.html when offline.
+  // CROSS-ORIGIN → do not intercept: the browser handles it over the network and
+  // nothing is written to the Cache API. This deliberately excludes every API,
+  // proxy, CDN and credential-bearing request (search URLs, NCBI ?api_key=…, AI
+  // provider calls, fetched PDFs from external hosts).
+  let sameOrigin = false;
+  try { sameOrigin = new URL(req.url).origin === self.location.origin; } catch (err) { sameOrigin = false; }
+  if (!sameOrigin) return;
+
+  // Same-origin app shell only: network-first (freshest build wins online), cache
+  // as an offline fallback. Navigations fall back to the cached index.html offline.
   e.respondWith(
     fetch(req)
       .then((res) => {
         const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});   // ignore quota/opaque put failures
         return res;
       })
       .catch(() =>

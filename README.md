@@ -112,8 +112,8 @@ Keys and saved data are never sent to or stored by *this project* — but note t
 - **PWA assets** in the repo root:
   - `manifest.webmanifest` — app metadata.
   - `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — app icons.
-  - `sw.js` — service worker. Uses a **network-first** strategy for the page so a new deploy is always served fresh, and cache-first only for static icons. Bump the `CACHE` version string in `sw.js` on release if you want to force clients to refresh cached assets.
-- **Fonts are embedded** (WOFF2 data URIs) — no font-CDN requests, so typography survives offline and on `file://`. The only external runtime dependency is `pdf.js` (CDN, with a graceful fallback).
+  - `sw.js` — service worker. **Network-first for same-origin app assets** (page and icons alike) so a new deploy is always served fresh, with the cache used only as an offline fallback. **Cross-origin requests are never intercepted or cached** — every scholarly-database call, AI-provider request, CORS-proxy fetch and credential-bearing URL (e.g. `?api_key=…`) goes straight to the network and never lands in the Cache API. The service worker only touches the Cache API; it never reads or clears your projects, appraisals or keys (those live in IndexedDB / local storage). Bump the `CACHE` version string in `sw.js` on release to evict old caches.
+- **Fonts are embedded** (WOFF2 data URIs) — no font-CDN requests, so typography survives offline and on `file://`. **`pdf.js` is vendored** (`pdf.min.js` / `pdf.worker.min.js` in the repo root, loaded from the same origin); if those files are missing it falls back to the cdnjs copy. It is the only third-party runtime library, and both its self-hosted and fallback origins are pinned in the page's Content-Security-Policy.
 
 ---
 

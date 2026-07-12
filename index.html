@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-J0oobd9mTKIcGSs0Xbau/638Dt3uTA3EfSxBIjWqLIg=' 'sha256-92T1nwschQY+ukd1YSRZIwkXN69SOqvJWFm+sKcbEso=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Eoh/EfArBd05j8eBQi3YxYKJH7TmfaBd7RbsN+G31Do=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -834,10 +834,10 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </label>
       <!-- OpenAI -->
       <div style="font-size:10px;color:var(--ev-link-2);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">OpenAI</div>
-      <input type="password" id="openai-key-input" placeholder="sk-..." data-evinput="h18" data-evchange="h18" autocomplete="off"
+      <input type="password" id="openai-key-input" aria-label="OpenAI API key" placeholder="sk-..." data-evinput="h18" data-evchange="h18" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
       <div id="openai-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
-      <select id="openai-model-select" data-evchange="h19"
+      <select id="openai-model-select" aria-label="OpenAI model" data-evchange="h19"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="OpenAI model">
         <option value="gpt-5.6">GPT-5.6 — flagship, most capable (default)</option>
         <option value="gpt-5.6-mini">GPT-5.6 mini — faster, cheaper</option>
@@ -849,15 +849,15 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <option value="gpt-5">GPT-5 — previous flagship (legacy)</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
-      <input type="text" id="openai-model-input" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
+      <input type="text" id="openai-model-input" aria-label="OpenAI custom model ID" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom OpenAI model ID" />
       <div style="font-size:11px;color:var(--ev-text-dim);margin-bottom:14px">Responses API. Pick a model above, or choose Custom for any other ID. <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">platform.openai.com →</a></div>
       <!-- Anthropic -->
       <div style="font-size:10px;color:var(--ev-warn-text);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Anthropic</div>
-      <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." data-evinput="h21" data-evchange="h21" autocomplete="off"
+      <input type="password" id="anthropic-key-input" aria-label="Anthropic API key" placeholder="sk-ant-..." data-evinput="h21" data-evchange="h21" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
       <div id="anthropic-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
-      <select id="anthropic-model-select" data-evchange="h22"
+      <select id="anthropic-model-select" aria-label="Anthropic model" data-evchange="h22"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="Anthropic model">
         <option value="claude-opus-4-8">Claude Opus 4.8 — flagship (default)</option>
         <option value="claude-fable-5">Claude Fable 5 — most capable frontier model</option>
@@ -866,38 +866,38 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <option value="claude-haiku-4-5">Claude Haiku 4.5 — fastest, cheapest</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
-      <input type="text" id="anthropic-model-input" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
+      <input type="text" id="anthropic-model-input" aria-label="Anthropic custom model ID" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Anthropic model ID" />
       <div style="font-size:11px;color:var(--ev-text-dim)">Messages API. Pick a model above, or choose Custom for any other ID. <a href="https://console.anthropic.com/account/keys" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">console.anthropic.com →</a></div>
       <!-- Google Gemini -->
       <div style="font-size:10px;color:var(--ev-ok-text);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">Google Gemini</div>
-      <input type="password" id="gemini-key-input" placeholder="Gemini API key (from Google AI Studio)" data-evinput="h23" data-evchange="h23" autocomplete="off"
+      <input type="password" id="gemini-key-input" aria-label="Google Gemini API key" placeholder="Gemini API key (from Google AI Studio)" data-evinput="h23" data-evchange="h23" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
       <div id="gemini-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
-      <select id="gemini-model-select" data-evchange="h24"
+      <select id="gemini-model-select" aria-label="Google Gemini model" data-evchange="h24"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="Gemini model">
         <option value="gemini-2.5-pro">Gemini 2.5 Pro — most capable (default)</option>
         <option value="gemini-2.5-flash">Gemini 2.5 Flash — faster, cheaper</option>
         <option value="gemini-2.0-flash">Gemini 2.0 Flash — fast, low-cost, high-volume</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
-      <input type="text" id="gemini-model-input" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
+      <input type="text" id="gemini-model-input" aria-label="Google Gemini custom model ID" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Gemini model ID" />
       <div style="font-size:11px;color:var(--ev-text-dim)">generativelanguage API — large context &amp; low cost, good for high-volume abstract screening. Free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">Google AI Studio →</a></div>
 
       <!-- xAI Grok -->
       <div style="font-size:10px;color:#e5e7eb;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 5px">xAI Grok</div>
-      <input type="password" id="grok-key-input" placeholder="xAI API key (starts with xai-)" data-evinput="h25" data-evchange="h25" autocomplete="off"
+      <input type="password" id="grok-key-input" aria-label="xAI Grok API key" placeholder="xAI API key (starts with xai-)" data-evinput="h25" data-evchange="h25" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:4px" />
       <div id="grok-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
-      <select id="grok-model-select" data-evchange="h26"
+      <select id="grok-model-select" aria-label="xAI Grok model" data-evchange="h26"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="Grok model">
         <option value="grok-4.3">Grok 4.3 — recommended (default)</option>
         <option value="grok-4.20">Grok 4.20 — newest, multi-agent</option>
         <option value="grok-4-fast">Grok 4 Fast — faster, cheaper</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
-      <input type="text" id="grok-model-input" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
+      <input type="text" id="grok-model-input" aria-label="xAI Grok custom model ID" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-muted);margin-bottom:4px;display:none" title="Custom Grok model ID" />
       <div style="font-size:11px;color:var(--ev-text-dim)">OpenAI-compatible API. Key from <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">xAI Console →</a></div>
       <!-- OpenAI account (Sign in with ChatGPT) — non-functional; hidden behind a
@@ -907,7 +907,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <details id="ev-oauth-experimental" style="margin-top:14px">
         <summary style="cursor:pointer;font-size:10px;color:var(--ev-text-dim);font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Experimental features <span style="font-weight:400;text-transform:none;letter-spacing:0">— OpenAI "Sign in with ChatGPT" (not functional)</span></summary>
         <div style="font-size:10px;color:#10a37f;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin:10px 0 5px">OpenAI Account (Sign in with ChatGPT)</div>
-        <input type="text" id="ev-oauth-clientid" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" data-evinput="h27" autocomplete="off"
+        <input type="text" id="ev-oauth-clientid" aria-label="OpenAI OAuth client ID" placeholder="OAuth client ID (from OpenAI's third-party sign-in program)" data-evinput="h27" autocomplete="off"
           style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;letter-spacing:0.04em;margin-bottom:6px" />
         <div id="ev-oauth-status" style="margin-bottom:4px"></div>
         <div style="font-size:11px;color:var(--ev-text-dim)"><b style="color:#f59e0b">Experimental / not yet functional:</b> this flow only establishes identity (openid/profile/email) — the resulting token is <b>not accepted by OpenAI's API</b> and Evidentum does not use it for analysis. All AI analysis runs on the API keys above. OpenAI's third-party sign-in is a gated program — <a href="https://openai.com" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">apply via their developer form →</a></div>
@@ -917,7 +917,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <!-- LibKey -->
     <div class="settings-section">
       <div class="settings-section-title">&#128218; LibKey — Institutional Library Access</div>
-      <input type="text" id="libkey-id" placeholder="e.g. 1271  (from libkey.io/libraries/1271)"
+      <input type="text" id="libkey-id" aria-label="LibKey library ID" placeholder="e.g. 1271  (from libkey.io/libraries/1271)"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" data-evinput="h28" />
       <div style="font-size:11px;color:var(--ev-text-dim)">One-click full-text access via your institution. <a href="https://libkey.io" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">Find your ID at libkey.io</a></div>
     </div>
@@ -926,9 +926,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div class="settings-section">
       <div class="settings-section-title">&#128083; Scopus API Credentials <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Optional</span></div>
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">
-        <input type="password" id="scopus-api-key" placeholder="API Key (from dev.elsevier.com)" autocomplete="off"
+        <input type="password" id="scopus-api-key" aria-label="Scopus API key" placeholder="API Key (from dev.elsevier.com)" autocomplete="off"
           style="padding:7px 10px;font-size:12px;width:100%;box-sizing:border-box" data-evinput="h29" />
-        <input type="text" id="scopus-inst-token" placeholder="InstToken (from apisupport@elsevier.com)" autocomplete="off"
+        <input type="text" id="scopus-inst-token" aria-label="Scopus institutional token" placeholder="InstToken (from apisupport@elsevier.com)" autocomplete="off"
           style="padding:7px 10px;font-size:12px;width:100%;box-sizing:border-box" data-evinput="h29" />
         <span id="scopus-key-status" style="font-size:11px;color:var(--ev-text-dim)"></span>
       </div>
@@ -938,7 +938,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <!-- NCBI / PubMed -->
     <div class="settings-section">
       <div class="settings-section-title">&#128300; NCBI / PubMed API Key <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Optional</span></div>
-      <input type="password" id="ncbi-api-key" placeholder="NCBI API key (free)" autocomplete="off"
+      <input type="password" id="ncbi-api-key" aria-label="NCBI API key" placeholder="NCBI API key (free)" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" data-evinput="h30" />
       <div style="font-size:11px;color:var(--ev-text-dim)">Raises PubMed's rate limit from 3 to 10 requests/sec — recommended for large searches (e.g. 500/DB). Free from <a href="https://www.ncbi.nlm.nih.gov/account/" target="_blank" rel="noopener" style="color:var(--ev-text-dim)">your NCBI account → Settings → API Key Management</a>. Searches still work without it, just slower.</div>
     </div>
@@ -946,7 +946,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <!-- Semantic Scholar -->
     <div class="settings-section">
       <div class="settings-section-title">&#129504; Semantic Scholar API Key <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Optional</span></div>
-      <input type="password" id="s2-api-key" placeholder="Semantic Scholar API key (free)" autocomplete="off"
+      <input type="password" id="s2-api-key" aria-label="Semantic Scholar API key" placeholder="Semantic Scholar API key (free)" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" data-evinput="h31" />
       <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ev-text-2);margin:8px 0 6px;cursor:pointer">
         <input type="checkbox" id="s2-biomed-only" data-evchange="h31" style="accent-color:#3b82f6;margin:0" />
@@ -981,7 +981,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <!-- Phrase proximity -->
     <div class="settings-section">
       <div class="settings-section-title">&#128207; Phrase Proximity <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Advanced</span></div>
-      <select id="search-proximity" data-evchange="h34"
+      <select id="search-proximity" aria-label="Default proximity operator" data-evchange="h34"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:6px">
         <option value="0">Exact phrases (off)</option>
         <option value="2">Within 2 words</option>
@@ -1066,19 +1066,19 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="grid2">
         <div>
           <label class="pico-lbl" for="pico-p" style="color:var(--ev-danger-text)">P &mdash; Population / Problem</label>
-          <textarea id="pico-p" rows="2" placeholder="e.g. adult patients undergoing major non-cardiac surgery" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-p" aria-label="PICO — Population" rows="2" placeholder="e.g. adult patients undergoing major non-cardiac surgery" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-i" style="color:var(--ev-link-3)">I &mdash; Intervention / Exposure</label>
-          <textarea id="pico-i" rows="2" placeholder="e.g. non-steroidal anti-inflammatory drugs (NSAIDs)" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-i" aria-label="PICO — Intervention or exposure" rows="2" placeholder="e.g. non-steroidal anti-inflammatory drugs (NSAIDs)" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-c" style="color:var(--ev-warn-text)">C &mdash; Comparison <span style="opacity:0.6;font-weight:400">(optional)</span></label>
-          <textarea id="pico-c" rows="2" placeholder="e.g. opioid analgesia or placebo" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-c" aria-label="PICO — Comparator" rows="2" placeholder="e.g. opioid analgesia or placebo" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-o" style="color:var(--ev-ok-text)">O &mdash; Outcome</label>
-          <textarea id="pico-o" rows="2" placeholder="e.g. postoperative delirium incidence" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-o" aria-label="PICO — Outcome" rows="2" placeholder="e.g. postoperative delirium incidence" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap">
@@ -1104,10 +1104,10 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
       <div style="display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap">
         <label style="font-size:12px;color:var(--ev-text-muted)">From date
-          <input type="date" id="build-date-from" min="1900-01-01" max="2099-12-31" data-evinput="h43" style="margin-left:6px;width:148px;padding:5px 8px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
+          <input type="date" id="build-date-from" aria-label="Publication date from" min="1900-01-01" max="2099-12-31" data-evinput="h43" style="margin-left:6px;width:148px;padding:5px 8px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
         </label>
         <label style="font-size:12px;color:var(--ev-text-muted)">To date
-          <input type="date" id="build-date-to" min="1900-01-01" max="2099-12-31" data-evinput="h43" style="margin-left:6px;width:148px;padding:5px 8px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
+          <input type="date" id="build-date-to" aria-label="Publication date to" min="1900-01-01" max="2099-12-31" data-evinput="h43" style="margin-left:6px;width:148px;padding:5px 8px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
         </label>
       </div>
       <div id="build-draft-status" style="margin-top:9px;font-size:12px;min-height:6px"></div>
@@ -1172,7 +1172,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div style="border-top:1px solid var(--ev-border-soft);margin-top:13px;padding-top:12px">
         <div style="font-size:12px;color:var(--ev-text-2);font-weight:600;margin-bottom:3px">&#127919; Known-item recall check <span style="font-size:10px;color:var(--ev-text-dim);font-weight:400">(optional but recommended)</span></div>
         <div style="font-size:11px;color:var(--ev-text-dim);line-height:1.5;margin-bottom:7px">Paste PMIDs or DOIs of papers you already know belong in this review. If the strategy misses any, it isn&rsquo;t sensitive enough &mdash; widen the terms and re-check. The date filter is ignored here (concept terms + study-design only).</div>
-        <textarea id="build-seeds" rows="2" placeholder="e.g. 34567890, 12345678, 10.1097/ALN.0000000000001234  (comma / space / newline separated)" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:'IBM Plex Mono',monospace;resize:vertical"></textarea>
+        <textarea id="build-seeds" aria-label="Seed article identifiers (PMIDs or DOIs)" rows="2" placeholder="e.g. 34567890, 12345678, 10.1097/ALN.0000000000001234  (comma / space / newline separated)" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:'IBM Plex Mono',monospace;resize:vertical"></textarea>
         <div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
           <button data-evclick="h52" id="build-seed-btn" style="font-size:12px;padding:8px 14px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#127919; Check known items</button>
           <span id="build-seed-summary" style="font-size:12px;color:var(--ev-text-muted)"></span>
@@ -1257,7 +1257,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
       <div class="db-search-row simple-only">
         <div style="position:relative;flex:1;min-width:0;">
-          <input type="text" id="query-input" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' data-evkeydown="h62" data-evinput="h63" />
+          <input type="text" id="query-input" aria-label="Search query" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' data-evkeydown="h62" data-evinput="h63" />
           <button id="query-clear-btn" data-evclick="h64" title="Clear" aria-label="Clear search box" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
         </div>
         <button id="search-btn" data-evclick="h65">&#8594; Search</button>
@@ -1290,15 +1290,15 @@ button:not(:disabled):active { filter: brightness(0.95); }
         </div>
         <div>
           <div class="sec-label">From Date</div>
-          <input type="date" id="date-from" min="1900-01-01" max="2099-12-31" data-evinput="h66" style="width:100%;box-sizing:border-box" />
+          <input type="date" id="date-from" aria-label="Publication date from" min="1900-01-01" max="2099-12-31" data-evinput="h66" style="width:100%;box-sizing:border-box" />
         </div>
         <div>
           <div class="sec-label">To Date</div>
-          <input type="date" id="date-to" min="1900-01-01" max="2099-12-31" data-evinput="h66" style="width:100%;box-sizing:border-box" />
+          <input type="date" id="date-to" aria-label="Publication date to" min="1900-01-01" max="2099-12-31" data-evinput="h66" style="width:100%;box-sizing:border-box" />
         </div>
         <div>
           <div class="sec-label">Max Results <span style="font-size:10px;color:var(--ev-text-dim)">(per database)</span></div>
-          <select id="max-results" data-evchange="h66">
+          <select id="max-results" aria-label="Maximum results per database" data-evchange="h66">
             <option value="20">20 per DB</option>
             <option value="50" selected>50 per DB</option>
             <option value="100">100 per DB</option>
@@ -1347,7 +1347,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <span style="font-size:10px;color:var(--ev-text-dim);font-family:'IBM Plex Mono',monospace">e.g. (#1 OR #2) AND #3 NOT #4</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="text" id="combo-input" placeholder="#1 AND #2" data-evinput="h75" data-evkeydown="h76" style="flex:1;min-width:160px;box-sizing:border-box;padding:10px 13px;font-size:13px;font-family:'IBM Plex Mono',monospace;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)" />
+          <input type="text" id="combo-input" aria-label="Combine numbered searches" placeholder="#1 AND #2" data-evinput="h75" data-evkeydown="h76" style="flex:1;min-width:160px;box-sizing:border-box;padding:10px 13px;font-size:13px;font-family:'IBM Plex Mono',monospace;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)" />
           <button data-evclick="h77" title="Resolve the combination on PubMed and show the count (no retrieval yet)" style="font-size:12px;padding:9px 14px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-2);cursor:pointer;font-weight:600;white-space:nowrap">Preview count</button>
           <button data-evclick="h78" title="Retrieve the combined set from PubMed and add it to the pool (replaces any earlier PubMed run)" style="font-size:12px;padding:9px 14px;border-radius:7px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">&#8594; Run combined set into pool</button>
         </div>
@@ -1403,9 +1403,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <tbody id="home-crit-body"></tbody>
         </table>
         <div class="add-crit-row" style="margin-top:10px">
-          <input type="text" id="home-new-crit-label" placeholder="e.g. Blinded study" style="width:185px" />
-          <input type="text" id="home-new-crit-kw" placeholder="double-blind, blinded, masking" style="flex:1;padding:6px 10px" />
-          <select id="home-new-crit-type" style="padding:6px 9px;font-size:12px;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body)">
+          <input type="text" id="home-new-crit-label" aria-label="New screening criterion label" placeholder="e.g. Blinded study" style="width:185px" />
+          <input type="text" id="home-new-crit-kw" aria-label="New screening criterion keywords" placeholder="double-blind, blinded, masking" style="flex:1;padding:6px 10px" />
+          <select id="home-new-crit-type" aria-label="New screening criterion type" style="padding:6px 9px;font-size:12px;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:6px;color:var(--ev-text-body)">
             <option value="must">Must contain</option>
             <option value="mustnot">Must NOT contain</option>
           </select>
@@ -1496,7 +1496,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
             show keyword criteria
           </label>
           <button data-evclick="h88" title="Edit the keyword criteria that score these results, then re-score — useful after pulling a broad search into the pool" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;white-space:nowrap">&#9998; Edit criteria</button>
-          <select id="sort-by" data-evchange="h89">
+          <select id="sort-by" aria-label="Sort results by" data-evchange="h89">
             <option value="relevance">Sort: Search Relevance</option>
             <option value="sources">Sort: Most Databases</option>
             <option value="score">Sort: Triage signals &#8595;</option>
@@ -1506,8 +1506,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
             <option value="date_old">Sort: Oldest First</option>
             <option value="type">Sort: Study Type</option>
           </select>
-          <select id="filter-type" data-evchange="h89"><option value="All">All Study Types</option></select>
-          <select id="filter-score" data-evchange="h89">
+          <select id="filter-type" aria-label="Filter results by study type" data-evchange="h89"><option value="All">All Study Types</option></select>
+          <select id="filter-score" aria-label="Filter results by triage signal" data-evchange="h89">
             <option value="-1">All Papers</option>
             <option value="100">100% signals detected</option>
             <option value="75">&#8805;75% signals detected</option>
@@ -1594,7 +1594,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <div class="upload-zone-title">Drop a PDF here, or click to browse</div>
         <div class="upload-zone-sub">PDF is read locally — nothing is uploaded to any server</div>
       </div>
-      <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" data-evchange="h102">
+      <input type="file" id="pdf-file-input" aria-label="Upload a PDF to scan" accept=".pdf" style="display:none" data-evchange="h102">
 
       <!-- Supplementary PDFs -->
       <div id="supplementary-section" style="margin-top:10px">
@@ -1606,7 +1606,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
             + Add PDF
           </button>
         </div>
-        <input type="file" id="supp-file-input" accept=".pdf" multiple style="display:none" data-evchange="h104">
+        <input type="file" id="supp-file-input" aria-label="Upload a supplementary file" accept=".pdf" multiple style="display:none" data-evchange="h104">
         <div id="supp-file-list" style="display:flex;flex-direction:column;gap:4px"></div>
       </div>
 
@@ -1739,7 +1739,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
             <span id="ucl-ref-count" style="font-size:12px; color:var(--ev-text-dim)"></span>
             <button id="ucl-ref-bulk-add" data-evclick="h110" style="display:none; padding:5px 11px; font-size:12px; background:var(--ev-info-bg); border:1px solid #2563eb55; border-radius:6px; color:var(--ev-link-2); cursor:pointer; white-space:nowrap" title="Add every reference located online to a project in one click">&#128193; Add all located</button>
-            <select id="ucl-ref-sort" data-evchange="h111" style="padding:5px 9px; font-size:12px; background:var(--ev-surface-2); border:1px solid var(--ev-border); border-radius:6px; color:var(--ev-text-body)">
+            <select id="ucl-ref-sort" aria-label="Sort references by" data-evchange="h111" style="padding:5px 9px; font-size:12px; background:var(--ev-surface-2); border:1px solid var(--ev-border); border-radius:6px; color:var(--ev-text-body)">
               <option value="rank">Sort: AI rank (relevance &middot; bias &middot; recency)</option>
               <option value="year-desc">Sort: Year (Newest)</option>
               <option value="year-asc">Sort: Year (Oldest)</option>
@@ -1795,7 +1795,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <!-- PICO question bar -->
       <div id="proj-pico-bar">
         <span class="pico-label">&#128269; PICO / Research Question</span>
-        <input id="proj-pico-input" type="text"
+        <input id="proj-pico-input" aria-label="Project review question" type="text"
           placeholder="e.g. In adults undergoing general anaesthesia, does propofol reduce surgical site infection compared to volatile agents?"
           data-evinput="h124"
           data-evblur="h125" />
@@ -1872,13 +1872,13 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div style="font-size:14px; font-weight:700; color:var(--ev-text); margin-bottom:16px">&#128193; New Project</div>
     <div style="margin-bottom:12px">
       <div class="sec-label" style="margin-bottom:5px">Project name</div>
-      <input type="text" id="proj-modal-name" placeholder='e.g. "Propofol systematic review"'
+      <input type="text" id="proj-modal-name" aria-label="Project name" placeholder='e.g. "Propofol systematic review"'
         style="width:100%; box-sizing:border-box; padding:8px 12px; font-size:13px"
         data-evkeydown="h129" />
     </div>
     <div style="margin-bottom:18px">
       <div class="sec-label" style="margin-bottom:5px">Description <span style="color:var(--ev-text-dim)">(optional)</span></div>
-      <input type="text" id="proj-modal-desc" placeholder='e.g. "RCTs comparing propofol vs thiopental"'
+      <input type="text" id="proj-modal-desc" aria-label="Project description" placeholder='e.g. "RCTs comparing propofol vs thiopental"'
         style="width:100%; box-sizing:border-box; padding:8px 12px; font-size:13px"
         data-evkeydown="h129" />
     </div>
@@ -1896,7 +1896,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div id="addtoproj-paper-title" style="font-size:11px; color:var(--ev-text-dim); margin-bottom:16px; line-height:1.4"></div>
     <div id="addtoproj-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px; max-height:260px; overflow-y:auto"></div>
     <div style="border-top:1px solid var(--ev-border); padding-top:12px; display:flex; align-items:center; gap:8px">
-      <input type="text" id="addtoproj-new-name" placeholder="Or create new project…"
+      <input type="text" id="addtoproj-new-name" aria-label="New project name" placeholder="Or create new project…"
         style="flex:1; padding:6px 10px; font-size:12px"
         data-evkeydown="h132" />
       <button class="btn btn-green" data-evclick="h133" style="font-size:11px; padding:6px 12px; white-space:nowrap">&#43; Create &amp; add</button>
@@ -1925,9 +1925,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <tbody id="drawer-crit-body"></tbody>
     </table>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-      <input type="text" id="drawer-new-crit-label" placeholder="New criterion name" style="flex:1;min-width:140px;padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)" />
-      <input type="text" id="drawer-new-crit-kw" placeholder="keyword1, keyword2" style="flex:1;min-width:140px;padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)" />
-      <select id="drawer-new-crit-type" style="padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
+      <input type="text" id="drawer-new-crit-label" aria-label="New screening criterion label" placeholder="New criterion name" style="flex:1;min-width:140px;padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)" />
+      <input type="text" id="drawer-new-crit-kw" aria-label="New screening criterion keywords" placeholder="keyword1, keyword2" style="flex:1;min-width:140px;padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)" />
+      <select id="drawer-new-crit-type" aria-label="New screening criterion type" style="padding:6px 9px;font-size:12px;border-radius:6px;background:var(--ev-surface);color:var(--ev-text-body);border:1px solid var(--ev-border-strong)">
         <option value="must">Must contain</option>
         <option value="mustnot">Must NOT contain</option>
       </select>
@@ -1951,7 +1951,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div style="font-size:11px; color:var(--ev-text-muted); line-height:1.6; margin-bottom:12px">Compare the AI's risk-of-bias judgements for this project against a reference standard (e.g. the published review's consensus judgements). Export the template, fill the judgement columns (<code>low</code> / <code>some concerns</code> / <code>high</code> &mdash; or the ROBINS-I scale), import it back, and read the agreement report. The comparison never alters the appraisals.</div>
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px">
       <span style="font-size:11px;color:var(--ev-text-dim)">Tool:</span>
-      <select id="evval-tool" data-evchange="h141" style="padding:5px 9px; font-size:12px; background:var(--ev-surface-2); border:1px solid var(--ev-border); border-radius:6px; color:var(--ev-text-body)">
+      <select id="evval-tool" aria-label="Validation tool" data-evchange="h141" style="padding:5px 9px; font-size:12px; background:var(--ev-surface-2); border:1px solid var(--ev-border); border-radius:6px; color:var(--ev-text-body)">
         <option value="ROB2">RoB 2</option>
         <option value="ROBINS2">ROBINS-I V2</option>
       </select>
@@ -9040,12 +9040,13 @@ function renderCriteriaTable() {
   if (!tbody) return; // criteria tab removed — home table is the sole editor
   tbody.innerHTML = scanCriteria.map(function(c, i) {
     var safeKws = (c.keywords||[]).join(', ').replace(/"/g,'&quot;');
+    var cn = c.label ? c.label.replace(/"/g,'&quot;') : ('criterion ' + (i + 1));
     var mustOpt = '<option value="must"'+(c.type==='must'?' selected':'')+'>Must contain</option>';
     var mustnotOpt = '<option value="mustnot"'+(c.type==='mustnot'?' selected':'')+'>Must NOT contain</option>';
     return '<tr>' +
-      '<td><input class="crit-label-input" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelPrev', [i], ['val']) + ' /></td>' +
-      '<td><input class="crit-kw-input" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywords', [i], ['val']) + ' /></td>' +
-      '<td><select class="crit-type-select" ' + evAttr('change', 'evSetCritTypeOnly', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
+      '<td><input class="crit-label-input" aria-label="Label — ' + cn + '" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelPrev', [i], ['val']) + ' /></td>' +
+      '<td><input class="crit-kw-input" aria-label="Keywords — ' + cn + '" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywords', [i], ['val']) + ' /></td>' +
+      '<td><select class="crit-type-select" aria-label="Match type — ' + cn + '" ' + evAttr('change', 'evSetCritTypeOnly', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
       '<td><button class="btn btn-red" style="padding:2px 9px;font-size:11px" aria-label="Remove criterion" ' + evAttr('click', 'removeCriterion', [i]) + '>&#10005;</button></td>' +
     '</tr>';
   }).join('');
@@ -9082,12 +9083,13 @@ function renderHomeCriteriaTable() {
   if (!tbody) return;
   tbody.innerHTML = scanCriteria.map(function(c, i) {
     var safeKws = (c.keywords||[]).join(', ').replace(/"/g,'&quot;');
+    var cn = c.label ? c.label.replace(/"/g,'&quot;') : ('criterion ' + (i + 1));
     var mustOpt = '<option value="must"'+(c.type==='must'?' selected':'')+'>Must contain</option>';
     var mustnotOpt = '<option value="mustnot"'+(c.type==='mustnot'?' selected':'')+'>Must NOT contain</option>';
     return '<tr>' +
-      '<td><input class="crit-label-input" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelSync', [i], ['val']) + ' /></td>' +
-      '<td><input class="crit-kw-input" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywords', [i], ['val']) + ' /></td>' +
-      '<td><select class="crit-type-select" ' + evAttr('change', 'evSetCritTypeOnly', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
+      '<td><input class="crit-label-input" aria-label="Label — ' + cn + '" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelSync', [i], ['val']) + ' /></td>' +
+      '<td><input class="crit-kw-input" aria-label="Keywords — ' + cn + '" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywords', [i], ['val']) + ' /></td>' +
+      '<td><select class="crit-type-select" aria-label="Match type — ' + cn + '" ' + evAttr('change', 'evSetCritTypeOnly', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
       '<td><button class="btn btn-red" style="padding:2px 9px;font-size:11px" aria-label="Remove criterion" ' + evAttr('click', 'homeRemoveCriterion', [i]) + '>&#10005;</button></td>' +
     '</tr>';
   }).join('');
@@ -9109,12 +9111,13 @@ function renderDrawerCriteriaTable() {
   if (!tbody) return;
   tbody.innerHTML = scanCriteria.map(function(c, i) {
     var safeKws = (c.keywords||[]).join(', ').replace(/"/g,'&quot;');
+    var cn = c.label ? c.label.replace(/"/g,'&quot;') : ('criterion ' + (i + 1));
     var mustOpt = '<option value="must"'+(c.type==='must'?' selected':'')+'>Must contain</option>';
     var mustnotOpt = '<option value="mustnot"'+(c.type==='mustnot'?' selected':'')+'>Must NOT contain</option>';
     return '<tr>' +
-      '<td><input class="crit-label-input" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelSync', [i], ['val']) + ' /></td>' +
-      '<td><input class="crit-kw-input" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywordsSync', [i], ['val']) + ' /></td>' +
-      '<td><select class="crit-type-select" ' + evAttr('change', 'evSetCritType', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
+      '<td><input class="crit-label-input" aria-label="Label — ' + cn + '" value="'+c.label.replace(/"/g,'&quot;')+'" ' + evAttr('change', 'evSetCritLabelSync', [i], ['val']) + ' /></td>' +
+      '<td><input class="crit-kw-input" aria-label="Keywords — ' + cn + '" value="'+safeKws+'" ' + evAttr('change', 'evSetCritKeywordsSync', [i], ['val']) + ' /></td>' +
+      '<td><select class="crit-type-select" aria-label="Match type — ' + cn + '" ' + evAttr('change', 'evSetCritType', [i], ['val']) + '>'+mustOpt+mustnotOpt+'</select></td>' +
       '<td style="white-space:nowrap"><button title="AI: suggest keyword synonyms" ' + evAttr('click', 'suggestSynonyms', [i]) + ' style="padding:2px 8px;font-size:12px;border-radius:5px;border:1px solid #7c3aed66;background:var(--ev-surface-ai);color:var(--ev-ai-text);cursor:pointer">&#10024;</button> ' +
         '<button class="btn btn-red" style="padding:2px 9px;font-size:11px" aria-label="Remove criterion" ' + evAttr('click', 'drawerRemoveCriterion', [i]) + '>&#10005;</button></td>' +
     '</tr>';
@@ -13631,11 +13634,14 @@ function computeDualKappa(projectId) {
   });
   var po = agree / n, pe = 0;
   Object.keys(margA).forEach(function(c){ pe += (margA[c] / n) * ((margB[c] || 0) / n); });
-  // pe → 1 when every vote falls in one category; agreement there is perfect by construction
-  var kappa = pe >= 1 ? 1 : (po - pe) / (1 - pe);
+  // pe → 1 when every vote falls in ONE category: kappa is (po−pe)/(1−pe) = 0/0,
+  // mathematically UNDEFINED — not 1. Return null ("not estimable"); the observed
+  // agreement % is still meaningful and is shown alongside.
+  var kappa = pe >= 1 ? null : (po - pe) / (1 - pe);
   return { kappa: kappa, n: n, agreePct: Math.round(po * 100) };
 }
 function kappaLabel(k) {   // Landis & Koch benchmarks
+  if (k === null || k === undefined || isNaN(k)) return 'not estimable';
   return k < 0 ? 'poor' : k < 0.21 ? 'slight' : k < 0.41 ? 'fair' : k < 0.61 ? 'moderate' : k < 0.81 ? 'substantial' : 'almost perfect';
 }
 function toggleDualReviewer() {
@@ -13685,7 +13691,7 @@ function renderDualBar() {
     var conflicts = (projectPapers[currentProjectId] || []).filter(dualConflict).length;
     if (conflicts) html += '<span style="font-size:11px;color:var(--ev-danger-text)">&#9876; ' + conflicts + ' conflict' + (conflicts === 1 ? '' : 's') + '</span>';
     var kap = computeDualKappa(currentProjectId);
-    if (kap) html += '<span style="font-size:11px;color:var(--ev-text-muted)" title="Cohen&#39;s kappa — inter-rater agreement over the ' + kap.n + ' records both reviewers have decided (Landis &amp; Koch benchmark)">&kappa; ' + kap.kappa.toFixed(2) + ' &middot; ' + kappaLabel(kap.kappa) + ' (' + kap.agreePct + '% raw, n=' + kap.n + ')</span>';
+    if (kap) html += '<span style="font-size:11px;color:var(--ev-text-muted)" title="Cohen&#39;s kappa — inter-rater agreement over the ' + kap.n + ' records both reviewers have decided (Landis &amp; Koch benchmark). Not estimable when every shared decision falls in one category (no variance to correct for chance).">&kappa; ' + (kap.kappa === null ? 'n/a' : kap.kappa.toFixed(2)) + ' &middot; ' + kappaLabel(kap.kappa) + ' (' + kap.agreePct + '% raw, n=' + kap.n + ')</span>';
     html += '<span style="display:flex;gap:6px;align-items:center;margin-left:auto">' +
       (lens !== 'final' ? '<span style="font-size:10px;color:var(--ev-text-dim)">blinded &mdash; the other reviewer&#39;s votes are hidden in this lens</span>' : '') +
       '<button data-evclick="h164" title="Export a blinded copy of this project for Reviewer B to screen on their own computer — your votes and final decisions are stripped from the file" style="font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;background:transparent;color:var(--ev-text-muted);border:1px solid #47556955">&#8687; Packet for B</button>' +
@@ -13748,7 +13754,12 @@ function buildVotesPacket(proj, papers) {
   var votes = [];
   (papers || []).forEach(function(p) {
     var b = p && p.reviews && p.reviews.B;
-    if (b && (b.decision || b.exclusionReason || b.reason)) {
+    // Export a vote when B has content OR has a rev. The rev-only case is a
+    // RETRACTION tombstone: B voted then cleared the vote (bumpReviewRev fires on
+    // clear too, so rev is set while decision/reason are empty). Without exporting
+    // it the host would keep B's now-withdrawn vote forever — the retraction has
+    // to travel so applyVotesPacket can roll the host copy back.
+    if (b && (b.decision || b.exclusionReason || b.reason || typeof b.rev === 'number')) {
       votes.push({ pmid: String(p.pmid), decision: b.decision || '', exclusionReason: b.exclusionReason || '', reason: b.reason || '', at: b.at || '', rev: b.rev });
     }
   });
@@ -13779,22 +13790,26 @@ function shouldApplyIncomingVote(cur, v) {
 function applyVotesPacket(packet, papers) {
   var byId = {};
   (papers || []).forEach(function(p) { if (p) byId[String(p.pmid)] = p; });
-  var summary = { applied: 0, updated: 0, keptNewerLocal: 0, missing: 0 };
+  var summary = { applied: 0, updated: 0, retracted: 0, keptNewerLocal: 0, missing: 0 };
   ((packet && packet.votes) || []).forEach(function(v) {
     if (!v || !v.pmid) return;
     var p = byId[String(v.pmid)];
     if (!p) { summary.missing++; return; }        // record deleted/merged on host since packet went out
     var cur = p.reviews && p.reviews.B;
     var hasCur = !!(cur && (cur.decision || cur.exclusionReason || cur.reason));
+    var incomingContent = !!(v.decision || v.exclusionReason || v.reason);
+    if (!incomingContent && !hasCur) return;      // retraction tombstone, but host holds no B vote → nothing to undo
     if (hasCur && !shouldApplyIncomingVote(cur, v)) { summary.keptNewerLocal++; return; }
     var r = projReviewEnsure(p, 'B');
     r.decision = v.decision || '';
     r.exclusionReason = v.exclusionReason || '';
     r.reason = v.reason || '';
-    r.at = v.at || new Date().toISOString();
+    r.at = incomingContent ? (v.at || new Date().toISOString()) : '';   // a retraction clears the timestamp too
     if (typeof v.rev === 'number') r.rev = v.rev;   // carry B's revision so later merges compare correctly
     reconcileDualDecision(p);
-    if (hasCur) summary.updated++; else summary.applied++;
+    if (!incomingContent) summary.retracted++;
+    else if (hasCur) summary.updated++;
+    else summary.applied++;
   });
   return summary;
 }
@@ -13904,10 +13919,11 @@ function importVotesPacket(input) {
     var parts = [];
     if (summary.applied) parts.push(summary.applied + ' new vote' + (summary.applied === 1 ? '' : 's'));
     if (summary.updated) parts.push(summary.updated + ' updated');
+    if (summary.retracted) parts.push(summary.retracted + ' retracted');
     if (summary.keptNewerLocal) parts.push(summary.keptNewerLocal + ' kept (newer here)');
     if (summary.missing) parts.push(summary.missing + ' skipped (record no longer in project)');
     showToast('Reviewer B votes merged — ' + (parts.join(', ') || 'nothing to apply') +
-      (kap ? ' · κ ' + kap.kappa.toFixed(2) + ' (' + kappaLabel(kap.kappa) + ')' : ''),
+      (kap ? ' · κ ' + (kap.kappa === null ? 'n/a' : kap.kappa.toFixed(2)) + ' (' + kappaLabel(kap.kappa) + ')' : ''),
       summary.missing ? '#f59e0b' : '#22c55e');
     input.value = '';
   };
@@ -15095,10 +15111,12 @@ function loadAiModels() {
 
 function setAiProvider(provider) {
   aiProvider = provider;
-  try {
-    localStorage.setItem('pla_ai_provider', provider);
-    activeApiKey = localStorage.getItem(providerKeyStorageName(provider)) || '';
-  } catch(e) { /* storage disabled (private mode) — provider still set in memory */ }
+  // pla_ai_provider is a plain preference, not a secret → localStorage direct.
+  try { localStorage.setItem('pla_ai_provider', provider); } catch(e) { /* storage disabled (private mode) — provider still set in memory */ }
+  // The key IS a secret: read through credRead so a session-only key (Remember
+  // keys OFF → sessionStorage) still loads when the user switches provider.
+  // Reading localStorage directly here lost such keys on every provider change.
+  activeApiKey = credRead(providerKeyStorageName(provider)) || '';
   updateKeyBanner();
   if (typeof updateModelLabel === 'function') updateModelLabel();   // reflect the active provider's model
 }
@@ -16921,7 +16939,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // into it on open, and restore focus to the trigger on close. Applies to every
 // dialog overlay generically so each modal doesn't reimplement it.
 // ══════════════════════════════════════════════
-var MODAL_A11Y_SELECTOR = '#settings-overlay, #proj-modal-overlay, #addtoproj-modal-overlay, #evval-overlay, #ai-disclosure-overlay';
+// The splash is declared role="dialog" aria-modal="true", so it must trap Tab like
+// any other modal — otherwise keyboard focus leaks into the app behind it while the
+// entry chooser is up. It's first in the DOM and z-index 99999 (visually topmost);
+// no other modal is open while it shows, so topModal() ordering is unaffected.
+var MODAL_A11Y_SELECTOR = '#ev-splash, #settings-overlay, #proj-modal-overlay, #addtoproj-modal-overlay, #evval-overlay, #ai-disclosure-overlay';
 // Pure + testable: given a modal's focusable elements, the active element, and
 // whether Shift is held, return the element Tab should wrap to — or null to let
 // the browser tab normally within the dialog.
@@ -16940,7 +16962,10 @@ function modalTrapTarget(focusables, active, shiftKey) {
   var lastFocus = null;
   function visible(el) {
     if (!el) return false;
-    try { if (el.hidden) return false; var s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden'; }
+    // pointerEvents:none marks a non-interactive (dismissing/fading) modal — e.g. the
+    // splash's .ev-out state, which keeps display:flex during its opacity fade. Treat
+    // it as closed so the trap releases immediately and doesn't steal focus mid-fade.
+    try { if (el.hidden) return false; var s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && s.pointerEvents !== 'none'; }
     catch (e) { return !!(el.style && el.style.display && el.style.display !== 'none'); }
   }
   function topModal() {
@@ -17794,7 +17819,8 @@ function evValKappa(pairs) {
   });
   var po = agree / n, pe = 0;
   Object.keys(mA).forEach(function(c) { pe += (mA[c] / n) * ((mB[c] || 0) / n); });
-  return { n: n, agreePct: Math.round(po * 1000) / 10, kappa: pe >= 1 ? 1 : (po - pe) / (1 - pe) };
+  // pe → 1 (all ratings one category): (po−pe)/(1−pe) = 0/0, undefined — report null, not 1.
+  return { n: n, agreePct: Math.round(po * 1000) / 10, kappa: pe >= 1 ? null : (po - pe) / (1 - pe) };
 }
 
 // Linearly weighted kappa over the tool's ordered scale — a one-step
@@ -17820,7 +17846,8 @@ function evValWeightedKappa(pairs, scale) {
       exp += (Math.abs(idx[a] - idx[b]) / (k - 1)) * ((mA[a] || 0) / n) * ((mB[b] || 0) / n);
     });
   });
-  return { n: n, kappa: exp === 0 ? 1 : 1 - (obs / n) / exp };
+  // exp === 0 (all ratings one category): 1 − obs/exp is 1 − 0/0, undefined — report null, not 1.
+  return { n: n, kappa: exp === 0 ? null : 1 - (obs / n) / exp };
 }
 
 // The AI side of each pair: the stored domain judgements, plus an overall —
