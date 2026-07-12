@@ -171,7 +171,7 @@ a:hover { text-decoration: underline; }
 .agent-badge-done { background: var(--ev-ok-bg); color: var(--ev-ok-text); border: 1px solid #16a34a; }
 .agent-badge-fail { background: var(--ev-danger-bg); color: var(--ev-danger-text); border: 1px solid var(--ev-danger-bg); }
 .agent-badge-skip { background: #1c1917; color: #8b847e; border: 1px solid #44403c; }
-#api-key-banner { background: var(--ev-surface); border: 1px solid #f59e0b55; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#api-key-banner { background: var(--ev-surface); border: 1px solid #f59e0b55; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 #api-key-banner.key-set { border-color: #16a34a55; }
 .api-key-label { font-size: 11px; color: #f59e0b; font-weight: 600; white-space: nowrap; }
 #api-key-banner.key-set .api-key-label { color: var(--ev-ok-text); }
@@ -186,21 +186,21 @@ a:hover { text-decoration: underline; }
 .retraction-banner { background: var(--ev-danger-bg); color: #fee2e2; font-size: 12px; padding: 6px 12px; border-bottom: 1px solid #ef4444; }
 
 /* ── PICO question bar ── */
-#proj-pico-bar { display:flex; align-items:center; gap:10px; background:var(--ev-surface); border:1px solid var(--ev-info-bg); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+#proj-pico-bar { display:flex; align-items:center; gap:10px; background:var(--ev-surface); border:1px solid var(--ev-info-bg); border-radius:10px; padding:10px 14px; margin-bottom:14px; }
 #proj-pico-bar .pico-label { font-size:10px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; white-space:nowrap; flex-shrink:0; }
 #proj-pico-input { flex:1; background:transparent; border:none; color:var(--ev-text-body); font-family:'IBM Plex Mono',monospace; font-size:12px; outline:none; padding:0; }
 #proj-pico-input::placeholder { color:var(--ev-border-strong); }
 #proj-pico-saved { font-size:10px; color:var(--ev-ok-text); opacity:0; transition:opacity 0.4s; white-space:nowrap; flex-shrink:0; }
 .retracted-card { opacity: 0.65; border-color: var(--ev-danger-bg) !important; }
 .retracted-card .paper-title-link { text-decoration: line-through; color: var(--ev-text-muted) !important; }
-#agent-summary-bar { display: none; background: var(--ev-surface-2); border: 1px solid var(--ev-border); border-radius: 8px; padding: 10px 16px; margin-bottom: 12px; font-size: 12px; color: var(--ev-text-muted); }
+#agent-summary-bar { display: none; background: var(--ev-surface-2); border: 1px solid var(--ev-border); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px; font-size: 12px; color: var(--ev-text-muted); }
 #agent-summary-bar.visible { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .agent-sum-item { display: flex; align-items: center; gap: 5px; }
 .agent-sum-num { font-size: 16px; font-weight: 700; color: var(--ev-text); }
 
 #header { background: var(--ev-surface); border-bottom: 1px solid var(--ev-border); padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 #logo { display: flex; align-items: center; gap: 12px; }
-#logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+#logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
 #logo-title { font-family: 'IBM Plex Sans', sans-serif; font-weight: 700; font-size: 17px; color: var(--ev-text); }
 #logo-sub { font-size: 11px; color: var(--ev-text-dim); margin-top: 1px; }
 #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -211,11 +211,11 @@ a:hover { text-decoration: underline; }
   .tab-btn { padding: 5px 10px; }
   #logo-sub { display: none; }
 }
-.settings-btn { width:40px; height:40px; border-radius:8px; border:1px solid var(--ev-border); background:transparent; color:var(--ev-text-dim); font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:color 0.15s,border-color 0.15s; }
+.settings-btn { width:40px; height:40px; border-radius:6px; border:1px solid var(--ev-border); background:transparent; color:var(--ev-text-dim); font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:color 0.15s,border-color 0.15s; }
 .settings-btn:hover { color:var(--ev-text); border-color:#3b82f6; }
 
 /* Session issues — ⚠ header badge + dropdown panel (see logIssue in 04b-search.js) */
-#issues-btn { align-items:center; gap:5px; height:40px; padding:0 12px; border-radius:8px; border:1px solid #f59e0b55; background:#1a120033; color:var(--ev-warn-text); font-family:Inter,sans-serif; font-size:13px; font-weight:600; cursor:pointer; flex-shrink:0; transition:border-color 0.15s; }
+#issues-btn { align-items:center; gap:5px; height:40px; padding:0 12px; border-radius:6px; border:1px solid #f59e0b55; background:#1a120033; color:var(--ev-warn-text); font-family:Inter,sans-serif; font-size:13px; font-weight:600; cursor:pointer; flex-shrink:0; transition:border-color 0.15s; }
 #issues-btn:hover { border-color:#f59e0b; }
 #issues-count { font-family:'IBM Plex Mono',monospace; font-size:11px; }
 .issues-panel { position:fixed; top:64px; right:16px; z-index:9998; width:min(420px, calc(100vw - 32px)); max-height:min(70vh, 560px); overflow-y:auto; background:var(--ev-surface); border:1px solid #f59e0b55; border-radius:10px; padding:14px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.6); }
@@ -229,7 +229,7 @@ a:hover { text-decoration: underline; }
 .issue-hint { font-size:11px; color:var(--ev-text-muted); line-height:1.5; margin-top:3px; }
 #settings-overlay { display:none; position:fixed; inset:0; background:#00000088; z-index:1000; align-items:flex-start; justify-content:flex-end; padding:60px 20px 0; }
 #settings-overlay.open { display:flex; }
-#settings-panel { background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:12px; width:100%; max-width:480px; max-height:calc(100vh - 80px); overflow-y:auto; box-shadow:0 24px 64px #000a; }
+#settings-panel { background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:10px; width:100%; max-width:480px; max-height:calc(100vh - 80px); overflow-y:auto; box-shadow:0 24px 64px #000a; }
 #settings-panel-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--ev-border); }
 #settings-panel-title { font-size:14px; font-weight:700; color:var(--ev-text); display:flex; align-items:center; gap:8px; }
 .settings-close-btn { background:none; border:none; color:var(--ev-text-dim); font-size:18px; cursor:pointer; line-height:1; padding:2px; }
@@ -237,7 +237,7 @@ a:hover { text-decoration: underline; }
 .settings-section { padding:16px 20px; border-bottom:1px solid var(--ev-border); }
 .settings-section:last-child { border-bottom:none; }
 .settings-section-title { font-size:11px; color:#3b82f6; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:12px; }
-.settings-section details { border:1px solid var(--ev-border); border-radius:8px; background:var(--ev-bg); margin-bottom:8px; }
+.settings-section details { border:1px solid var(--ev-border); border-radius:10px; background:var(--ev-bg); margin-bottom:8px; }
 .settings-section details[open] { background:var(--ev-surface-2); }
 .settings-section summary { cursor:pointer; list-style:none; padding:10px 12px; font-size:12px; font-weight:600; color:var(--ev-text-2); display:flex; align-items:center; gap:8px; user-select:none; }
 .settings-section summary::-webkit-details-marker { display:none; }
@@ -268,7 +268,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--ev-link-3);
   outline-offset: 2px;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 12px; align-items: start; }
 /* Narrow screens: 4-up limits row clips off the right edge — collapse to 2-up,
@@ -286,7 +286,7 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 
 /* ── Buttons ── */
 .btn { padding: 7px 16px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; border: 1px solid transparent; }
-#search-btn { padding: 13px 28px; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+#search-btn { padding: 13px 28px; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; font-size: 13px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 #search-btn:disabled { background: var(--ev-border); cursor: not-allowed; }
 .btn-ghost { background: transparent; border-color: var(--ev-border); color: var(--ev-text-muted); }
 .btn-green { background: var(--ev-ok-bg); border-color: #16a34a; color: var(--ev-ok-text); font-weight: 600; }
@@ -385,11 +385,11 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 .scan-detail-result { font-size: 11px; font-weight: 600; flex-shrink: 0; min-width: 70px; text-align: right; }
 
 /* ── Misc ── */
-.alert-error { background: var(--ev-danger-bg); border: 1px solid var(--ev-danger-bg); border-radius: 8px; padding: 12px 16px; color: var(--ev-danger-text); font-size: 13px; margin-top: 12px; }
-.alert-success { background: var(--ev-surface); border: 1px solid var(--ev-info-bg); border-radius: 8px; padding: 12px 18px; color: var(--ev-link-3); font-size: 13px; margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.alert-error { background: var(--ev-danger-bg); border: 1px solid var(--ev-danger-bg); border-radius: 10px; padding: 12px 16px; color: var(--ev-danger-text); font-size: 13px; margin-top: 12px; }
+.alert-success { background: var(--ev-surface); border: 1px solid var(--ev-info-bg); border-radius: 10px; padding: 12px 18px; color: var(--ev-link-3); font-size: 13px; margin-top: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 /* Instruction boxes are reading material, not chrome: 12px slate-400 clears
    WCAG small-text contrast on this background where 11px slate-500 didn't. */
-.info-box { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 7px; padding: 10px 14px; font-size: 12px; color: var(--ev-text-muted); line-height: 1.65; margin-bottom: 14px; }
+.info-box { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--ev-text-muted); line-height: 1.65; margin-bottom: 14px; }
 .adv-only, .db-search-row.adv-only { display: none !important; }
 body.mode-advanced .adv-only { display: flex !important; }
 body.mode-advanced .simple-only { display: none !important; }
@@ -423,7 +423,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .db-pill-error   { color: var(--ev-danger-text); border-color: #7f1d1d44; background: var(--ev-danger-bg); }
 .db-pill-deduped { color: var(--ev-ai-text); border-color: #8b5cf644; background: var(--ev-surface-ai); }
 @keyframes spin { to { transform: rotate(360deg); } }
-.history-item { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 7px; }
+.history-item { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 10px; padding: 11px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 7px; }
 .step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ev-info-bg); color: var(--ev-link-3); font-size: 11px; font-weight: 700; flex-shrink: 0; }
 
 /* ── Checklists ── */
@@ -482,7 +482,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .cite-badge-med  { border-color: #f59e0b44; background: var(--ev-warn-bg); color: var(--ev-warn-text); }
 
 /* ── Related / cited-by panel ── */
-.related-btn { font-size: 10px; padding: 2px 9px; border-radius: 5px; border: 1px solid var(--ev-info-bg); background: transparent; color: var(--ev-link-3); cursor: pointer; white-space: nowrap; }
+.related-btn { font-size: 10px; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--ev-info-bg); background: transparent; color: var(--ev-link-3); cursor: pointer; white-space: nowrap; }
 .related-btn:hover { background: var(--ev-surface-2); }
 .related-panel { margin-top: 10px; border-top: 1px solid var(--ev-border); padding-top: 10px; display: none; }
 .related-panel.open { display: block; }
@@ -522,7 +522,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .cite-text { font-size:12px; color:var(--ev-text-muted); background:var(--ev-bg); border:1px solid var(--ev-border); border-radius:6px; padding:12px 14px; line-height:1.7; font-family:'IBM Plex Mono',monospace; }
 
 /* ── Reference Scanner ── */
-.ref-card { background:var(--ev-bg); border:1px solid var(--ev-border); border-radius:8px; padding:12px 14px; margin-bottom:8px; display:flex; gap:12px; align-items:flex-start; }
+.ref-card { background:var(--ev-bg); border:1px solid var(--ev-border); border-radius:10px; padding:12px 14px; margin-bottom:8px; display:flex; gap:12px; align-items:flex-start; }
 .ref-card:hover { border-color:var(--ev-border-2); }
 .ref-rank { font-size:18px; font-weight:700; color:var(--ev-border); min-width:28px; text-align:center; flex-shrink:0; line-height:1.2; padding-top:2px; }
 .ref-body { flex:1; min-width:0; }
@@ -551,12 +551,12 @@ body.mode-advanced .adv-block { display: block !important; }
 .proj-card-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px; }
 .proj-card-count { font-size:11px; padding:2px 9px; border-radius:10px; background:var(--ev-border); color:var(--ev-link-3); font-weight:600; }
 .proj-card-date { font-size:10px; color:var(--ev-text-faint); }
-.proj-paper-card { background:var(--ev-bg); border:1px solid var(--ev-border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+.proj-paper-card { background:var(--ev-bg); border:1px solid var(--ev-border); border-radius:10px; padding:12px 14px; margin-bottom:8px; }
 .proj-paper-card:hover { border-color:var(--ev-border-2); }
 /* Keyboard screening: the record the J/K cursor is on */
 .proj-paper-card.kb-current { border-color:#6366f1; box-shadow:0 0 0 1px #6366f1, 0 0 14px #6366f133; }
 /* Scanned-references dropdown inside a project paper card */
-.proj-refs-dd { margin-top:7px; border:1px solid var(--ev-border); border-radius:7px; background:var(--ev-surface); }
+.proj-refs-dd { margin-top:7px; border:1px solid var(--ev-border); border-radius:6px; background:var(--ev-surface); }
 .proj-refs-dd summary { cursor:pointer; list-style:none; padding:7px 11px; font-size:11px; color:var(--ev-link-2); user-select:none; }
 .proj-refs-dd summary::-webkit-details-marker { display:none; }
 .proj-refs-dd summary::before { content:'\25B8'; color:#3b82f6; font-size:10px; margin-right:6px; display:inline-block; transition:transform 0.15s; }
@@ -564,7 +564,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .proj-refs-list { max-height:320px; overflow:auto; }
 .proj-ref-row { display:flex; align-items:center; gap:8px; padding:6px 11px; border-top:1px solid var(--ev-surface-2); }
 .proj-ref-row .prr-num { font-size:10px; color:var(--ev-text-dim); min-width:18px; text-align:right; flex-shrink:0; }
-.proj-ref-add { font-size:10px; padding:2px 9px; border-radius:5px; border:1px solid #22c55e55; background:var(--ev-ok-bg); color:var(--ev-ok-text); cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.proj-ref-add { font-size:10px; padding:2px 9px; border-radius:6px; border:1px solid #22c55e55; background:var(--ev-ok-bg); color:var(--ev-ok-text); cursor:pointer; white-space:nowrap; flex-shrink:0; }
 .proj-paper-expand-btn { background:none; border:none; color:var(--ev-text-dim); font-size:10px; font-family: 'Inter', sans-serif; cursor:pointer; padding:0; margin-top:6px; letter-spacing:0.04em; }
 .proj-paper-expand-btn:hover { color:var(--ev-link-2); }
 .proj-paper-detail { margin-top:10px; border-top:1px solid var(--ev-border); padding-top:10px; display:none; }
@@ -590,7 +590,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .addtoproj-btn { font-size:10px; padding:3px 10px; border-radius:6px; border:1px solid var(--ev-info-bg); background:var(--ev-surface-2); color:var(--ev-link-3); cursor:pointer; font-family: 'Inter', sans-serif; white-space:nowrap; transition:background 0.1s; }
 .addtoproj-btn:hover { background:var(--ev-info-bg); }
 .addtoproj-btn.added { border-color:#166534; background:var(--ev-ok-bg); color:var(--ev-ok-text); }
-.addtoproj-proj-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border-radius:7px; border:1px solid var(--ev-border); background:var(--ev-bg); cursor:pointer; transition:border-color 0.12s; }
+.addtoproj-proj-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border-radius:6px; border:1px solid var(--ev-border); background:var(--ev-bg); cursor:pointer; transition:border-color 0.12s; }
 .addtoproj-proj-row:hover { border-color:#3b82f6; }
 .addtoproj-proj-row.already-added { border-color:#166534; background:var(--ev-ok-bg); cursor:default; }
 .addtoproj-proj-name { font-size:12px; color:var(--ev-text); font-weight:600; }
@@ -604,7 +604,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .ucl-cl-box-icon { font-size:18px; line-height:1; margin-top:1px; flex-shrink:0; }
 .ucl-cl-box-title { font-size:13px; font-weight:700; color:var(--ev-text); margin-bottom:2px; }
 .ucl-cl-box-sub { font-size:11px; color:var(--ev-text-dim); }
-.ucl-cl-card { display:flex; align-items:flex-start; gap:9px; background:var(--ev-surface); border:1px solid var(--ev-surface-3); border-radius:7px; padding:10px 12px; cursor:pointer; transition:border-color 0.15s, background 0.15s; margin-bottom:6px; }
+.ucl-cl-card { display:flex; align-items:flex-start; gap:9px; background:var(--ev-surface); border:1px solid var(--ev-surface-3); border-radius:6px; padding:10px 12px; cursor:pointer; transition:border-color 0.15s, background 0.15s; margin-bottom:6px; }
 .ucl-cl-card:last-child { margin-bottom:0; }
 .ucl-cl-card:hover { border-color:#3b82f6; background:var(--ev-surface-2); }
 .ucl-cl-box-bias .ucl-cl-card:hover { border-color:#a855f7; background:var(--ev-surface-ai); }
@@ -620,7 +620,7 @@ body.mode-advanced .adv-block { display: block !important; }
 @media(max-width:720px){ .ucl-cl-box { grid-column: 1 / -1; } }
 
 /* ── PDF Scanner ── */
-.upload-zone { border: 2px dashed var(--ev-info-bg); border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; background: var(--ev-bg); }
+.upload-zone { border: 2px dashed var(--ev-info-bg); border-radius: 10px; padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; background: var(--ev-bg); }
 .upload-zone:hover, .upload-zone.drag-over { border-color: #3b82f6; background: var(--ev-surface-2); }
 .upload-zone-icon { font-size: 40px; margin-bottom: 12px; }
 .upload-zone-title { font-size: 14px; color: var(--ev-link-2); font-weight: 600; margin-bottom: 6px; }
@@ -677,7 +677,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
    panel illusion on every scrollable list (results, checklists, references). */
 * { scrollbar-width: thin; scrollbar-color: var(--ev-border-2) var(--ev-surface); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--ev-border-2); border-radius: 5px; border: 2px solid var(--ev-surface); }
+::-webkit-scrollbar-thumb { background: var(--ev-border-2); border-radius: 6px; border: 2px solid var(--ev-surface); }
 ::-webkit-scrollbar-thumb:hover { background: var(--ev-border-2); }
 ::-webkit-scrollbar-track { background: transparent; }
 
@@ -698,7 +698,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
 /* Build tab */
 .pico-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
-.cblock { background:#0a1020; border:1px solid var(--ev-border-soft); border-radius:9px; padding:11px 13px; margin-bottom:9px; }
+.cblock { background:#0a1020; border:1px solid var(--ev-border-soft); border-radius:10px; padding:11px 13px; margin-bottom:9px; }
 .cblock-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .cterm { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 9px; border-radius:14px; margin:0 5px 5px 0; cursor:pointer; border:1px solid; font-family:'Inter',sans-serif; font-weight:600; }
 .cterm-mesh { background:#1e3a5f33; border-color:#60a5fa55; color:var(--ev-link-2); }
@@ -780,7 +780,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
   </div>
   <!-- Provider selector — dropdown (sits between tabs and settings cog) -->
   <select id="header-provider-select" data-evchange="h11" title="Active AI provider" aria-label="Active AI provider"
-    style="font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--ev-link-2);background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:7px;padding:5px 8px;cursor:pointer;white-space:nowrap">
+    style="font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--ev-link-2);background:var(--ev-bg);border:1px solid var(--ev-border);border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap">
     <option value="openai">OpenAI</option>
     <option value="anthropic">Anthropic</option>
     <option value="gemini">Gemini</option>
@@ -1073,19 +1073,19 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="grid2">
         <div>
           <label class="pico-lbl" for="pico-p" style="color:var(--ev-danger-text)">P &mdash; Population / Problem</label>
-          <textarea id="pico-p" aria-label="PICO — Population" rows="2" placeholder="e.g. adult patients undergoing major non-cardiac surgery" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-p" aria-label="PICO — Population" rows="2" placeholder="e.g. adult patients undergoing major non-cardiac surgery" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-i" style="color:var(--ev-link-3)">I &mdash; Intervention / Exposure</label>
-          <textarea id="pico-i" aria-label="PICO — Intervention or exposure" rows="2" placeholder="e.g. non-steroidal anti-inflammatory drugs (NSAIDs)" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-i" aria-label="PICO — Intervention or exposure" rows="2" placeholder="e.g. non-steroidal anti-inflammatory drugs (NSAIDs)" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-c" style="color:var(--ev-warn-text)">C &mdash; Comparison <span style="opacity:0.6;font-weight:400">(optional)</span></label>
-          <textarea id="pico-c" aria-label="PICO — Comparator" rows="2" placeholder="e.g. opioid analgesia or placebo" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-c" aria-label="PICO — Comparator" rows="2" placeholder="e.g. opioid analgesia or placebo" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
         <div>
           <label class="pico-lbl" for="pico-o" style="color:var(--ev-ok-text)">O &mdash; Outcome</label>
-          <textarea id="pico-o" aria-label="PICO — Outcome" rows="2" placeholder="e.g. postoperative delirium incidence" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
+          <textarea id="pico-o" aria-label="PICO — Outcome" rows="2" placeholder="e.g. postoperative delirium incidence" style="width:100%;box-sizing:border-box;padding:9px 11px;font-size:13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);resize:vertical"></textarea>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap">
@@ -1096,7 +1096,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--ev-text-2);white-space:nowrap"><input type="checkbox" class="design-cb" value="obs" data-evchange="h41" style="accent-color:#3b82f6;margin:0">Observational studies</label>
           <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--ev-text-2);white-space:nowrap"><input type="checkbox" class="design-cb" value="dx" data-evchange="h41" style="accent-color:#3b82f6;margin:0">Diagnostic accuracy</label>
         </div>
-        <button data-evclick="h42" id="build-draft-btn" style="margin-left:auto;font-size:13px;padding:10px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,var(--ev-ai-text));color:#fff;cursor:pointer;font-weight:650">&#129513; Draft concept blocks &rarr;</button>
+        <button data-evclick="h42" id="build-draft-btn" style="margin-left:auto;font-size:13px;padding:10px 18px;border-radius:6px;border:none;background:linear-gradient(135deg,#7c3aed,var(--ev-ai-text));color:#fff;cursor:pointer;font-weight:650">&#129513; Draft concept blocks &rarr;</button>
       </div>
       <div id="design-conflict-hint" style="display:none;font-size:11px;line-height:1.5;color:var(--ev-warn-text);background:var(--ev-warn-bg);border:1px solid var(--ev-warn-bg);border-radius:6px;padding:7px 11px;margin-top:8px"></div>
       <div style="display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap;font-size:12px;color:var(--ev-text-muted)">
@@ -1128,7 +1128,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
       <div class="info-box" style="font-size:11px">Each block is one concept; terms within a block are combined with <b>OR</b>. Concepts are combined with <b>AND</b> — except the <b>intervention &amp; comparator</b>, which are OR-combined (either arm) by default, and the <b>outcome</b>, which is left out of the search unless you tick it (per Cochrane). Add or remove terms and blocks; click a term to delete it. MeSH terms are tagged <span style="color:var(--ev-link-3)">MeSH</span>; free-text <span style="color:var(--ev-ai-text)">tiab</span>.</div>
       <div id="build-blocks"></div>
-      <div id="build-coverage" style="display:none;margin-top:9px;padding:9px 11px;border-radius:7px;border:1px solid #f59e0b33;background:#f59e0b0d"></div>
+      <div id="build-coverage" style="display:none;margin-top:9px;padding:9px 11px;border-radius:6px;border:1px solid #f59e0b33;background:#f59e0b0d"></div>
       <button data-evclick="h44" style="margin-top:8px;font-size:11px;padding:7px 13px;border-radius:6px;border:1px dashed #475569;background:transparent;color:var(--ev-text-muted);cursor:pointer">+ Add concept block</button>
       <button data-evclick="h45" id="build-mesh-btn" title="Check every MeSH heading against the live NCBI index — flags hallucinated or mis-spelled headings that silently retrieve nothing" style="margin-top:8px;margin-left:6px;font-size:11px;padding:7px 13px;border-radius:6px;border:1px solid #60a5fa55;background:var(--ev-surface);color:var(--ev-link-2);cursor:pointer">&#10003; Validate MeSH</button>
     </div>
@@ -1145,14 +1145,14 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <span class="step-num">3</span>
         <div class="card-label" style="margin-bottom:0">Assembled PubMed strategy &amp; live count</div>
       </div>
-      <div id="build-assembled" style="font-size:12px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:7px;padding:11px 13px;word-break:break-word;line-height:1.6"></div>
+      <div id="build-assembled" style="font-size:12px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:11px 13px;word-break:break-word;line-height:1.6"></div>
       <details style="margin-top:9px">
         <summary style="cursor:pointer;font-size:11px;color:var(--ev-link-2);user-select:none">Numbered search sets <span style="color:var(--ev-text-dim)">(PRESS / PRISMA-S — for your methods section)</span></summary>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin:6px 0 2px">
           <button id="build-setcount-btn" data-evclick="h46" title="Query PubMed for the record count of each numbered set — reveals which concept is too narrow or too broad, and where the AND-combination tightens the search" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128202; Count each set</button>
           <button data-evclick="h47" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128203; Copy sets</button>
         </div>
-        <div id="build-numbered" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:7px;padding:11px 13px;line-height:1.5"></div>
+        <div id="build-numbered" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:11px 13px;line-height:1.5"></div>
       </details>
       <details style="margin-top:9px">
         <summary style="cursor:pointer;font-size:11px;color:var(--ev-link-2);user-select:none">Paywalled databases &mdash; copy &amp; paste <span style="color:var(--ev-text-dim)">(Ovid Embase &middot; Cochrane CENTRAL)</span></summary>
@@ -1161,27 +1161,27 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <span style="font-size:11px;color:var(--ev-text-body);font-weight:600">Ovid &middot; Embase <span style="font-size:10px;color:var(--ev-text-dim);font-weight:400">(Advanced Search)</span></span>
           <button data-evclick="h48" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128203; Copy Ovid</button>
         </div>
-        <div id="build-ovid" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:7px;padding:11px 13px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+        <div id="build-ovid" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:11px 13px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px">
           <span style="font-size:11px;color:var(--ev-text-body);font-weight:600">Cochrane Library &middot; CENTRAL <span style="font-size:10px;color:var(--ev-text-dim);font-weight:400">(Search Manager)</span></span>
           <button data-evclick="h49" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128203; Copy CENTRAL</button>
         </div>
-        <div id="build-central" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:7px;padding:11px 13px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+        <div id="build-central" style="font-size:11px;color:var(--ev-text-2);font-family:'IBM Plex Mono',monospace;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:11px 13px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
       </details>
       <div style="font-size:11px;color:var(--ev-text-dim);margin-top:9px;line-height:1.5">&#8505;&#65039; This PubMed strategy is translated to each database&rsquo;s native syntax when you send it to the workbench. <b>MeSH headings only search as MeSH in PubMed</b> (and, partially, Europe PMC) &mdash; Scopus, Semantic Scholar, OpenAlex and ClinicalTrials.gov search them as free-text keywords, so every concept needs free-text synonyms to travel. Inverted headings (e.g. &ldquo;Diabetes Mellitus, Type&nbsp;2&rdquo;) are auto-rewritten to natural word order for those engines.</div>
       <div style="display:flex;align-items:center;gap:14px;margin-top:11px;flex-wrap:wrap">
-        <button data-evclick="h50" id="build-count-btn" style="font-size:12px;padding:9px 15px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128202; Preview live count</button>
+        <button data-evclick="h50" id="build-count-btn" style="font-size:12px;padding:9px 15px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#128202; Preview live count</button>
         <span id="build-count-result" style="font-size:13px;color:var(--ev-text-body)"></span>
-        <button data-evclick="h51" id="build-send-btn" style="margin-left:auto;font-size:13px;padding:10px 18px;border-radius:8px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:650;display:none">Send to workbench &rarr;</button>
+        <button data-evclick="h51" id="build-send-btn" style="margin-left:auto;font-size:13px;padding:10px 18px;border-radius:6px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:650;display:none">Send to workbench &rarr;</button>
       </div>
       <div style="font-size:11px;color:var(--ev-text-dim);margin-top:8px">The count is the true number of PubMed records this strategy retrieves (NCBI History server). Aim for a manageable, comprehensive set &mdash; the coach above suggests adjustments.</div>
 
       <div style="border-top:1px solid var(--ev-border-soft);margin-top:13px;padding-top:12px">
         <div style="font-size:12px;color:var(--ev-text-2);font-weight:600;margin-bottom:3px">&#127919; Known-item recall check <span style="font-size:10px;color:var(--ev-text-dim);font-weight:400">(optional but recommended)</span></div>
         <div style="font-size:11px;color:var(--ev-text-dim);line-height:1.5;margin-bottom:7px">Paste PMIDs or DOIs of papers you already know belong in this review. If the strategy misses any, it isn&rsquo;t sensitive enough &mdash; widen the terms and re-check. The date filter is ignored here (concept terms + study-design only).</div>
-        <textarea id="build-seeds" aria-label="Seed article identifiers (PMIDs or DOIs)" rows="2" placeholder="e.g. 34567890, 12345678, 10.1097/ALN.0000000000001234  (comma / space / newline separated)" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:'IBM Plex Mono',monospace;resize:vertical"></textarea>
+        <textarea id="build-seeds" aria-label="Seed article identifiers (PMIDs or DOIs)" rows="2" placeholder="e.g. 34567890, 12345678, 10.1097/ALN.0000000000001234  (comma / space / newline separated)" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body);font-family:'IBM Plex Mono',monospace;resize:vertical"></textarea>
         <div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
-          <button data-evclick="h52" id="build-seed-btn" style="font-size:12px;padding:8px 14px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#127919; Check known items</button>
+          <button data-evclick="h52" id="build-seed-btn" style="font-size:12px;padding:8px 14px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer">&#127919; Check known items</button>
           <span id="build-seed-summary" style="font-size:12px;color:var(--ev-text-muted)"></span>
         </div>
         <div id="build-seed-results" style="margin-top:9px;font-size:12px"></div>
@@ -1249,7 +1249,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
 
       <!-- ══ SEARCH MODE TOGGLE ══ -->
-      <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:8px;padding:3px;width:fit-content">
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:3px;width:fit-content">
         <button id="mode-simple-btn" data-evclick="h60" title="One search box, all databases at once &mdash; the fastest way to search" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;transition:background 0.15s, color 0.15s">Simple</button>
         <button id="mode-advanced-btn" data-evclick="h61" title="Per-database workbench &mdash; native query syntax, PubMed set history, and a result pool you curate" style="font-size:12px;padding:6px 16px;border-radius:6px;border:none;background:transparent;color:var(--ev-text-muted);cursor:pointer;font-weight:600;transition:background 0.15s, color 0.15s">Advanced</button>
       </div>
@@ -1264,7 +1264,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
       <div class="db-search-row simple-only">
         <div style="position:relative;flex:1;min-width:0;">
-          <input type="text" id="query-input" aria-label="Search query" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:8px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' data-evkeydown="h62" data-evinput="h63" />
+          <input type="text" id="query-input" aria-label="Search query" style="width:100%;box-sizing:border-box;padding:13px 38px 13px 16px;font-size:14px;border-radius:6px;" placeholder='"propofol" AND "postoperative outcomes" AND anaesthesia' data-evkeydown="h62" data-evinput="h63" />
           <button id="query-clear-btn" data-evclick="h64" title="Clear" aria-label="Clear search box" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:var(--ev-text-faint);color:var(--ev-text-muted);font-size:11px;cursor:pointer;align-items:center;justify-content:center;line-height:1;">&#10005;</button>
         </div>
         <button id="search-btn" data-evclick="h65">&#8594; Search</button>
@@ -1280,7 +1280,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="grid4" style="margin-top:12px;margin-bottom:12px">
         <div class="simple-only">
           <div class="sec-label">Limit by Study Type <span style="font-size:10px;color:var(--ev-text-dim)">(tick any — PubMed)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px 9px;max-height:96px;overflow:auto;padding:8px 9px;border:1px solid var(--ev-border-soft);border-radius:7px;background:var(--ev-bg)">
+          <div style="display:flex;flex-wrap:wrap;gap:5px 9px;max-height:96px;overflow:auto;padding:8px 9px;border:1px solid var(--ev-border-soft);border-radius:6px;background:var(--ev-bg)">
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Randomized Controlled Trial[pt]" style="accent-color:#3b82f6;margin:0">RCT</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Systematic Review[pt]" style="accent-color:#3b82f6;margin:0">Systematic Review</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ev-text-2);cursor:pointer;white-space:nowrap"><input type="checkbox" class="studytype-cb" value="Meta-Analysis[pt]" style="accent-color:#3b82f6;margin:0">Meta-Analysis</label>
@@ -1293,7 +1293,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         </div>
         <div class="adv-only" style="flex-direction:column;align-items:stretch">
           <div class="sec-label">Study Design</div>
-          <div style="font-size:11px;color:var(--ev-text-muted);line-height:1.5;padding:8px 9px;border:1px dashed var(--ev-border);border-radius:7px;background:var(--ev-surface)">Set on the <b>Build Search</b> tab (PICO &rarr; study design) &mdash; it travels into every database bar and the exports.</div>
+          <div style="font-size:11px;color:var(--ev-text-muted);line-height:1.5;padding:8px 9px;border:1px dashed var(--ev-border);border-radius:6px;background:var(--ev-surface)">Set on the <b>Build Search</b> tab (PICO &rarr; study design) &mdash; it travels into every database bar and the exports.</div>
         </div>
         <div>
           <div class="sec-label">From Date</div>
@@ -1354,9 +1354,9 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <span style="font-size:10px;color:var(--ev-text-dim);font-family:'IBM Plex Mono',monospace">e.g. (#1 OR #2) AND #3 NOT #4</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="text" id="combo-input" aria-label="Combine numbered searches" placeholder="#1 AND #2" data-evinput="h75" data-evkeydown="h76" style="flex:1;min-width:160px;box-sizing:border-box;padding:10px 13px;font-size:13px;font-family:'IBM Plex Mono',monospace;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)" />
-          <button data-evclick="h77" title="Resolve the combination on PubMed and show the count (no retrieval yet)" style="font-size:12px;padding:9px 14px;border-radius:7px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-2);cursor:pointer;font-weight:600;white-space:nowrap">Preview count</button>
-          <button data-evclick="h78" title="Retrieve the combined set from PubMed and add it to the pool (replaces any earlier PubMed run)" style="font-size:12px;padding:9px 14px;border-radius:7px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">&#8594; Run combined set into pool</button>
+          <input type="text" id="combo-input" aria-label="Combine numbered searches" placeholder="#1 AND #2" data-evinput="h75" data-evkeydown="h76" style="flex:1;min-width:160px;box-sizing:border-box;padding:10px 13px;font-size:13px;font-family:'IBM Plex Mono',monospace;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)" />
+          <button data-evclick="h77" title="Resolve the combination on PubMed and show the count (no retrieval yet)" style="font-size:12px;padding:9px 14px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-2);cursor:pointer;font-weight:600;white-space:nowrap">Preview count</button>
+          <button data-evclick="h78" title="Retrieve the combined set from PubMed and add it to the pool (replaces any earlier PubMed run)" style="font-size:12px;padding:9px 14px;border-radius:6px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">&#8594; Run combined set into pool</button>
         </div>
         <div id="combo-preview" style="margin-top:9px;min-height:8px"></div>
       </div>
@@ -1371,14 +1371,14 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
         <!-- Pool box — its own prominent box below the query panels: the assembled,
              de-duplicated set you've built. "See results" screens it. -->
-        <div id="pool-strip" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(180deg,var(--ev-surface),var(--ev-surface-2));border:1px solid #2563eb66;border-radius:11px;padding:14px 17px;margin-top:18px;box-shadow:0 1px 0 #1e3a5f55,0 6px 18px rgba(0,0,0,0.25)">
+        <div id="pool-strip" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(180deg,var(--ev-surface),var(--ev-surface-2));border:1px solid #2563eb66;border-radius:10px;padding:14px 17px;margin-top:18px;box-shadow:0 1px 0 #1e3a5f55,0 6px 18px rgba(0,0,0,0.25)">
           <span style="font-size:13px;font-weight:800;color:var(--ev-link);letter-spacing:0.02em">&#129518; Pool</span>
           <span style="font-size:13px;color:var(--ev-text-body)"><b id="pool-count">0</b> records</span>
           <span style="font-size:11px;color:var(--ev-text-muted)"><b id="pool-searches">0</b> searches run</span>
           <span style="font-size:11px;color:var(--ev-warn-text)"><b id="pool-dupes">0</b> duplicates removed</span>
           <span id="pool-limits" title="The limits set above the workbench apply to every run — shown here so nothing applies silently" style="font-size:11px;color:var(--ev-text-muted);font-family:'IBM Plex Mono',monospace"></span>
-          <button data-evclick="h79" id="screen-pool-btn" style="margin-left:auto;font-size:13px;padding:9px 19px;border-radius:8px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:700;white-space:nowrap" disabled>See results &#8594;</button>
-          <button data-evclick="h80" title="Empty the pool and start over" style="font-size:11px;padding:8px 11px;border-radius:8px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer;white-space:nowrap">Clear</button>
+          <button data-evclick="h79" id="screen-pool-btn" style="margin-left:auto;font-size:13px;padding:9px 19px;border-radius:6px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:700;white-space:nowrap" disabled>See results &#8594;</button>
+          <button data-evclick="h80" title="Empty the pool and start over" style="font-size:11px;padding:8px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer;white-space:nowrap">Clear</button>
         </div>
       </div>
 
@@ -1539,7 +1539,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div id="dup-review-bar" style="display:none;margin-bottom:14px"></div>
       <!-- Agent progress -->
       <div id="agent-summary-bar"></div>
-      <div id="retraction-summary-panel" style="display:none;background:var(--ev-danger-bg);border:1px solid var(--ev-danger-bg);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+      <div id="retraction-summary-panel" style="display:none;background:var(--ev-danger-bg);border:1px solid var(--ev-danger-bg);border-radius:10px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:13px;font-weight:700;color:#ef4444">⚠️ Retracted Papers Detected</div>
           <button data-evclick="h96" aria-label="Dismiss retraction alert" title="Dismiss" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px">×</button>
@@ -1547,7 +1547,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <div id="retraction-summary-list" style="font-size:12px;color:var(--ev-danger-text);display:flex;flex-direction:column;gap:6px"></div>
         <div style="font-size:10px;color:#6b7280;margin-top:8px">Source: <a href="https://retractionwatch.com" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Retraction Watch</a> via <a href="https://www.crossref.org" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Crossref</a></div>
       </div>
-      <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+      <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:10px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
             <div style="font-size:12px;font-weight:600;color:#f59e0b">🤖 Agent Analysis Running</div>
@@ -1609,7 +1609,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <span style="font-size:11px;color:var(--ev-text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Additional documents</span>
           <span style="font-size:10px;color:var(--ev-text-dim)">Appendices, supplementary data, statistical outputs</span>
           <button data-evclick="h103"
-            style="margin-left:auto;padding:3px 10px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;border:1px solid var(--ev-border);border-radius:5px;background:transparent;color:var(--ev-text-dim);cursor:pointer;white-space:nowrap">
+            style="margin-left:auto;padding:3px 10px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;border:1px solid var(--ev-border);border-radius:6px;background:transparent;color:var(--ev-text-dim);cursor:pointer;white-space:nowrap">
             + Add PDF
           </button>
         </div>
@@ -1810,18 +1810,18 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
 
       <!-- Review protocol (PROSPERO / PRISMA-P style) — collapsed by default -->
-      <div id="proj-protocol-panel" style="margin-bottom:14px; border:1px solid var(--ev-border); border-radius:8px; background:var(--ev-surface)">
+      <div id="proj-protocol-panel" style="margin-bottom:14px; border:1px solid var(--ev-border); border-radius:10px; background:var(--ev-surface)">
         <div id="proj-protocol-header" data-evclick="h126" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:9px; padding:9px 12px">
           <span style="font-size:12px; font-weight:600; color:var(--ev-ai-text)">&#128203; Review protocol</span>
           <span id="proj-protocol-status" style="font-size:10px; color:var(--ev-text-dim); font-family:'IBM Plex Mono',monospace"></span>
-          <button data-evclick="h127" title="Export the protocol as a standalone document (PRISMA-P structure)" style="font-size:10px; padding:2px 9px; border-radius:5px; border:1px solid #7c3aed55; background:var(--ev-surface-ai); color:var(--ev-ai-text); cursor:pointer">&#8595; Export</button>
+          <button data-evclick="h127" title="Export the protocol as a standalone document (PRISMA-P structure)" style="font-size:10px; padding:2px 9px; border-radius:6px; border:1px solid #7c3aed55; background:var(--ev-surface-ai); color:var(--ev-ai-text); cursor:pointer">&#8595; Export</button>
           <span id="proj-protocol-toggle" style="margin-left:auto; color:var(--ev-text-dim)">&#9660;</span>
         </div>
         <div id="proj-protocol-body" style="display:none; padding:2px 12px 12px"></div>
       </div>
 
       <!-- Dual-reviewer screening bar (contents rendered by renderDualBar) -->
-      <div id="proj-dual-bar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; padding:8px 12px; background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:8px"></div>
+      <div id="proj-dual-bar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; padding:8px 12px; background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:10px"></div>
 
       <!-- Filters -->
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap">
@@ -1875,7 +1875,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
 <!-- New Project Modal -->
 <div id="proj-modal-overlay" role="dialog" aria-modal="true" aria-label="New project" style="display:none; position:fixed; inset:0; background:#00000099; z-index:2000; align-items:center; justify-content:center">
-  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:12px; padding:24px; width:100%; max-width:440px; margin:20px">
+  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:10px; padding:24px; width:100%; max-width:440px; margin:20px">
     <div style="font-size:14px; font-weight:700; color:var(--ev-text); margin-bottom:16px">&#128193; New Project</div>
     <div style="margin-bottom:12px">
       <div class="sec-label" style="margin-bottom:5px">Project name</div>
@@ -1898,7 +1898,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
 <!-- Add to Project Modal -->
 <div id="addtoproj-modal-overlay" role="dialog" aria-modal="true" aria-label="Add paper to project" style="display:none; position:fixed; inset:0; background:#00000099; z-index:2000; align-items:center; justify-content:center">
-  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:12px; padding:24px; width:100%; max-width:420px; margin:20px">
+  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:10px; padding:24px; width:100%; max-width:420px; margin:20px">
     <div style="font-size:14px; font-weight:700; color:var(--ev-text); margin-bottom:6px">&#128193; Add to Project</div>
     <div id="addtoproj-paper-title" style="font-size:11px; color:var(--ev-text-dim); margin-bottom:16px; line-height:1.4"></div>
     <div id="addtoproj-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px; max-height:260px; overflow-y:auto"></div>
@@ -1944,13 +1944,13 @@ button:not(:disabled):active { filter: brightness(0.95); }
   </div>
   <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--ev-border)">
     <button data-evclick="h137" title="Restore the built-in default criteria" style="font-size:11px;padding:7px 13px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted);cursor:pointer">&#8634; Reset to defaults</button>
-    <button data-evclick="h138" style="margin-left:auto;font-size:12px;padding:8px 18px;border-radius:7px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:700">Apply &amp; re-score &#8594;</button>
+    <button data-evclick="h138" style="margin-left:auto;font-size:12px;padding:8px 18px;border-radius:6px;border:none;background:#22c55e;color:var(--ev-ok-bg);cursor:pointer;font-weight:700">Apply &amp; re-score &#8594;</button>
   </div>
 </div>
 
 <!-- Validation harness overlay (report rendered by evValRender) -->
 <div id="evval-overlay" role="dialog" aria-modal="true" aria-label="Validation harness" data-evclick="h139" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(4,8,18,0.75); align-items:center; justify-content:center">
-  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:12px; padding:18px 20px; width:min(720px, calc(100vw - 40px)); max-height:80vh; overflow-y:auto">
+  <div style="background:var(--ev-surface); border:1px solid var(--ev-border); border-radius:10px; padding:18px 20px; width:min(720px, calc(100vw - 40px)); max-height:80vh; overflow-y:auto">
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
       <div style="font-size:14px; font-weight:700; color:var(--ev-text)">&#129514; Validation harness</div>
       <button data-evclick="h140" aria-label="Close validation harness" style="margin-left:auto; font-size:14px; background:none; border:none; color:var(--ev-text-dim); cursor:pointer">&#10005;</button>
