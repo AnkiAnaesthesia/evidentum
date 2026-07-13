@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-4/LneJO6gLS8jcYNERk3A5b6lck7bvPeCr71b8k2sng=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-LpS31nHl+bz6lHKIiY2wwjc6gw9XeD356ZGh18bEwgs=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -4801,13 +4801,18 @@ function fetchRetry(url, init, opts) {
   var max = opts.retries != null ? opts.retries : 3;
   var base = opts.baseDelay || 600;
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  var isNcbi = typeof url === 'string' && url.indexOf('eutils.ncbi.nlm.nih.gov') !== -1;
   function attempt(n) {
     return fetch(url, init).then(function (r) {
+      // Feed NCBI throttling back into the adaptive rate gate so the WHOLE eutils
+      // subsystem slows after a 429 (not just this one request's retries).
+      if (isNcbi && r.status === 429 && typeof ncbiNote429 === 'function') ncbiNote429();
       if ((r.status === 429 || r.status >= 500) && n < max) {
         var ra = parseInt(r.headers && r.headers.get && r.headers.get('retry-after'), 10);
         var delay = (ra > 0 ? ra * 1000 : base * Math.pow(2, n)) + Math.floor(Math.random() * 250);
         return wait(delay).then(function () { return attempt(n + 1); });
       }
+      if (isNcbi && r.ok && typeof ncbiNoteOk === 'function') ncbiNoteOk();
       return r;
     }).catch(function (err) {
       if (n < max && err instanceof TypeError) {   // network error — retry
@@ -4855,11 +4860,38 @@ function ncbiAugmentUrl(url) {
   if (ncbiApiKey) add += '&api_key=' + encodeURIComponent(ncbiApiKey);
   return url + (url.indexOf('?') !== -1 ? '&' : '?') + add;
 }
+// ── Adaptive pacing ──────────────────────────────────────────────────────────
+// A FIXED request gap can't help when NCBI throttles the whole IP (a shared
+// campus / VPN / hospital network), which returns 429s no matter how gently ONE
+// browser paces itself — the reason a light user still gets rate-limited. So the
+// gap is adaptive: each 429 widens it and imposes a short cool-down (so NCBI's
+// per-IP window can reset), and sustained success decays it back toward the fast
+// baseline. Searches then self-heal under throttling WITHOUT an API key — just
+// more slowly — instead of surfacing PubMed as a failed source.
+var _ncbiGap = 0;                 // current adaptive gap in ms (0 → use baseline)
+var _ncbiCooldownUntil = 0;       // hard pause imposed after a 429
+var _ncbiThrottleLogged = false;
+function ncbiBaseGap() { return ncbiApiKey ? 110 : 400; }   // ~9/sec keyed, 2.5/sec unkeyed
+function ncbiNote429() {
+  var base = ncbiBaseGap();
+  _ncbiGap = Math.min(4000, Math.max(base * 2, (_ncbiGap || base) * 2));   // exponential widen, cap 4 s
+  _ncbiCooldownUntil = Date.now() + (ncbiApiKey ? 1200 : 3500);            // let the per-IP window reset
+  if (!_ncbiThrottleLogged && typeof logIssue === 'function') {
+    _ncbiThrottleLogged = true;
+    logIssue('search', 'PubMed is rate-limiting this network (HTTP 429) — Evidentum has automatically slowed its requests',
+      ncbiApiKey ? 'Retrieval will be slower than usual; re-run if a source came back partial.'
+                 : 'Retrieval will be slower. A free NCBI API key (⚙ Settings → NCBI) raises the limit 3×, or try again off a shared / VPN network.');
+  }
+}
+function ncbiNoteOk() {
+  if (_ncbiGap > ncbiBaseGap()) _ncbiGap = Math.max(ncbiBaseGap(), Math.round(_ncbiGap * 0.8));
+  else { _ncbiGap = 0; _ncbiThrottleLogged = false; }
+}
 function ncbiGate() {
-  var minGap = ncbiApiKey ? 110 : 420;   // ~9/sec keyed, ~2.4/sec unkeyed (headroom under the 3/sec cap)
+  var gap = Math.max(ncbiBaseGap(), _ncbiGap || 0);
   var now = Date.now();
-  var slot = Math.max(now, _ncbiNextSlot);
-  _ncbiNextSlot = slot + minGap;
+  var slot = Math.max(now, _ncbiNextSlot, _ncbiCooldownUntil);
+  _ncbiNextSlot = slot + gap;
   var wait = slot - now;
   return wait > 0 ? new Promise(function(r){ setTimeout(r, wait); }) : Promise.resolve();
 }
@@ -4917,7 +4949,11 @@ function fetchWithFallbackRaw(url, allowProxy) {
            t.indexOf('<!doctype') !== -1 || t.indexOf('<html') !== -1;
   }
 
-  return fetchRetry(url).then(function (r) {
+  // NCBI/eutils throttling of a shared IP can persist for several seconds, so give
+  // those requests extra retries and a longer backoff before giving up (other
+  // engines keep the default 3× / 600 ms).
+  var ncbiReq = url.indexOf('eutils.ncbi.nlm.nih.gov') !== -1;
+  return fetchRetry(url, undefined, ncbiReq ? { retries: 5, baseDelay: 800 } : undefined).then(function (r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.text().then(function (t) { return wrapText(t); });
   }).catch(function (directErr) {
