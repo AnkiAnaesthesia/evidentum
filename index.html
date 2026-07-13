@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-AKd8+bKVkYW3YNZT49CBa8jxUpqgh/rN30I6NOqS3ik=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-4/LneJO6gLS8jcYNERk3A5b6lck7bvPeCr71b8k2sng=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -1493,6 +1493,24 @@ button:not(:disabled):active { filter: brightness(0.95); }
     <div class="db-status-bar" id="db-status-bar" style="display:none"></div>
 
     <div id="provenance-panel" style="display:none"></div>
+
+    <!-- Import records from databases Evidentum can't query via API (Embase, CENTRAL, …).
+         Run those searches externally, export RIS/CSV, import here → deduplicated into the pool. -->
+    <div id="import-bar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)">
+      <span style="font-size:12px;font-weight:600;color:var(--ev-text-2)">&#8593; Import records</span>
+      <span style="font-size:11px;color:var(--ev-text-dim);flex:1;min-width:180px">Bring in <b>Embase</b>, <b>CENTRAL</b> or other exports (RIS or CSV) &mdash; deduplicated against your results, screened alongside them.</span>
+      <label for="import-source" style="font-size:11px;color:var(--ev-text-muted)">Source</label>
+      <select id="import-source" aria-label="Source database for imported records" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
+        <option value="Embase">Embase (Ovid)</option>
+        <option value="CENTRAL">Cochrane CENTRAL</option>
+        <option value="CINAHL">CINAHL</option>
+        <option value="PsycINFO">PsycINFO</option>
+        <option value="Web of Science">Web of Science</option>
+        <option value="Scopus (manual)">Scopus (manual export)</option>
+        <option value="Imported">Other database</option>
+      </select>
+      <label style="font-size:11px;padding:6px 13px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-surface);color:var(--ev-link-2);cursor:pointer;white-space:nowrap" title="Choose one or more RIS or CSV files exported from the selected database">&#8595; Choose RIS/CSV file(s)<input type="file" accept=".ris,.nbib,.txt,.csv" multiple data-evchange="h179" style="display:none"></label>
+    </div>
 
     <div id="empty-results" class="empty">
       <div class="empty-icon">&#128300;</div>
@@ -3981,12 +3999,14 @@ function doSearch() {
           'Re-run the search to fetch the remaining pages.');
       }
     });
-    // Flatten and deduplicate across sources
+    // Flatten and deduplicate across sources — importedRecords (Embase/CENTRAL exports the
+    // user brought in) are folded in so a re-run search re-includes them and they dedupe
+    // against the fresh live results.
     var combined = deduplicatePapers(
-      allResults[0], allResults[1], allResults[2], allResults[3], allResults[4], allResults[5], allResults[6]
+      allResults[0], allResults[1], allResults[2], allResults[3], allResults[4], allResults[5], allResults[6], importedRecords
     );
 
-    var dupeCount = allResults.reduce(function(s, r) { return s + r.length; }, 0) - combined.length;
+    var dupeCount = allResults.reduce(function(s, r) { return s + r.length; }, 0) + importedRecords.length - combined.length;
     if (dupeCount > 0) {
       var dpill = document.createElement('div');
       dpill.className = 'db-pill db-pill-deduped';
@@ -4009,21 +4029,32 @@ function doSearch() {
       'Scopus': (allResults[5]||[]).length,
       'ClinicalTrials.gov': (allResults[6]||[]).length
     };
+    // Imported (Embase/CENTRAL etc.) records count as identified-per-source for PRISMA too.
+    var importedQueries = {};
+    var importedRaw = importedRecords.length;
+    importedRecords.forEach(function(r) {
+      var lbl = r.source || 'Imported';
+      perSource[lbl] = (perSource[lbl] || 0) + 1;
+      if (!importedQueries[lbl]) importedQueries[lbl] = '(imported ' + lbl + ' export — strategy run externally)';
+    });
+    var provQueries = {
+      'PubMed':             usePubmed         ? getDbQuery('pubmed', q, secQ)         : null,
+      'Cochrane':           useCochrane       ? getDbQuery('cochrane', q, secQ)       : null,
+      'Europe PMC':         useEuropePmc      ? getDbQuery('europepmc', q, secQ)      : null,
+      'Semantic Scholar':   useSemantic       ? getDbQuery('semantic', q, secQ)       : null,
+      'OpenAlex':           useOpenAlex       ? getDbQuery('openalex', q, secQ)       : null,
+      'Scopus':             useScopus         ? getDbQuery('scopus', q, secQ)         : null,
+      'ClinicalTrials.gov': useClinicalTrials ? getDbQuery('clinicaltrials', q, secQ) : null
+    };
+    Object.keys(importedQueries).forEach(function(k){ provQueries[k] = importedQueries[k]; });
     lastSearchProvenance = {
       primaryQuery: q,
       secondaryQuery: secQ,
-      perSourceQueries: {
-        'PubMed':             usePubmed         ? getDbQuery('pubmed', q, secQ)         : null,
-        'Cochrane':           useCochrane       ? getDbQuery('cochrane', q, secQ)       : null,
-        'Europe PMC':         useEuropePmc      ? getDbQuery('europepmc', q, secQ)      : null,
-        'Semantic Scholar':   useSemantic       ? getDbQuery('semantic', q, secQ)       : null,
-        'OpenAlex':           useOpenAlex       ? getDbQuery('openalex', q, secQ)       : null,
-        'Scopus':             useScopus         ? getDbQuery('scopus', q, secQ)         : null,
-        'ClinicalTrials.gov': useClinicalTrials ? getDbQuery('clinicaltrials', q, secQ) : null
-      },
+      perSourceQueries: provQueries,
       primaryRaw: primaryRaw,
       secondaryRaw: secondaryRaw,
-      totalIdentified: primaryRaw + secondaryRaw,
+      importedRaw: importedRaw,
+      totalIdentified: primaryRaw + secondaryRaw + importedRaw,
       duplicatesRemoved: dupeCount,
       uniqueRecords: combined.length,
       perSource: perSource,
@@ -4251,7 +4282,7 @@ function titleSimilarity(t1, t2) {
   return (2 * inter) / (A.length + B.length);
 }
 
-function deduplicatePapers(pubmedArr, cochraneArr, europePmcArr, semanticArr, openAlexArr, scopusArr, clinicalTrialsArr) {
+function deduplicatePapers(pubmedArr, cochraneArr, europePmcArr, semanticArr, openAlexArr, scopusArr, clinicalTrialsArr, importedArr) {
   var seenDoi  = {};
   var seenPmid = {};
   var seenTitle = {};
@@ -4339,8 +4370,11 @@ function deduplicatePapers(pubmedArr, cochraneArr, europePmcArr, semanticArr, op
     out.push(p);
   }
 
-  // PubMed first (highest quality metadata), then Cochrane, Europe PMC, Semantic, OpenAlex, Scopus, ClinicalTrials
-  [pubmedArr, cochraneArr, europePmcArr, semanticArr, openAlexArr, scopusArr, clinicalTrialsArr].forEach(function(arr) {
+  // PubMed first (highest quality metadata), then Cochrane, Europe PMC, Semantic, OpenAlex,
+  // Scopus, ClinicalTrials, then user-imported exports (Embase / CENTRAL etc.) LAST — imported
+  // records add their source label to any record already found by an API database, and only
+  // otherwise-unseen imports become new records.
+  [pubmedArr, cochraneArr, europePmcArr, semanticArr, openAlexArr, scopusArr, clinicalTrialsArr, importedArr].forEach(function(arr) {
     (arr || []).forEach(tryAdd);
   });
 
@@ -4383,6 +4417,199 @@ function deduplicatePapers(pubmedArr, cochraneArr, europePmcArr, semanticArr, op
 
   out.possibleDuplicates = pairs;
   return out;
+}
+
+// ── Import external database exports (Embase, Cochrane CENTRAL, CINAHL …) ─────
+// Evidentum can't query Embase/CENTRAL through an API, so reviewers run those
+// searches on Ovid / the Cochrane Library, export RIS or CSV, and import the
+// records here. Imported records are normalised to the same shape as searched
+// results, folded through the SAME deduplication (a record already found in
+// PubMed just gains the extra source label), and rendered as ordinary cards —
+// which is what lets the reviewer deduplicate across ALL databases in one pool.
+
+// Cumulative imported records, kept so a re-run ("update") search re-folds them.
+var importedRecords = [];
+
+// Normalise one parsed record to the result-card paper shape.
+function makeImportedPaper(rec, sourceLabel, seq) {
+  var authors = rec.authors;
+  if (!Array.isArray(authors)) authors = authors ? String(authors).split(/\s*;\s*|\s*\|\s*|\s+and\s+/i).map(function(a){return a.trim();}).filter(Boolean) : [];
+  var ym = String(rec.year || '').match(/\d{4}/);
+  return {
+    // Synthetic, non-numeric id → never false-matches a real PubMed PMID in dedup.
+    pmid: 'imp_' + Date.now().toString(36) + '_' + seq,
+    title: String(rec.title || '').replace(/\s+/g, ' ').trim(),
+    authors: authors,
+    year: ym ? ym[0] : '',
+    journal: String(rec.journal || '').trim(),
+    doi: String(rec.doi || '').replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').trim(),
+    abstract: String(rec.abstract || '').replace(/\s+/g, ' ').trim(),
+    url: String(rec.url || '').trim(),
+    fullTextUrl: String(rec.url || '').trim(),
+    studyType: String(rec.studyType || '').trim(),
+    source: sourceLabel,
+    sources: [sourceLabel],
+    imported: true
+  };
+}
+
+// Parse RIS (Ovid Embase, Cochrane Library) into raw {title,authors[],year,…} records.
+function parseRisRecords(text) {
+  var out = [], cur = null, lastTag = null;
+  String(text || '').replace(/^﻿/, '').split(/\r\n|\r|\n/).forEach(function(line) {
+    var m = line.match(/^([A-Z][A-Z0-9])\s{0,3}-\s?(.*)$/);
+    if (m) {
+      var tag = m[1], val = m[2].trim();
+      if (tag === 'TY') { if (cur) out.push(cur); cur = { authors: [] }; lastTag = tag; return; }
+      if (!cur) cur = { authors: [] };
+      if (tag === 'ER') { out.push(cur); cur = null; lastTag = null; return; }
+      if (tag === 'TI' || tag === 'T1') { cur.title = cur.title ? cur.title + ' ' + val : val; }
+      else if (tag === 'AU' || tag === 'A1' || tag === 'A2' || tag === 'A3') { if (val) cur.authors.push(val); }
+      else if (tag === 'PY' || tag === 'Y1') { if (!cur.year) cur.year = val; }
+      else if (tag === 'AB' || tag === 'N2') { cur.abstract = cur.abstract ? cur.abstract + ' ' + val : val; }
+      else if (tag === 'DO') { if (!cur.doi) cur.doi = val; }
+      else if (tag === 'JO' || tag === 'JF' || tag === 'JA' || tag === 'T2') { if (!cur.journal) cur.journal = val; }
+      else if (tag === 'UR' || tag === 'L1') { if (!cur.url) cur.url = val; }
+      lastTag = tag;
+    } else if (cur && lastTag && line.trim()) {
+      // Continuation line (wrapped abstract/title): append to the last field.
+      if (lastTag === 'AB' || lastTag === 'N2') cur.abstract = (cur.abstract ? cur.abstract + ' ' : '') + line.trim();
+      else if ((lastTag === 'TI' || lastTag === 'T1') && cur.title != null) cur.title += ' ' + line.trim();
+    }
+  });
+  if (cur) out.push(cur);
+  return out.filter(function(r){ return r.title || (r.authors && r.authors.length) || r.doi; });
+}
+
+// Parse a CSV export (Ovid, Cochrane, most databases) via fuzzy column detection.
+function parseTabularRecords(text) {
+  var rows = evValParseCsv(text);
+  if (!rows.length) return [];
+  var keys = Object.keys(rows[0]);
+  function pick(cands) {
+    for (var i = 0; i < cands.length; i++) {
+      var exact = keys.filter(function(h){ return h.toLowerCase().replace(/[^a-z]/g, '') === cands[i]; })[0];
+      if (exact) return exact;
+    }
+    for (var j = 0; j < cands.length; j++) {
+      var part = keys.filter(function(h){ return h.toLowerCase().replace(/[^a-z]/g, '').indexOf(cands[j]) !== -1; })[0];
+      if (part) return part;
+    }
+    return null;
+  }
+  var kTitle = pick(['title', 'articletitle', 'primarytitle']);
+  var kAuth  = pick(['authors', 'author', 'authornames', 'creator']);
+  var kYear  = pick(['year', 'publicationyear', 'pubyear', 'yearofpublication', 'date']);
+  var kJourn = pick(['journal', 'sourcetitle', 'source', 'publicationtitle', 'publication']);
+  var kDoi   = pick(['doi']);
+  var kAbs   = pick(['abstract']);
+  var kUrl   = pick(['url', 'link', 'doilink']);
+  return rows.map(function(r) {
+    return {
+      title:   kTitle ? r[kTitle] : '',
+      authors: kAuth  ? r[kAuth]  : '',
+      year:    kYear  ? r[kYear]  : '',
+      journal: kJourn ? r[kJourn] : '',
+      doi:     kDoi   ? r[kDoi]   : '',
+      abstract:kAbs   ? r[kAbs]   : '',
+      url:     kUrl   ? r[kUrl]   : ''
+    };
+  }).filter(function(r){ return String(r.title || '').trim() || String(r.doi || '').trim(); });
+}
+
+// Stable key for a possible-duplicate pair so re-running dedup on import doesn't
+// re-surface pairs the reviewer already resolved.
+function importPairKey(pair) {
+  var a = String((pair.a && pair.a.pmid) || ''), b = String((pair.b && pair.b.pmid) || '');
+  return a < b ? a + '|' + b : b + '|' + a;
+}
+
+// File-input handler: read each chosen file, sniff RIS vs CSV, parse, tag source, merge.
+function importResultRecords(input) {
+  var files = input && input.files ? Array.prototype.slice.call(input.files) : [];
+  if (!files.length) return;
+  var sel = document.getElementById('import-source');
+  var sourceLabel = (sel && sel.value) || 'Imported';
+  var pending = files.length, collected = [], seq = 0;
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function() {
+      try {
+        var textData = String(reader.result || '');
+        var head = textData.slice(0, 2000);
+        var isRis = /\.(ris|nbib)$/i.test(file.name) ||
+                    (!/\.csv$/i.test(file.name) && /(^|\n)\s*TY\s{0,3}-\s/.test(head));
+        var recs = isRis ? parseRisRecords(textData) : parseTabularRecords(textData);
+        recs.forEach(function(rec){ collected.push(makeImportedPaper(rec, sourceLabel, seq++)); });
+      } catch (e) {
+        logIssue('search', 'Could not parse ' + file.name + ' — ' + (e && e.message || 'unreadable'),
+                 'Export the records again as RIS or CSV and retry.');
+      }
+      if (--pending === 0) finishRecordImport(collected, sourceLabel);
+    };
+    reader.onerror = function() { if (--pending === 0) finishRecordImport(collected, sourceLabel); };
+    reader.readAsText(file);
+  });
+  input.value = '';
+}
+
+// Merge freshly-parsed records into the live pool, update PRISMA counts, re-render.
+function finishRecordImport(newRecords, sourceLabel) {
+  if (!newRecords.length) {
+    showToast('No records found — check the file is a valid ' + sourceLabel + ' RIS or CSV export', '#f59e0b');
+    return;
+  }
+  var before = papers.length;
+  // Fold new records into the CURRENT pool through the same dedup. Passing papers
+  // as the primary array preserves each existing card's object identity (and thus
+  // its session state: agent analysis, tags, retraction flags), while imports that
+  // match gain their source label and unmatched imports become new cards.
+  var merged = deduplicatePapers(papers, null, null, null, null, null, null, newRecords);
+  papers = merged.map(function(p) {
+    if (p.scanResults) return p;                 // existing card — leave as-is
+    var scan = scanPaper(p);
+    p.scanResults = scan.results; p.score = scan.score;
+    p.passedCriteria = scan.passed; p.totalCriteria = scan.total;
+    p.manualTags = p.manualTags || [];
+    return p;
+  });
+  // Keep imports for a future re-run search.
+  newRecords.forEach(function(r){ importedRecords.push(r); });
+  // Merge any NEW near-miss pairs, preserving already-resolved ones.
+  (merged.possibleDuplicates || []).forEach(function(np) {
+    var key = importPairKey(np);
+    if (!possibleDuplicates.some(function(op){ return importPairKey(op) === key; })) possibleDuplicates.push(np);
+  });
+  var added = papers.length - before;
+  var dupes = newRecords.length - added;
+  updateImportProvenance(sourceLabel, newRecords.length, dupes, papers.length);
+  if (before === 0) { resultsContext = 'simple'; var ss = document.getElementById('sort-by'); if (ss) ss.value = 'relevance'; }
+  renderResults();
+  renderDupReviewBar();
+  if (searchMode === 'advanced' && lastSearchProvenance) renderProvenancePanel(lastSearchProvenance);
+  showToast('Imported ' + newRecords.length + ' ' + sourceLabel + ' record' + (newRecords.length === 1 ? '' : 's') +
+            ' — ' + added + ' new, ' + dupes + ' merged as duplicate' + (dupes === 1 ? '' : 's'), '#22c55e');
+}
+
+// Increment PRISMA identification counts for an import (identified − duplicates = unique).
+function updateImportProvenance(sourceLabel, identified, dupes, unique) {
+  if (!lastSearchProvenance) {
+    lastSearchProvenance = {
+      primaryQuery: '', secondaryQuery: '', perSourceQueries: {}, perSource: {},
+      primaryRaw: 0, secondaryRaw: 0, importedRaw: 0, totalIdentified: 0,
+      duplicatesRemoved: 0, uniqueRecords: 0, searchedAt: new Date().toISOString(),
+      dateFrom: '', dateTo: '', design: '', importOnly: true
+    };
+  }
+  var prov = lastSearchProvenance;
+  prov.perSource = prov.perSource || {};
+  prov.perSource[sourceLabel] = (prov.perSource[sourceLabel] || 0) + identified;
+  prov.perSourceQueries = prov.perSourceQueries || {};
+  if (!prov.perSourceQueries[sourceLabel]) prov.perSourceQueries[sourceLabel] = '(imported ' + sourceLabel + ' export — strategy run externally)';
+  prov.importedRaw = (prov.importedRaw || 0) + identified;
+  prov.totalIdentified = (prov.totalIdentified || 0) + identified;
+  prov.duplicatesRemoved = (prov.duplicatesRemoved || 0) + dupes;
+  prov.uniqueRecords = unique;
 }
 
 function showError(msg) {
@@ -6770,6 +6997,8 @@ function resetResults() {
 
   papers = [];
   poolSlices = {}; poolMerged = [];
+  importedRecords = [];              // drop imported Embase/CENTRAL exports too — a true fresh start
+  possibleDuplicates = [];           // these pointed at now-cleared records
   expandedCards.clear();
   excludedSources.clear();
   lastSearchProvenance = null;
@@ -18529,6 +18758,7 @@ evOn('h175', function (event) { evOauthSignIn(); });   // evOauthSignIn()
 evOn('h176', function (event) { evValDownloadResults(); });   // evValDownloadResults()
 evOn('h177', function (event) { evValCopyMethods(); });   // evValCopyMethods()
 evOn('h178', function (event) { addMethodsToProtocol(); });   // addMethodsToProtocol() — U4
+evOn('h179', function (event) { importResultRecords(this); }); // import Embase/CENTRAL RIS/CSV into results
 /* @@REGISTRY-AUTO-END@@ */
 
 // ── Handlers that closed over runtime data (hand-written) ─────────────────────
