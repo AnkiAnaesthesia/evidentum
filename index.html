@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-noitxRzRTrJF2N/R5RYyX/f00M6A9SL4H+wyZguIQRc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0FCmGB1kb8tZCUplioRmh6ugyTeTaep+eaA8bQ2JkkA=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -5006,6 +5006,10 @@ function applyProximityLucene(q, n) {
 // ══════════════════════════════════════════════
 var buildBlocks = [];   // [{ concept, role, terms:[{term, field:'mesh'|'tiab'}] }]
 var buildCoachNotes = [];
+// Structured, one-click-applyable term recommendations from the AI coach — each is
+// { concept, role, term, field, reason }. Unlike buildCoachNotes (freeform prose),
+// these carry enough structure to be added straight into a buildBlocks concept.
+var buildCoachSuggestions = [];
 
 // ── PICO role → ClinicalTrials.gov expert-search field ───────────────────────
 // Tagging each concept block with its PICO role lets us build a FIELD-TARGETED
@@ -5219,7 +5223,15 @@ async function buildDraftStrategy() {
     + 'Prefer these free-text phrasings and plain MeSH descriptors over floating subheadings '
     + '(e.g. "Breast Neoplasms/surgery") — subheading indexing is inconsistent and quietly costs recall. '
     + 'Also provide brief METHODOLOGY NOTES flagging any weaknesses (missing concept, '
-    + 'over-reliance on free text, overly narrow terms). Be a constructive coach, not verbose.\n\n'
+    + 'over-reliance on free text, overly narrow terms). Be a constructive coach, not verbose.\n'
+    + 'Then, in a separate "suggestions" array, turn those weaknesses into CONCRETE, DIRECTLY '
+    + 'USABLE additions: up to ~10 specific search TERMS worth ADDING to a named concept block '
+    + 'to improve recall (extra synonyms, US/UK spelling variants, acronyms, brand/generic drug '
+    + 'names, related valid MeSH descriptors, truncations) that are NOT already in the blocks '
+    + 'above. Each suggestion names the target "concept" (match one of your block labels EXACTLY '
+    + 'so it can be routed automatically), the "role" (same vocabulary as the blocks), the "term", '
+    + 'the "field" ("mesh" or "tiab"), and a short "reason". These are shown with one-click Add '
+    + 'buttons, so make them precise and non-duplicative — never repeat a term already present.\n\n'
     + 'Label each block with its PICO "role": one of "condition" (population/disease), '
     + '"intervention", "comparator", "outcome", or "other" — this field-targets the '
     + 'ClinicalTrials.gov expert search and lets the user decide which concepts to search. '
@@ -5229,7 +5241,8 @@ async function buildDraftStrategy() {
     + 'block of its own, since age is better screened than searched.\n'
     + 'Respond ONLY with JSON, no markdown, in exactly this shape:\n'
     + '{"blocks":[{"concept":"short label","role":"intervention","terms":[{"term":"delirium","field":"mesh"},'
-    + '{"term":"deliri*","field":"tiab"}]}],"notes":["short note","short note"]}';
+    + '{"term":"deliri*","field":"tiab"}]}],"notes":["short note","short note"],'
+    + '"suggestions":[{"concept":"short label","role":"intervention","term":"dexmedetomidine","field":"tiab","reason":"missing common synonym"}]}';
 
   var user = 'PICO question:\n'
     + 'Population: ' + (pico.p || '(none given)') + '\n'
@@ -5254,6 +5267,18 @@ async function buildDraftStrategy() {
       }).filter(function(t){ return t.term; }) };
     }).filter(function(b){ return b.terms.length; });
     buildCoachNotes = parsed.notes || [];
+    // Structured recommendations → applyable chips. Sanitise to strings, coerce field,
+    // and drop any the model already placed in a block (so "Add" never no-ops silently).
+    var existingTerms = {};
+    buildBlocks.forEach(function(b){ b.terms.forEach(function(t){ existingTerms[(t.term||'').toLowerCase()] = true; }); });
+    buildCoachSuggestions = (parsed.suggestions || []).map(function(s){
+      var term = (s && s.term ? String(s.term) : '').trim();
+      return { concept: (s && s.concept ? String(s.concept) : '').trim(),
+               role: normalizeRole(s && s.role),
+               term: term,
+               field: (s && s.field === 'mesh' && term.indexOf('*') === -1) ? 'mesh' : 'tiab',
+               reason: (s && s.reason ? String(s.reason) : '').trim() };
+    }).filter(function(s){ return s.term && !existingTerms[s.term.toLowerCase()]; });
 
     if (!buildBlocks.length) { statusEl.innerHTML = '<span style="color:#ef4444">No blocks returned \u2014 try rephrasing the PICO.</span>'; return; }
     statusEl.innerHTML = '<span style="color:var(--ev-ok-text)">\u2713 drafted ' + buildBlocks.length + ' concept blocks \u2014 review and edit below</span>';
@@ -5538,11 +5563,77 @@ function renderBuildCoverage() {
 function renderBuildCoach() {
   var card = document.getElementById('build-coach-card');
   var box = document.getElementById('build-coach');
-  if (!buildCoachNotes.length) { card.style.display = 'none'; return; }
+  if (!buildCoachNotes.length && !buildCoachSuggestions.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  box.innerHTML = buildCoachNotes.map(function(n){
+  var html = buildCoachNotes.map(function(n){
     return '<div style="font-size:12px;color:var(--ev-text-2);margin-bottom:6px;line-height:1.5">\u2022 ' + esc(n) + '</div>';
   }).join('');
+  if (buildCoachSuggestions.length) {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin:11px 0 8px;padding-top:10px;border-top:1px solid var(--ev-border-soft)">'
+      + '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--ev-text-muted)">Suggested terms to add</span>'
+      + '<button ' + evAttr('click', 'applyAllBuildSuggestions')
+      + ' style="margin-left:auto;font-size:10px;padding:3px 11px;border-radius:6px;border:1px solid #16a34a55;background:var(--ev-ok-bg);color:var(--ev-ok-text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" '
+      + 'title="Add every suggested term to its concept block">+ Add all (' + buildCoachSuggestions.length + ')</button>'
+      + '</div>';
+    html += buildCoachSuggestions.map(function(sg, i){
+      var label = PICO_ROLE_LABEL[sg.role] || sg.concept || 'search';
+      return '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px">'
+        + '<button ' + evAttr('click', 'applyBuildSuggestion', [i])
+        + ' style="flex:none;font-size:11px;padding:2px 9px;border-radius:6px;border:1px solid #16a34a55;background:var(--ev-ok-bg);color:var(--ev-ok-text);cursor:pointer;font-family:\'IBM Plex Mono\',monospace" '
+        + 'title="Add to the ' + esc(sg.concept || label) + ' block">+ ' + esc(sg.term) + '</button>'
+        + '<span style="font-size:11px;color:var(--ev-text-dim);line-height:1.45">'
+        + '<b style="color:var(--ev-text-muted)">' + esc(sg.concept || label) + '</b>'
+        + ' \u00b7 ' + esc(sg.field === 'mesh' ? 'MeSH' : 'tiab')
+        + (sg.reason ? ' \u2014 ' + esc(sg.reason) : '') + '</span>'
+        + '</div>';
+    }).join('');
+  }
+  box.innerHTML = html;
+}
+
+// Route one suggested term into the matching concept block (by exact concept label,
+// else by PICO role, else a new block). Mutates buildBlocks; returns true if added,
+// false if it was already present. No render/toast here \u2014 callers batch those.
+function applyBuildSuggestionCore(sg) {
+  if (!sg || !sg.term) return false;
+  var target = null, i;
+  for (i = 0; i < buildBlocks.length; i++) {
+    if ((buildBlocks[i].concept || '').toLowerCase() === (sg.concept || '').toLowerCase() && sg.concept) { target = buildBlocks[i]; break; }
+  }
+  if (!target && sg.role && sg.role !== 'other') {
+    for (i = 0; i < buildBlocks.length; i++) { if (buildBlocks[i].role === sg.role) { target = buildBlocks[i]; break; } }
+  }
+  if (!target) {
+    target = { concept: sg.concept || (PICO_ROLE_LABEL[sg.role] || 'Concept'), role: sg.role || 'other', inSearch: true, terms: [] };
+    buildBlocks.push(target);
+  }
+  var dup = target.terms.some(function(t){ return (t.term || '').toLowerCase() === sg.term.toLowerCase(); });
+  if (dup) return false;
+  // A MeSH heading can't carry a wildcard — honour the truncation as free text instead.
+  var field = (sg.field === 'mesh' && sg.term.indexOf('*') === -1) ? 'mesh' : 'tiab';
+  target.terms.push({ term: sg.term, field: field });
+  sg._targetConcept = target.concept;
+  return true;
+}
+
+function applyBuildSuggestion(i) {
+  var sg = buildCoachSuggestions[i];
+  if (!sg) return;
+  var added = applyBuildSuggestionCore(sg);
+  buildCoachSuggestions.splice(i, 1);
+  renderBuildBlocks(); assembleBuildQuery(); renderBuildCoach();
+  showToast(added ? 'Added \u201c' + sg.term + '\u201d to ' + (sg._targetConcept || 'the search')
+                  : '\u201c' + sg.term + '\u201d is already in the search',
+            added ? '#22c55e' : '#f59e0b');
+}
+
+function applyAllBuildSuggestions() {
+  if (!buildCoachSuggestions.length) return;
+  var total = buildCoachSuggestions.length, added = 0;
+  buildCoachSuggestions.forEach(function(sg){ if (applyBuildSuggestionCore(sg)) added++; });
+  buildCoachSuggestions = [];
+  renderBuildBlocks(); assembleBuildQuery(); renderBuildCoach();
+  showToast('Added ' + added + ' of ' + total + ' suggested term' + (total === 1 ? '' : 's') + ' to the search', '#22c55e');
 }
 
 function removeBuildTerm(bi, ti) { buildBlocks[bi].terms.splice(ti,1); renderBuildBlocks(); assembleBuildQuery(); }
