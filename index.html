@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0FCmGB1kb8tZCUplioRmh6ugyTeTaep+eaA8bQ2JkkA=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-AKd8+bKVkYW3YNZT49CBa8jxUpqgh/rN30I6NOqS3ik=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -119,6 +119,10 @@
   --ev-warn-bg: #1c1408;
   --ev-danger-bg: #1a0808;
   --ev-info-bg: #1e3a5f;
+  --ev-inset: #0a1020;
+  --ev-neutral-bg: #1c1917;
+  --ev-neutral-text: #8b847e;
+  --ev-neutral-border: #44403c;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -148,6 +152,10 @@
   --ev-warn-bg: #fef3c7;
   --ev-danger-bg: #fee2e2;
   --ev-info-bg: #dbeafe;
+  --ev-inset: #e7edf4;
+  --ev-neutral-bg: #ece9e5;
+  --ev-neutral-text: #67615b;
+  --ev-neutral-border: #d6d3ce;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -170,7 +178,7 @@ a:hover { text-decoration: underline; }
 .agent-result-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
 .agent-badge-done { background: var(--ev-ok-bg); color: var(--ev-ok-text); border: 1px solid #16a34a; }
 .agent-badge-fail { background: var(--ev-danger-bg); color: var(--ev-danger-text); border: 1px solid var(--ev-danger-bg); }
-.agent-badge-skip { background: #1c1917; color: #8b847e; border: 1px solid #44403c; }
+.agent-badge-skip { background: var(--ev-neutral-bg); color: var(--ev-neutral-text); border: 1px solid var(--ev-neutral-border); }
 #api-key-banner { background: var(--ev-surface); border: 1px solid #f59e0b55; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 #api-key-banner.key-set { border-color: #16a34a55; }
 .api-key-label { font-size: 11px; color: #f59e0b; font-weight: 600; white-space: nowrap; }
@@ -534,7 +542,7 @@ body.mode-advanced .adv-block { display: block !important; }
 .ref-badge-bias-low { background:var(--ev-ok-bg); color:var(--ev-ok-text); border:1px solid #16a34a; }
 .ref-badge-bias-some { background:var(--ev-warn-bg); color:var(--ev-warn-text); border:1px solid #9a3412; }
 .ref-badge-bias-high { background:var(--ev-danger-bg); color:var(--ev-danger-text); border:1px solid var(--ev-danger-bg); }
-.ref-badge-bias-unclear { background:#1c1917; color:#8b847e; border:1px solid #44403c; }
+.ref-badge-bias-unclear { background:var(--ev-neutral-bg); color:var(--ev-neutral-text); border:1px solid var(--ev-neutral-border); }
 .ref-badge-quality { background:var(--ev-surface-2); color:var(--ev-link); border:1px solid var(--ev-info-bg); }
 .ref-badge-biastool { background:var(--ev-surface-ai); color:#c084fc; border:1px solid #3b1e6e; }
 .ref-badge-score { background:var(--ev-surface-ai); color:var(--ev-ai-text); border:1px solid #312e81; }
@@ -698,7 +706,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
 /* Build tab */
 .pico-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
-.cblock { background:#0a1020; border:1px solid var(--ev-border-soft); border-radius:10px; padding:11px 13px; margin-bottom:9px; }
+.cblock { background:var(--ev-inset); border:1px solid var(--ev-border-soft); border-radius:10px; padding:11px 13px; margin-bottom:9px; }
 .cblock-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .cterm { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 9px; border-radius:14px; margin:0 5px 5px 0; cursor:pointer; border:1px solid; font-family:'Inter',sans-serif; font-weight:600; }
 .cterm-mesh { background:#1e3a5f33; border-color:#60a5fa55; color:var(--ev-link-2); }
@@ -1256,7 +1264,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
 
       <!-- ══ PRIMARY: PubMed/MEDLINE MeSH strategy (source of truth) ══ -->
-      <div class="info-box adv-only" style="border-color:#3b82f644;color:var(--ev-link-2);background:#0a1020;margin-bottom:12px">
+      <div class="info-box adv-only" style="border-color:#3b82f644;color:var(--ev-link-2);background:var(--ev-inset);margin-bottom:12px">
         &#8505;&#65039; <b>Two-stream search.</b> The <b style="color:var(--ev-link-3)">primary</b> bar takes your full PubMed MeSH/boolean strategy and drives the MEDLINE-indexed sources (PubMed, Europe PMC, Cochrane). The <b style="color:var(--ev-ai-text)">secondary</b> bar is auto-derived as a plain-keyword version (MeSH tags stripped) for the natural-language engines that don't understand MeSH. Edit the secondary freely &mdash; it won't be overwritten unless you click <b>Re-derive</b>.
       </div>
       <div class="adv-only" style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
@@ -1324,7 +1332,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
       <!-- ══ ADVANCED WORKBENCH — database-by-database searching ══ -->
       <div class="adv-only" style="flex-direction:column;align-items:stretch;gap:0">
-        <div class="info-box" style="border-color:#3b82f644;color:var(--ev-link-2);background:#0a1020;margin-bottom:12px">
+        <div class="info-box" style="border-color:#3b82f644;color:var(--ev-link-2);background:var(--ev-inset);margin-bottom:12px">
           &#8505;&#65039; <b>Search one database at a time.</b> Build your strategy in each database's own syntax, run it, and add the results to your <b>pool</b> below. The pool merges and de-duplicates across databases automatically. When you've searched everything you need, click <b>See results</b> to screen the pool.
         </div>
 
@@ -12400,7 +12408,7 @@ function renderProjDetail() {
         '<div class="proj-refs-list">' + addAllRow + refRows + '</div>' +
       '</details>';
     } else if (canScanRefs) {
-      refsDD = '<div style="margin-top:7px"><button ' + evAttr('click', 'scanProjPaperRefs', [safeId(currentProjectId), safeId(p.pmid)]) + ' style="font-size:11px;padding:3px 11px;border-radius:6px;border:1px solid #3b82f655;background:#0a1020;color:var(--ev-link);cursor:pointer" title="Extract this paper&#39;s bibliography — from PMC&#39;s structured reference list when available (exact DOIs/PMIDs, no AI call), otherwise AI-parsed from the free PDF. Each reference can then be added to this project.">&#128269; Scan references</button></div>';
+      refsDD = '<div style="margin-top:7px"><button ' + evAttr('click', 'scanProjPaperRefs', [safeId(currentProjectId), safeId(p.pmid)]) + ' style="font-size:11px;padding:3px 11px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-inset);color:var(--ev-link);cursor:pointer" title="Extract this paper&#39;s bibliography — from PMC&#39;s structured reference list when available (exact DOIs/PMIDs, no AI call), otherwise AI-parsed from the free PDF. Each reference can then be added to this project.">&#128269; Scan references</button></div>';
     }
 
     // ── Expanded detail section ──────────────────────────────────────────
@@ -13569,7 +13577,7 @@ function renderProjExtractionSection(p) {
   return '<div class="proj-cl-section">' +
     '<div class="proj-cl-section-title" style="display:flex;align-items:center;gap:8px">Data extraction' +
       '<button data-evclick="h161" title="Add an extraction column to this project" ' +
-        'style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #3b82f655;background:#0a1020;color:var(--ev-link);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">&#43; Field</button>' +
+        'style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-inset);color:var(--ev-link);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">&#43; Field</button>' +
     '</div>' +
     rows +
   '</div>';
@@ -14425,7 +14433,7 @@ function uclUpdateSummary(which) {
   if (!grid || !summary) return;
   var checked = Array.from(grid.querySelectorAll('input[type=checkbox]:checked'));
   if (checked.length === 0) {
-    summary.innerHTML = '<span class="ucl-cl-box-summary-pill" style="background:#1c1917;color:#8b847e">None selected</span>';
+    summary.innerHTML = '<span class="ucl-cl-box-summary-pill" style="background:var(--ev-neutral-bg);color:var(--ev-neutral-text)">None selected</span>';
   } else {
     summary.innerHTML = checked.map(function(cb) {
       // Get the name from the sibling .ucl-cl-name element
