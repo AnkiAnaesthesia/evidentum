@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-yh30NQ2nC1NPzkaCJWMI2YeeShJ866159EqK5DYBxCg='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-99UQdgr+2rB3GzuVBP2fOzw8kdqV2tdEIg3utl9wk7I='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -15831,9 +15831,10 @@ function updateRememberKeysHint() {
 }
 
 // ── Remove all saved credentials (P1.B) ──────────────────────────────────────
-// One action to wipe every stored credential — AI provider keys plus Scopus /
-// NCBI / Semantic Scholar keys — from BOTH localStorage and sessionStorage, and
-// zero the in-memory copies. Projects and screening data are untouched.
+// One action to wipe every stored credential — AI provider keys, Scopus / NCBI /
+// Semantic Scholar keys, and the experimental OpenAI OAuth token (+ its PKCE
+// state) — from BOTH localStorage and sessionStorage, and zero the in-memory
+// copies. Projects and screening data are untouched.
 // purgeCredentialStorage is kept pure (no confirm()/DOM/toast) so it's testable.
 function purgeCredentialStorage() {
   var n = 0;
@@ -15841,15 +15842,24 @@ function purgeCredentialStorage() {
     try { if (localStorage.getItem(k) != null) n++; localStorage.removeItem(k); } catch(e) {}
     try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.removeItem(k); } catch(e) {}
   });
+  // P8 — the experimental OpenAI OAuth token is a credential too, and its PKCE
+  // verifier/state are transient secrets. Remove all three from BOTH stores (they
+  // are not pla_* keys and never ride a backup); only the token counts as a wiped
+  // credential. The in-memory copy is zeroed below.
+  ['ev_oauth_token', 'ev_pkce_verifier', 'ev_oauth_state'].forEach(function(k) {
+    try { if (k === 'ev_oauth_token' && localStorage.getItem(k) != null) n++; localStorage.removeItem(k); } catch(e) {}
+    try { if (typeof sessionStorage !== 'undefined' && sessionStorage) sessionStorage.removeItem(k); } catch(e) {}
+  });
   if (typeof activeApiKey    !== 'undefined') activeApiKey    = '';
   if (typeof scopusApiKey    !== 'undefined') scopusApiKey    = '';
   if (typeof scopusInstToken !== 'undefined') scopusInstToken = '';
   if (typeof ncbiApiKey      !== 'undefined') ncbiApiKey      = '';
   if (typeof s2ApiKey        !== 'undefined') s2ApiKey        = '';
+  if (typeof evOauthToken    !== 'undefined') evOauthToken    = null;   // P8 — clear in-memory OAuth token
   return n;
 }
 function removeAllCredentials() {
-  if (typeof confirm === 'function' && !confirm('Remove all saved API keys and credentials from this browser?\n\nYou will need to re-enter them to run AI appraisal or the keyed databases (Scopus, NCBI, Semantic Scholar). Your projects and screening data are NOT affected.')) return;
+  if (typeof confirm === 'function' && !confirm('Remove all saved API keys and credentials from this browser?\n\nThis clears your AI provider keys and the keyed databases (Scopus, NCBI, Semantic Scholar), and signs you out of the experimental OpenAI account sign-in. You will need to re-enter them afterwards. Your projects and screening data are NOT affected.')) return;
   var n = purgeCredentialStorage();
   ['openai-key-input','anthropic-key-input','gemini-key-input','grok-key-input','scopus-api-key','scopus-inst-token','ncbi-api-key','s2-api-key'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
@@ -15857,6 +15867,7 @@ function removeAllCredentials() {
   if (typeof refreshActiveProviderFromKeys === 'function') refreshActiveProviderFromKeys();
   if (typeof updateKeyBanner === 'function') updateKeyBanner();
   if (typeof updateKeyFieldHints === 'function') updateKeyFieldHints();
+  if (typeof evRenderOauthStatus === 'function') evRenderOauthStatus();   // P8 — reflect the OAuth sign-out
   var s2s = document.getElementById('s2-key-status'); if (s2s) s2s.textContent = '';
   var scs = document.getElementById('scopus-key-status'); if (scs) scs.textContent = '';
   if (typeof showToast === 'function') showToast('🔑 Removed ' + n + ' saved credential' + (n === 1 ? '' : 's') + ' from this browser.', 'var(--ev-ok-text)');
@@ -18291,6 +18302,10 @@ async function evOauthSignIn() {
   try {
     storedState = sessionStorage.getItem('ev_oauth_state');
     verifier = sessionStorage.getItem('ev_pkce_verifier');
+    // P8 — consume the PKCE state/verifier the moment they're read, so NO stale
+    // values survive the callback on EITHER the success or the mismatch path.
+    sessionStorage.removeItem('ev_oauth_state');
+    sessionStorage.removeItem('ev_pkce_verifier');
   } catch(e) {}
   history.replaceState(null, '', location.pathname); // clean the URL
   if (!verifier || state !== storedState) { console.warn('OAuth state mismatch'); return; }
