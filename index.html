@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0DLU3HpWqB9BS9ZstpXwRLQLY439U87kH2DxSuotLp4=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-yh30NQ2nC1NPzkaCJWMI2YeeShJ866159EqK5DYBxCg='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -22,9 +22,10 @@
 <!-- Fonts are embedded as data: URIs in the stylesheet (see src/02a-fonts.css):
      typography works fully offline / from file:// and no font CDN sees page loads. -->
 <!-- pdf.js is vendored locally (pdf.min.js + pdf.worker.min.js deployed alongside this file)
-     so PDF extraction works offline and no CDN sees the traffic. The onerror CDN fallback
-     was removed (inline handlers are CSP-forbidden); if the local copy is missing the app
-     JS loads cdnjs instead — see loadPdfJsFallback() in 04f-fulltext.js. -->
+     so PDF extraction works offline and no CDN sees the traffic. There is NO third-party CDN
+     fallback (P7): if the local copy is missing, PDF text extraction fails closed and the app
+     degrades to abstract-only — see loadPdfJsFallback() in 04f-fulltext.js. cdnjs is not in the
+     CSP. -->
 <script src="pdf.min.js"></script>
 <style>
 /* ── Embedded fonts (2026-07-08) ──────────────────────────────────────────────
@@ -10525,19 +10526,22 @@ function fetchAndRescanPMCPapers() {
 // ══════════════════════════════════════════════
 // PDF.js SETUP
 // ══════════════════════════════════════════════
-// The <head> loads the vendored pdf.min.js (same-origin, CSP 'self'). By the time
-// this runs it has loaded or errored. If it errored (local copy absent, e.g. dev),
-// load pdf.js from cdnjs instead — CSP allows cdnjs in script-src/connect-src, and
-// the CDN worker via worker-src blob:. This replaces the old inline onerror handler
-// that a strict script-src would block.
+// The <head> loads the vendored pdf.min.js (same-origin, CSP script-src 'self').
+// P7 — FAIL CLOSED: if that local copy is missing/blocked we do NOT pull pdf.js
+// from a third-party CDN. An unpinned cross-origin script (and its worker) would
+// run with full access to this origin and its stored data, and 3.11.174 is within
+// the CVE-2024-4367 range; there is no way to integrity-pin a CDN copy we can't
+// verify. Instead PDF text extraction is simply disabled for the session and every
+// path degrades to title/abstract only, with a one-time notice. cdnjs has been
+// removed from the CSP accordingly. (Kept isEvalSupported:false everywhere as
+// defence in depth.) For local/dev PDF testing, serve the vendored pdf.min.js +
+// pdf.worker.min.js alongside index.html — see the deploy notes.
 function loadPdfJsFallback() {
   if (typeof pdfjsLib !== 'undefined') return;
-  if (typeof document === 'undefined' || !document.head || !document.createElement) return;
-  var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
-  var s = document.createElement('script');
-  s.src = CDN + 'pdf.min.js';
-  s.onload = function () { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = CDN + 'pdf.worker.min.js'; };
-  document.head.appendChild(s);
+  if (typeof logIssue === 'function') {
+    logIssue('pdf', 'PDF text extraction is unavailable this session',
+      'The local pdf.js library did not load, so full-text PDFs can’t be read; appraisal falls back to the title/abstract. Evidentum will not load pdf.js from a third-party CDN.');
+  }
 }
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
