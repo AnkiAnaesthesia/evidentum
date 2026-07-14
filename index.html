@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-LjtXraX/AvQn7kXbapMmx5qnO485gMHp04Ag367C+kc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-+2IipAxu4RHAWeDGTd5qiyy8KuIoPCcvgZ1GU7bkEEQ=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -2107,8 +2107,18 @@ function safeDoi(doi) {
   if (!doi) return null;
   var s = String(doi).trim();
   if (/[\s"'<>\\`]/.test(s) || /[\u0000-\u001f\u007f]/.test(s)) return null;
-  if (/^10[.][0-9]{4,}\/\S+$/.test(s)) return 'https://doi.org/' + s;
-  if (/^https?:\/\/\S+$/i.test(s)) return s;
+  // A DOI destination is ONLY ever doi.org. A doi.org / dx.doi.org URL is accepted
+  // by EXTRACTING and re-validating the DOI it points to (mixed-case host + percent-
+  // encoding handled); an arbitrary http(s) host is never presented as a DOI (P3) —
+  // that would let crafted imported metadata forge a trusted-looking link to a
+  // phishing domain. General external URLs go through safeUrl(), not here.
+  var m = s.match(/^https?:\/\/(?:dx\.)?doi\.org\/(.+)$/i);
+  if (m) {
+    try { s = decodeURIComponent(m[1]); } catch (e) { s = m[1]; }
+    if (/[\s"'<>\\`]/.test(s) || /[\x00-\x1f\x7f]/.test(s)) return null;   // re-check after decode
+  }
+  // Canonical DOI: 10.<registrant, 4+ digits>/<bounded suffix, no breakout chars>.
+  if (/^10\.[0-9]{4,}\/[^\s"'<>\\`]{1,200}$/.test(s)) return 'https://doi.org/' + s;
   return null;
 }
 
