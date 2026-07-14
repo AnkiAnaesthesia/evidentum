@@ -8,7 +8,7 @@ full text), and then only to the provider you chose.
 
 ## Reporting a vulnerability
 
-Email **chucknally.eth@gmail.com** with details and a reproduction. Please do not
+Email **ankianaesthesia@gmail.com** with details and a reproduction. Please do not
 open a public issue for an unfixed security problem.
 
 ## Security model at a glance
