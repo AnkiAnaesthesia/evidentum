@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-VXpEtTg4myhb4InW/GSZUiN1JUMOZ3GIO6rY/ezkuWo=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-LjtXraX/AvQn7kXbapMmx5qnO485gMHp04Ag367C+kc=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -3883,15 +3883,22 @@ function doSearch() {
     var pill = document.createElement('div');
     pill.id = 'dbpill-' + id;
     pill.className = 'db-pill db-pill-loading';
-    pill.innerHTML = '<span class="spinner"></span>' + label;
+    // The icon + database name is trusted, source-literal markup and is set ONCE
+    // here. The dynamic status (result counts OR external/error text) is filled by
+    // setPill() as TEXT only — never HTML — so an upstream error string or echoed
+    // query fragment can never inject markup into the status bar (P2).
+    pill.innerHTML = '<span class="spinner"></span><span class="db-pill-label">' + label + '</span><span class="db-pill-msg"></span>';
     bar.appendChild(pill);
     return pill;
   }
-  function setPill(id, text, state) {
+  function setPill(id, message, state) {
     var pill = document.getElementById('dbpill-' + id);
     if (!pill) return;
     pill.className = 'db-pill db-pill-' + state;
-    pill.innerHTML = text;
+    var sp = pill.querySelector('.spinner');
+    if (sp && sp.parentNode) sp.parentNode.removeChild(sp);   // resolved → drop spinner, keep label
+    var msg = pill.querySelector('.db-pill-msg');
+    if (msg) msg.textContent = (message != null && message !== '') ? ' — ' + message : '';
   }
 
   // Build PubMed query (includes date/studyType filters).
@@ -3914,8 +3921,8 @@ function doSearch() {
     makePill('pubmed', '&#128300; PubMed');
     promises.push(
       fetchPubMed(pubmedQuery, maxResults)
-        .then(function(r) { setPill('pubmed', '&#128300; PubMed — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('pubmed', '&#128300; PubMed — ' + humanFetchError(e), 'error'); console.error('PubMed:', e); logDbFailure('PubMed', e); return []; })
+        .then(function(r) { setPill('pubmed', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('pubmed', humanFetchError(e), 'error'); console.error('PubMed:', e); logDbFailure('PubMed', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3923,8 +3930,8 @@ function doSearch() {
     makePill('cochrane', '&#128218; Cochrane');
     promises.push(
       fetchEuropePMC(cochraneQuery, maxResults, 'Cochrane')
-        .then(function(r) { setPill('cochrane', '&#128218; Cochrane — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('cochrane', '&#128218; Cochrane — ' + humanFetchError(e), 'error'); console.error('Cochrane:', e); logDbFailure('Cochrane', e); return []; })
+        .then(function(r) { setPill('cochrane', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('cochrane', humanFetchError(e), 'error'); console.error('Cochrane:', e); logDbFailure('Cochrane', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3934,8 +3941,8 @@ function doSearch() {
     epQuery += europePmcDateClause(dateFrom, dateTo);
     promises.push(
       fetchEuropePMC(epQuery, maxResults, 'EuropePMC')
-        .then(function(r) { setPill('europepmc', '&#127757; Europe PMC — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('europepmc', '&#127757; Europe PMC — ' + humanFetchError(e), 'error'); console.error('EuropePMC:', e); logDbFailure('Europe PMC', e); return []; })
+        .then(function(r) { setPill('europepmc', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('europepmc', humanFetchError(e), 'error'); console.error('EuropePMC:', e); logDbFailure('Europe PMC', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3943,8 +3950,8 @@ function doSearch() {
     makePill('semantic', '&#129504; Semantic Scholar');
     promises.push(
       fetchSemanticScholar(getDbQuery('semantic', q, secQ), maxResults, dateFrom, dateTo)
-        .then(function(r) { setPill('semantic', '&#129504; Semantic Scholar — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('semantic', '&#129504; Semantic Scholar — ' + humanFetchError(e), 'error'); console.error('Semantic:', e); logDbFailure('Semantic Scholar', e); return []; })
+        .then(function(r) { setPill('semantic', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('semantic', humanFetchError(e), 'error'); console.error('Semantic:', e); logDbFailure('Semantic Scholar', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3952,8 +3959,8 @@ function doSearch() {
     makePill('openalex', '&#127760; OpenAlex');
     promises.push(
       fetchOpenAlex(getDbQuery('openalex', q, secQ), maxResults, dateFrom, dateTo)
-        .then(function(r) { setPill('openalex', '&#127760; OpenAlex — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('openalex', '&#127760; OpenAlex — ' + humanFetchError(e), 'error'); console.error('OpenAlex:', e); logDbFailure('OpenAlex', e); return []; })
+        .then(function(r) { setPill('openalex', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('openalex', humanFetchError(e), 'error'); console.error('OpenAlex:', e); logDbFailure('OpenAlex', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3961,8 +3968,8 @@ function doSearch() {
     makePill('scopus', '&#128083; Scopus');
     promises.push(
       fetchScopus(getDbQuery('scopus', q, secQ), maxResults, dateFrom, dateTo)
-        .then(function(r) { setPill('scopus', '&#128083; Scopus — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('scopus', '&#128083; Scopus — ' + humanFetchError(e), 'error'); console.error('Scopus:', e); logDbFailure('Scopus', e); return []; })
+        .then(function(r) { setPill('scopus', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('scopus', humanFetchError(e), 'error'); console.error('Scopus:', e); logDbFailure('Scopus', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -3970,8 +3977,8 @@ function doSearch() {
     makePill('clinicaltrials', '&#129514; ClinicalTrials.gov');
     promises.push(
       fetchClinicalTrials(getDbQuery('clinicaltrials', q, secQ), maxResults, dateFrom, dateTo)
-        .then(function(r) { setPill('clinicaltrials', '&#129514; ClinicalTrials.gov — ' + fetchedLabel(r) + ' results', 'done'); return r; })
-        .catch(function(e) { setPill('clinicaltrials', '&#129514; ClinicalTrials.gov — ' + humanFetchError(e), 'error'); console.error('ClinicalTrials:', e); logDbFailure('ClinicalTrials.gov', e); return []; })
+        .then(function(r) { setPill('clinicaltrials', fetchedLabel(r) + ' results', 'done'); return r; })
+        .catch(function(e) { setPill('clinicaltrials', humanFetchError(e), 'error'); console.error('ClinicalTrials:', e); logDbFailure('ClinicalTrials.gov', e); return []; })
     );
   } else { promises.push(Promise.resolve([])); }
 
@@ -9442,10 +9449,10 @@ function loadRelated(pmid) {
 
 function renderRelatedPanel(panel, items, title, mode) {
   if (!items.length) {
-    panel.innerHTML = '<div class="related-panel-title">' + title + '</div><div style="font-size:11px;color:var(--ev-text-dim)">No results found.</div>';
+    panel.innerHTML = '<div class="related-panel-title">' + esc(title) + '</div><div style="font-size:11px;color:var(--ev-text-dim)">No results found.</div>';
     return;
   }
-  panel.innerHTML = '<div class="related-panel-title">' + title + '</div>' +
+  panel.innerHTML = '<div class="related-panel-title">' + esc(title) + '</div>' +
     items.map(function(item) {
       var doi = (item.externalIds && item.externalIds.DOI) || '';
       var pmidRef = (item.externalIds && item.externalIds.PubMed) || '';
