@@ -6,12 +6,13 @@
 // and credential-bearing URLs (e.g. NCBI ?api_key=…) never reach the Cache API.
 // The SW only manages the Cache API — it never touches IndexedDB or localStorage,
 // so an update can't clear projects, appraisals or credentials.
-// v6 (P6): writes are now restricted to a strict app-shell allowlist via
-// swCacheableShell() — same-origin, GET, NO query string (so an OAuth callback
-// ?code=…&state=… or any other query-bearing/sensitive same-origin URL is never
-// persisted), 200 basic responses only. Bump evicts any v5 entry that a previous
-// catch-all put may have stored.
-const CACHE = 'evidentum-v6';
+// v6 (P6): writes restricted to a strict app-shell allowlist via swCacheableShell()
+// — same-origin, GET, NO query string (so an OAuth callback ?code=…&state=… or any
+// other query-bearing/sensitive same-origin URL is never persisted), 200 basic only.
+// v7 (MV3): the allowlist is now EXACT shell paths resolved from the registration
+// scope (not suffix regexes), so a deeper same-origin path like <scope>private/ is
+// no longer cacheable. Each bump evicts the older cache on activation.
+const CACHE = 'evidentum-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -21,25 +22,34 @@ const ASSETS = [
   './icon-512-maskable.png'
 ];
 
+// The exact app-shell filenames (relative to the SW's registration scope) that may
+// ever enter the Cache API — the deploy root, index.html, the manifest, the icons,
+// and the vendored pdf.js (so offline appraisal keeps working).
+const SHELL_FILES = ['', 'index.html', 'manifest.webmanifest',
+  'icon-192.png', 'icon-512.png', 'icon-512-maskable.png',
+  'pdf.min.js', 'pdf.worker.min.js'];
+
 // Pure decision: may this fetched response be written to the Cache API? The cache
 // is STRICTLY the offline app shell — same-origin, a successful 200 basic (not
-// opaque/cors/redirect) response, no query string, and a path on the allowlist
-// (deploy root / index.html, the manifest, the icons, and the vendored pdf.js so
-// offline appraisal keeps working). Everything else is served from the network and
-// never stored — in particular any query-bearing URL, which is how OAuth callbacks
-// (code/state) and other sensitive same-origin URLs would otherwise leak into the
-// cache. Exported implicitly for the test harness (function declaration).
-function swCacheableShell(reqUrl, res, selfOrigin) {
+// opaque/cors/redirect) response, no query string, and an EXACT shell path resolved
+// from the SW's own registration scope. Anything else is served from the network and
+// never stored: any query-bearing URL (how OAuth callbacks' code/state and other
+// sensitive same-origin URLs would otherwise leak in), and — post-MV3 — any deeper
+// same-origin path such as <scope>private/ or <scope>private/index.html that the
+// earlier suffix regexes (/\/$/, /index\.html$/) would have accepted.
+// `scope` is a full URL (self.registration.scope). Exported implicitly for tests.
+function swCacheableShell(reqUrl, res, scope) {
   if (!res || res.status !== 200 || res.ok !== true) return false;   // 2xx only
   if (res.type && res.type !== 'basic') return false;                // no opaque/cors/redirect
-  let u;
-  try { u = new URL(reqUrl); } catch (e) { return false; }
-  if (u.origin !== selfOrigin) return false;                         // same-origin only
+  let u, base;
+  try { u = new URL(reqUrl); base = new URL(scope); } catch (e) { return false; }
+  if (u.origin !== base.origin) return false;                        // same-origin only
   if (u.search) return false;                                        // NEVER cache query-bearing URLs
-  return /\/$/.test(u.pathname) ||                                   // deploy root
-    /\/index\.html$/.test(u.pathname) ||
-    /\/manifest\.webmanifest$/.test(u.pathname) ||
-    /\/(?:icon-(?:192|512|512-maskable)\.png|pdf\.min\.js|pdf\.worker\.min\.js)$/.test(u.pathname);
+  const dir = base.pathname.replace(/[^/]*$/, '');                   // scope directory (ends in '/')
+  for (let i = 0; i < SHELL_FILES.length; i++) {
+    if (u.pathname === dir + SHELL_FILES[i]) return true;            // exact match only
+  }
+  return false;
 }
 
 self.addEventListener('install', (e) => {
@@ -72,7 +82,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(req)
       .then((res) => {
-        if (swCacheableShell(req.url, res, self.location.origin)) {
+        if (swCacheableShell(req.url, res, self.registration.scope)) {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});   // ignore quota failures
         }
