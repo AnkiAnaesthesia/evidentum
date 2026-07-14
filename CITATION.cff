@@ -7,7 +7,7 @@ authors:
     given-names: Angus
 version: 1.0.0-beta
 date-released: "2026-07-03"
-url: "https://ankianaesthesia.github.io/evidentum/"
+url: "https://ankianaesthesia.evidentum.app/"
 repository-code: "https://github.com/AnkiAnaesthesia/evidentum"
 license: MIT
 doi: 10.5281/zenodo.21159986

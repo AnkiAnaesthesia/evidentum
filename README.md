@@ -5,7 +5,7 @@ Search across major biomedical databases, screen and de-duplicate results, run A
 
 > **Status:** Beta. Features and interfaces are still changing between builds.
 
-🔗 **Live:** https://ankianaesthesia.github.io/evidentum/
+🔗 **Live:** https://ankianaesthesia.evidentum.app/
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21159986.svg)](https://doi.org/10.5281/zenodo.21159986)
 

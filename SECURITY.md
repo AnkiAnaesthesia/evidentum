@@ -43,25 +43,25 @@ local-first research tool. You control it:
 
 Because keys can be stored, the deployment origin matters — see below.
 
-## Deployment: use a dedicated origin
+## Deployment: a dedicated origin
 
 Browser storage (localStorage, IndexedDB) is scoped to the **origin**
 (`scheme://host:port`), **not** to the URL path and **not** to the service-worker
-scope. The public build is served from:
+scope. The public build is served from its **own dedicated origin**, used for no
+other application:
 
 ```
-https://ankianaesthesia.github.io/evidentum/
+https://ankianaesthesia.evidentum.app/
 ```
 
-Every other GitHub Pages project under `ankianaesthesia.github.io` therefore shares
-the **same storage origin** as Evidentum. A vulnerable or differently maintained
-sibling app at `…github.io/another-project/` could, in principle, read Evidentum's
-persisted keys and project data.
-
-**Recommendation:** for any deployment where credentials are stored, serve Evidentum
-on a **dedicated hostname used for no unrelated application**, e.g.
-`https://app.<your-evidentum-domain>/`. Do **not** rely on path separation or
-service-worker scope as isolation — they are not storage boundaries.
+Because nothing else runs on `ankianaesthesia.evidentum.app`, no sibling site can share
+Evidentum's storage or read its persisted keys and project data. (It is served on
+GitHub Pages infrastructure via a custom domain.) The earlier
+`ankianaesthesia.github.io/evidentum/` path is deprecated: it shared one storage
+origin with every other Pages project under that account, which is exactly why the
+app moved to a dedicated host. If you fork or self-host, do the same — serve
+Evidentum on a hostname used for nothing else, and do **not** rely on path
+separation or service-worker scope as isolation; they are not storage boundaries.
 
 ### Migration between origins
 
