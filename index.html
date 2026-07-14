@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-+2IipAxu4RHAWeDGTd5qiyy8KuIoPCcvgZ1GU7bkEEQ=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Omv0Z86LWyFi9zBOmki1Sj/MCMfgPeL5zCWVGez45wY=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -11662,6 +11662,28 @@ function exportFullBackup(opts) {
   }).catch(function(){ showToast('Backup failed', '#ef4444'); });
 }
 
+// Decide (purely) what an UNTRUSTED backup is allowed to write, so it can be tested
+// adversarially without a DOM (P4). Rules:
+//  - settings: only keys explicitly in BACKUP_SETTINGS_KEYS (unknown pla_* keys and
+//    device-local keys like pla_remember_keys — in neither list — are ignored);
+//  - secrets: only recognised BACKUP_SECRET_KEYS, and ONLY from the designated
+//    `keys` bag;
+//  - a recognised secret found in the `settings` bag is a tampering signal (a
+//    legitimate export never puts one there) — reject the whole file rather than
+//    silently importing a credential the confirmation dialog said was unaffected.
+function planBackupImport(data) {
+  function bagHasSecret(bag) {
+    return bag && typeof bag === 'object' && BACKUP_SECRET_KEYS.some(function (k) { return typeof bag[k] === 'string'; });
+  }
+  if (bagHasSecret(data && data.settings)) return { reject: 'settings-bag-contains-secrets' };
+  var settings = {}, secrets = {};
+  var sBag = (data && data.settings && typeof data.settings === 'object') ? data.settings : {};
+  BACKUP_SETTINGS_KEYS.forEach(function (k) { if (typeof sBag[k] === 'string') settings[k] = sBag[k]; });
+  var kBag = (data && data.keys && typeof data.keys === 'object') ? data.keys : {};
+  BACKUP_SECRET_KEYS.forEach(function (k) { if (typeof kBag[k] === 'string') secrets[k] = kBag[k]; });
+  return { reject: null, settings: settings, secrets: secrets, hasKeys: Object.keys(secrets).length > 0 };
+}
+
 function importFullBackup(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
@@ -11672,9 +11694,17 @@ function importFullBackup(input) {
     if (!data || data.type !== 'full-backup' || !Array.isArray(data.projects)) {
       showToast('Not an Evidentum backup file', '#ef4444'); input.value = ''; return;
     }
+    // Plan the (untrusted) settings/secret import up front. A secret smuggled into
+    // the settings bag is a tampering signal → reject before any prompt or write, so
+    // the confirmation dialog can never understate what will be imported (P4).
+    var plan = planBackupImport(data);
+    if (plan.reject) {
+      showToast('This backup is malformed — it stores API keys in the settings section. Import cancelled for safety.', '#ef4444');
+      input.value = ''; return;
+    }
     var n = data.projects.length;
     var collisions = projects.filter(function(p){ return data.projects.some(function(b){ return b && p && b.id === p.id; }); }).length;
-    var hasKeys = data.keys && typeof data.keys === 'object' && Object.keys(data.keys).length > 0;
+    var hasKeys = plan.hasKeys;
     if (!confirm('Restore ' + n + ' project' + (n !== 1 ? 's' : '') + ' from this backup?\n\nMerges with your current data: ' + collisions + ' project(s) with a matching ID will be REPLACED by the backup version; your other projects are kept. Search history is merged; saved settings are applied.' + (hasKeys ? '\n\n⚠ This backup CONTAINS API KEYS — restoring will overwrite the keys currently in Settings.' : ' API keys are not affected.') + '\n\nTip: export a backup of the current state first if unsure.')) { input.value = ''; return; }
 
     // Merge projects by id (backup wins on collision, new ones added)
@@ -11709,22 +11739,18 @@ function importFullBackup(input) {
     // v2: apply stored settings (and keys, only if the file carries them — the
     // confirm above warned about the overwrite). Live vars re-read these at
     // startup, so a reload finishes the job.
+    // Apply ONLY the allowlisted settings and the recognised secrets the plan
+    // extracted (never an arbitrary pla_* key). Credentials route through credWrite
+    // so the import honours the current "Remember on this device" choice (P1.B).
     var settingsApplied = false;
-    [data.settings, data.keys].forEach(function(bag) {
-      if (!bag || typeof bag !== 'object') return;
-      Object.keys(bag).forEach(function(k) {
-        if (/^pla_[a-z0-9_]+$/.test(k) && typeof bag[k] === 'string') {
-          try {
-            // Restore credentials through the storage abstraction so an import
-            // honours the current "Remember on this device" choice (P1.B); plain
-            // settings go straight to localStorage.
-            if (BACKUP_SECRET_KEYS.indexOf(k) !== -1 && typeof credWrite === 'function') credWrite(k, bag[k]);
-            else localStorage.setItem(k, bag[k]);
-            settingsApplied = true;
-          } catch (e) {}
-        }
-      });
+    Object.keys(plan.settings).forEach(function(k) {
+      try { localStorage.setItem(k, plan.settings[k]); settingsApplied = true; } catch (e) {}
     });
+    if (hasKeys && typeof credWrite === 'function') {
+      Object.keys(plan.secrets).forEach(function(k) {
+        try { credWrite(k, plan.secrets[k]); settingsApplied = true; } catch (e) {}
+      });
+    }
     saveProjects();
 
     var assessRecords = (Array.isArray(data.assessments) ? data.assessments : []).filter(function(r){ return r && r.key && r.result; });
