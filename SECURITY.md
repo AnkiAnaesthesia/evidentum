@@ -2,9 +2,12 @@
 
 Evidentum Pro is a single, self-contained `index.html`: no backend, no accounts,
 and — by design — your projects, screening decisions, notes and any API keys stay
-in **your** browser (localStorage / IndexedDB). Nothing is uploaded by the app. Data
-leaves the browser only when you act (running a search, an AI appraisal, fetching a
-full text), and then only to the provider you chose.
+in **your** browser (localStorage / IndexedDB). Evidentum has no project-operated
+backend and never automatically uploads your local project database. Data leaves
+your browser only when **you** act: when you run a search, fetch a full text, or
+start an AI appraisal, the required query or the selected paper content (title /
+abstract / fetched full text) is sent directly to the third-party provider you
+chose — and to no one else.
 
 ## Reporting a vulnerability
 
