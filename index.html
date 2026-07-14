@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-LpS31nHl+bz6lHKIiY2wwjc6gw9XeD356ZGh18bEwgs=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-HaWbcI+ob/gx1iyfFKPIbPiuCuwAIxvcw/hctDApQ4k=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -8804,9 +8804,21 @@ function updateCardScore(p) {
   // labelled sub-line when it's surfaced — only that sub-line changes as a paper's text
   // deepens. Non-pool cards are the triage box and update fully.
   if (resultsContext === 'pool') {
-    if (showCriteriaInPool) {
-      var poolTriage = card.querySelector('.score-triage-line');
-      if (poolTriage) { poolTriage.style.color = scoreColor; poolTriage.innerHTML = 'Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : ''); }
+    var poolTriage = card.querySelector('.score-triage-line');
+    if (poolTriage) {
+      if (p.scanDepth === 'agent' || p.agentAnalysed) {
+        // Superseded by the appraisal — show the AI relevance verdict, not the keyword %.
+        var uq = p.queryMatch === true ? 'var(--ev-ok-text)' : p.queryMatch === false ? 'var(--ev-danger-text)' : 'var(--ev-text-dim)';
+        var ul = p.queryMatch === true ? '✓ Matches question' : p.queryMatch === false ? '✗ Off-topic' : '? Not assessed';
+        poolTriage.style.display = ''; poolTriage.style.color = uq;
+        poolTriage.title = 'AI relevance to your search question' + (p.queryMatchReasoning ? ': ' + p.queryMatchReasoning : '');
+        poolTriage.innerHTML = ul;
+      } else if (showCriteriaInPool) {
+        poolTriage.style.display = ''; poolTriage.style.color = scoreColor;
+        poolTriage.innerHTML = 'Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : '');
+      } else {
+        poolTriage.style.display = 'none';
+      }
     }
   } else {
     var scoreLabel = card.querySelector('.score-label');
@@ -9133,6 +9145,12 @@ function renderPapers() {
     var boost = citationBoostScore(p);
     var boostedScore = Math.min(100, p.score + boost);
     var scoreColor = boostedScore >= 80 ? '#22c55e' : boostedScore >= 50 ? '#f59e0b' : '#ef4444';
+    // Once AI-analysed, the pool score-box sub-line shows the AI relevance verdict
+    // instead of the keyword triage % (a pre-AI reading aid that would otherwise
+    // linger under "Sources", competing with the appraisal).
+    var pAnalysed = (p.scanDepth === 'agent' || p.agentAnalysed);
+    var pQColour  = p.queryMatch === true ? 'var(--ev-ok-text)' : p.queryMatch === false ? 'var(--ev-danger-text)' : 'var(--ev-text-dim)';
+    var pQLabel   = p.queryMatch === true ? '✓ Matches question' : p.queryMatch === false ? '✗ Off-topic' : '? Not assessed';
     // Pool screening hides the keyword-criteria UI unless the user opts in —
     // the workbench strategy already encodes inclusion logic.
     var hideCriteria = (resultsContext === 'pool' && !showCriteriaInPool);
@@ -9232,9 +9250,11 @@ function renderPapers() {
                 '<div class="score-label">Sources</div>' +
                 '<div class="score-num" style="color:' + ((p.sources||[]).length >= 3 ? '#22c55e' : (p.sources||[]).length === 2 ? '#f59e0b' : 'var(--ev-text-dim)') + '">' + (p.sources||[]).length + '<span style="font-size:11px;color:var(--ev-text-dim)"> DB' + ((p.sources||[]).length===1?'':'s') + '</span></div>' +
                 '<div class="score-bar-wrap"><div class="score-bar" style="width:' + Math.min(100, (p.sources||[]).length * 25) + '%;background:' + ((p.sources||[]).length >= 3 ? '#22c55e' : (p.sources||[]).length === 2 ? '#f59e0b' : 'var(--ev-text-dim)') + '"></div></div>' +
-                (showCriteriaInPool
-                  ? '<div class="score-triage-line" style="font-size:10px;color:' + scoreColor + ';margin-top:4px" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : '') + '</div>'
-                  : '') +
+                (pAnalysed
+                  ? '<div class="score-triage-line" style="font-size:10px;color:' + pQColour + ';margin-top:4px" title="AI relevance to your search question' + (p.queryMatchReasoning ? ': ' + esc(p.queryMatchReasoning) : '') + '">' + pQLabel + '</div>'
+                  : showCriteriaInPool
+                    ? '<div class="score-triage-line" style="font-size:10px;color:' + scoreColor + ';margin-top:4px" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">Triage ' + boostedScore + '% · ' + p.passedCriteria + '/' + p.totalCriteria + ' signals' + (boost > 0 ? ' (+' + boost + ' cit.)' : '') + '</div>'
+                    : '<div class="score-triage-line" style="display:none;font-size:10px;margin-top:4px"></div>') +
               '</div>'
             : '<div class="score-box">' +
                 '<div class="score-label" title="Keyword triage signals — a reading-order aid, not an eligibility or quality judgement">' + (boost > 0 ? 'Triage+Cit.' : 'Triage') + '</div>' +
@@ -16542,6 +16562,26 @@ async function analyseOneWithAgent(p, questionOverride) {
   }
 }
 
+// Scopus (and some other) databases return records with metadata but NO abstract
+// and no PMID, which left them un-analysable ("No text available"). Resolve the
+// DOI against Europe PMC to backfill the abstract — and any PMID/PMCID it knows —
+// so the appraisal can proceed on at least the abstract (or unlock PMC full text).
+async function backfillTextByDoi(p) {
+  if (!p || !p.doi) return;
+  var url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=' +
+    encodeURIComponent('DOI:"' + p.doi + '"') + '&resultType=core&pageSize=1&format=json';
+  try {
+    var r = await fetchWithFallback(url);
+    var data = await r.json();
+    var hit = data && data.resultList && data.resultList.result && data.resultList.result[0];
+    if (!hit) return;
+    if (hit.abstractText && hit.abstractText.length > (p.abstract || '').length) p.abstract = hit.abstractText;
+    if (hit.pmid && /^\d+$/.test(String(hit.pmid)) && !/^\d+$/.test(String(p.pmid || ''))) p.pmid = String(hit.pmid);
+    if (hit.pmcid && !p.pmcid) p.pmcid = hit.pmcid;
+    if (!p.year && hit.pubYear) p.year = hit.pubYear;
+  } catch (e) { /* leave as-is; the caller's abstract path will report if still empty */ }
+}
+
 async function _analyseOneWithAgentInner(p, questionOverride) {
   // ── Assessment memory: reuse a prior appraisal of this paper, with NO API call ──
   // Skipped on a forced re-analysis so updated checklists/tools are applied afresh.
@@ -16626,6 +16666,24 @@ async function _analyseOneWithAgentInner(p, questionOverride) {
       return;
     } catch(e) {
       console.warn('Server-side PDF fetch also failed, falling back to abstract:', e.message);
+    }
+  }
+
+  // ── PATH D.5: no text yet — backfill an abstract (and PMID/PMCID) by DOI ──
+  // Rescues Scopus (and other) records that came in without an abstract. If the
+  // lookup surfaces a PMCID, structured full text beats the abstract — use it.
+  if ((!p.abstract || p.abstract.length < 40) && p.doi) {
+    await backfillTextByDoi(p);
+    if (p.pmcid) {
+      try {
+        var pmcText3 = await fetchPMCFullText(p.pmcid);
+        if (pmcText3 && pmcText3.length > 300) {
+          p.fullText = pmcText3;
+          var resPmc3 = await callOpenAIWithText(pmcText3, prompts, p, 'PMC full text');
+          try { applyAgentResults(p, resPmc3, pmcText3, 'PMC full text'); } catch(e) { console.warn('applyAgentResults error (PATH D.5 - PMC):', e); }
+          return;
+        }
+      } catch(e) { /* fall through to abstract */ }
     }
   }
 
@@ -17250,6 +17308,11 @@ function applyAgentResults(p, result, fullText, textSource) {
   if (!_assessApplyingFromCache && typeof assessPut === 'function') {
     try { assessPut(p, result, textSource); } catch(_e) {}
   }
+
+  // Refresh the pool score-box sub-line in place: the keyword triage % gives way
+  // to the AI relevance verdict now that this paper is appraised (single-paper
+  // analysis only refreshes the checklist section, not the score box).
+  if (typeof updateCardScore === 'function') { try { updateCardScore(p); } catch (e) {} }
 
   addAgentBadge(p.pmid);
   maybeShowRob2VizBtn();
