@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-HCleS8KKLjBB4I2WB8P7fsehm4bdOXCJ5xqLpSoQVio='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-dkrc/nM2H+28RXDbqT8rHK4rXY43h3zXyxCzY6lUwj4='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -383,6 +383,9 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 .paper-body { border-top: 1px solid var(--ev-border); padding: 14px 16px; background: var(--ev-bg); display: none; }
 .paper-body.open { display: block; }
 .abstract-text { font-size: 12px; color: var(--ev-text-muted); line-height: 1.75; margin-bottom: 12px; font-family: 'IBM Plex Sans', sans-serif; white-space: pre-wrap; }
+/* In-place triage-term highlighting (Rayyan/Covidence-style): relevance vs a tripped exclusion. Subtle background, text colour inherited so it stays readable in both themes. */
+.abstract-text mark.ev-hl-inc { background: var(--ev-ok-bg); color: inherit; border-radius: 2px; padding: 0 1px; }
+.abstract-text mark.ev-hl-exc { background: var(--ev-warn-bg); color: inherit; border-radius: 2px; padding: 0 1px; }
 .notes-area { width: 100%; padding: 8px 11px; font-size: 12px; resize: vertical; min-height: 66px; margin-top: 5px; }
 
 /* ── Scan detail in expanded view ── */
@@ -3825,6 +3828,66 @@ function keywordHitsText(text, kw) {
     from = idx + 1;
   }
   return false;
+}
+// Rayyan/Covidence-style in-place highlighting: wrap the triage terms that were
+// actually found in a title/abstract in <mark>, so a screener sees WHY a record
+// scored the way it did without cross-referencing the chips. Reuses the exact
+// boundary-anchored, prefix-stem matching of keywordHitsText, so the highlights
+// and the triage chips can never disagree. XSS-safe by construction: the source
+// text is cut into segments that are each individually esc()'d — the only literal
+// markup emitted is our own fixed <mark> tags. `incTerms` (relevance) and
+// `excTerms` (must-not) are term arrays; an exclusion hit wins an overlap tie.
+function highlightHits(text, incTerms, excTerms) {
+  var raw = (text === null || text === undefined) ? '' : String(text);
+  if (!raw) return esc(raw);
+  var lower = raw.toLowerCase();
+  // toLowerCase can change length for a few code points (e.g. 'İ'), which would
+  // desync match offsets from the original — fall back to a plain escape then.
+  if (lower.length !== raw.length) return esc(raw);
+  var inc = (incTerms || []).map(function (t) { return String(t).toLowerCase(); }).filter(Boolean);
+  var exc = (excTerms || []).map(function (t) { return String(t).toLowerCase(); }).filter(Boolean);
+  if (!inc.length && !exc.length) return esc(raw);
+  var mark = new Array(raw.length);            // 0 plain · 1 relevance · 2 exclusion
+  for (var i = 0; i < raw.length; i++) mark[i] = 0;
+  function paint(terms, level) {
+    terms.forEach(function (kw) {
+      var klen = kw.length, from = 0, idx;
+      while ((idx = lower.indexOf(kw, from)) !== -1) {
+        // Same word-boundary rule as keywordHitsText (string start, or a
+        // non-alphanumeric char immediately before the match).
+        if (idx === 0 || !/[a-z0-9]/.test(lower.charAt(idx - 1))) {
+          for (var k = idx; k < idx + klen; k++) if (mark[k] < level) mark[k] = level;
+        }
+        from = idx + 1;
+      }
+    });
+  }
+  paint(inc, 1);
+  paint(exc, 2);                               // applied second, higher level → wins ties
+  var out = '', seg = '', segLevel = 0;
+  function flush() {
+    if (!seg) return;
+    out += (segLevel === 0) ? esc(seg)
+      : '<mark class="' + (segLevel === 2 ? 'ev-hl-exc' : 'ev-hl-inc') + '">' + esc(seg) + '</mark>';
+    seg = '';
+  }
+  for (var j = 0; j < raw.length; j++) {
+    if (mark[j] !== segLevel) { flush(); segLevel = mark[j]; }
+    seg += raw.charAt(j);
+  }
+  flush();
+  return out;
+}
+// Split a paper's scan results into the found relevance vs exclusion terms, for
+// highlightHits — mirrors buildScanRowInner's must-not vs inclusion grouping.
+function scanHighlightTerms(scanResults) {
+  var inc = [], exc = [];
+  (scanResults || []).forEach(function (r) {
+    if (!r || !r.matched || !r.matched.length) return;
+    var bucket = (r.type === 'mustnot') ? exc : inc;
+    for (var i = 0; i < r.matched.length; i++) bucket.push(r.matched[i]);
+  });
+  return { inc: inc, exc: exc };
 }
 // A criterion is the RCT/randomised *design* signal when its LABEL carries
 // randomisation vocabulary. Keying off the label (not the keywords) is
@@ -9251,6 +9314,15 @@ function buildScanRowInner(scanResults) {
   if (excl.length) out += '<div class="scan-group"><span class="scan-group-label">Exclude</span>' + excl.map(scanChipHtml).join('') + '</div>';
   return out;
 }
+// Abstract rendered with its found triage terms highlighted in place — relevance
+// (green) vs a tripped exclusion (amber) — so the reason for the triage score is
+// visible while reading, not only in the chips. Falls back to a plain escape when
+// nothing matched (highlightHits handles that internally).
+function abstractHtml(p) {
+  if (!p.abstract) return 'No abstract available.';
+  var t = scanHighlightTerms(p.scanResults);
+  return highlightHits(p.abstract, t.inc, t.exc);
+}
 
 function renderPapers() {
   var sorted = getSorted();
@@ -9397,7 +9469,7 @@ function renderPapers() {
         detailHtml +
         buildPaperSuppZone(p) +
         renderChecklistSection(p) +
-        '<div style="margin-top:14px"><div class="abstract-text">'+esc(p.abstract||'No abstract available.')+'</div></div>' +
+        '<div style="margin-top:14px"><div class="abstract-text">'+abstractHtml(p)+'</div></div>' +
         '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">' +
           '<button class="related-btn" ' + evAttr('click', 'loadCitedBy', [p.pmid]) + '>&#128196; Cited by papers</button>' +
           '<button class="related-btn" ' + evAttr('click', 'loadRelated', [p.pmid]) + '>&#128279; Related articles</button>' +
