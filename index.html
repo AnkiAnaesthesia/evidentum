@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-99UQdgr+2rB3GzuVBP2fOzw8kdqV2tdEIg3utl9wk7I='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-f9uCi4z9QupPX6HLzv5T6814Z8EDtM5aRRo3PUxkUtU='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -2016,6 +2016,83 @@ button:not(:disabled):active { filter: brightness(0.95); }
 // STATE
 // ══════════════════════════════════════════════
 
+// ── Untrusted-input limits (P9) ───────────────────────────────────────────────
+// Central, deliberately-chosen bounds for every file / import / PDF path. A whole
+// untrusted file (a 500 MB "PDF", a RIS with a million records, a backup claiming
+// 10^6 projects, a pathologically nested JSON) must fail fast with a clear message
+// BEFORE it can freeze the tab or corrupt persisted state — never trust a size,
+// length or count that came from the file itself. Values are generous for real
+// systematic-review work but bound the pathological case.
+var EV_LIMITS = {
+  pdfMaxBytes:            75 * 1024 * 1024,   // 75 MB — a big scanned article, not a disk image
+  importMaxBytes:        100 * 1024 * 1024,   // 100 MB — a full backup carrying many papers' text
+  textImportMaxBytes:     40 * 1024 * 1024,   // 40 MB — RIS/CSV are text (~100k+ records)
+  maxFilesPerOp:          50,                 // files accepted in one supplementary/batch selection
+  pdfMaxPages:            300,                 // caps decode work on a pathological page count
+  pdfPageConcurrency:     4,                   // pages decoded at once (memory/CPU ceiling)
+  pdfMaxChars:            2000000,             // 2 M chars of extracted text is far past any paper
+  maxRecords:             100000,             // RIS/CSV records accepted per import
+  maxFieldChars:          100000,             // any single imported field (title/abstract/notes)
+  backupMaxProjects:      5000,
+  backupMaxPapers:        200000,             // papers across a restored backup
+  backupMaxHistory:       5000,               // search-history entries in a restored backup
+  jsonMaxDepth:           40                  // reject pathologically nested JSON
+};
+
+// Human-readable byte size for rejection messages. Pure.
+function evHumanBytes(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return '?';
+  if (n >= 1048576) return (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + ' MB';
+  if (n >= 1024) return Math.round(n / 1024) + ' KB';
+  return n + ' B';
+}
+// Return a human message if a File exceeds maxBytes, else null (pure, no side effects).
+function evFileSizeError(file, maxBytes, label) {
+  if (!file || typeof file.size !== 'number') return null;
+  if (file.size > maxBytes) {
+    return (label || 'This file') + ' is too large (' + evHumanBytes(file.size) +
+      '; limit ' + evHumanBytes(maxBytes) + '). Import cancelled.';
+  }
+  return null;
+}
+// True if `value` nests no deeper than maxDepth. Recursion self-limits at maxDepth+1,
+// so a pathologically deep object can't blow the stack here. Pure.
+function evJsonDepthOk(value, maxDepth) {
+  function walk(v, d) {
+    if (d > maxDepth) return false;
+    if (v && typeof v === 'object') {
+      for (var k in v) {
+        if (Object.prototype.hasOwnProperty.call(v, k) && !walk(v[k], d + 1)) return false;
+      }
+    }
+    return true;
+  }
+  return walk(value, 0);
+}
+// Truncate an imported string field to maxFieldChars (never trust field length). Pure.
+function evClampField(s) {
+  if (typeof s !== 'string') return s;
+  return s.length > EV_LIMITS.maxFieldChars ? s.slice(0, EV_LIMITS.maxFieldChars) : s;
+}
+// Bound a parsed RIS/CSV import: cap the record count and clamp every string field
+// (and the author list) so a huge record count or an oversized field can't bloat
+// memory or persisted state. Pure — returns a new capped array.
+function evBoundImportRecords(records) {
+  if (!Array.isArray(records)) return [];
+  var capped = records.slice(0, EV_LIMITS.maxRecords);
+  for (var i = 0; i < capped.length; i++) {
+    var r = capped[i];
+    if (!r || typeof r !== 'object') continue;
+    ['title', 'abstract', 'journal', 'doi', 'url', 'year', 'authors'].forEach(function (k) {
+      if (typeof r[k] === 'string') r[k] = evClampField(r[k]);
+    });
+    if (Array.isArray(r.authors)) {
+      r.authors = r.authors.slice(0, 5000).map(function (a) { return typeof a === 'string' ? evClampField(a) : a; });
+    }
+  }
+  return capped;
+}
+
 // ── Theme (light / dark) ──────────────────────────────────────────────────────
 // The active theme is an attribute on <html> (data-theme), set before first paint
 // by the inline init in <head>. Colour flows through CSS variables (see the token
@@ -2985,21 +3062,19 @@ function handlePaperSuppFile(file, pmid) {
 function extractPdfFromFile(file) {
   return new Promise(function(resolve, reject) {
     if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
+    // P9 — reject an oversized PDF before reading it into memory.
+    var sizeErr = evFileSizeError(file, EV_LIMITS.pdfMaxBytes, 'This PDF');
+    if (sizeErr) { reject(new Error(sizeErr)); return; }
     var reader = new FileReader();
     reader.onload = function(e) {
-      pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
-        var pages = [];
-        for (var i = 1; i <= pdf.numPages; i++) {
-          pages.push(pdf.getPage(i).then(function(pg) {
-            return pg.getTextContent().then(function(tc) {
-              return tc.items.map(function(it){ return it.str; }).join(' ');
-            });
-          }));
-        }
-        return Promise.all(pages).then(function(ps) {
-          resolve(ps.join(' ').replace(/\s+/g, ' ').trim());
-        });
-      }).catch(reject);
+      // P9 — bounded page/char/concurrency extraction (shared with extractPdfText),
+      // and destroy the loading task on finish/error so a pathological PDF can't
+      // keep a decode task alive.
+      var loadingTask = pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false });
+      loadingTask.promise
+        .then(function(pdf) { return extractPdfPagesBounded(pdf); })
+        .then(function(text) { try { loadingTask.destroy(); } catch (e2) {} resolve(text); })
+        .catch(function(err) { try { loadingTask.destroy(); } catch (e2) {} reject(err); });
     };
     reader.onerror = function(){ reject(new Error('File read failed')); };
     reader.readAsArrayBuffer(file);
@@ -4508,7 +4583,8 @@ function parseRisRecords(text) {
     }
   });
   if (cur) out.push(cur);
-  return out.filter(function(r){ return r.title || (r.authors && r.authors.length) || r.doi; });
+  // P9 — cap record count + clamp field lengths before anything downstream trusts them.
+  return evBoundImportRecords(out.filter(function(r){ return r.title || (r.authors && r.authors.length) || r.doi; }));
 }
 
 // Parse a CSV export (Ovid, Cochrane, most databases) via fuzzy column detection.
@@ -4534,7 +4610,8 @@ function parseTabularRecords(text) {
   var kDoi   = pick(['doi']);
   var kAbs   = pick(['abstract']);
   var kUrl   = pick(['url', 'link', 'doilink']);
-  return rows.map(function(r) {
+  // P9 — cap record count + clamp field lengths before anything downstream trusts them.
+  return evBoundImportRecords(rows.map(function(r) {
     return {
       title:   kTitle ? r[kTitle] : '',
       authors: kAuth  ? r[kAuth]  : '',
@@ -4544,7 +4621,7 @@ function parseTabularRecords(text) {
       abstract:kAbs   ? r[kAbs]   : '',
       url:     kUrl   ? r[kUrl]   : ''
     };
-  }).filter(function(r){ return String(r.title || '').trim() || String(r.doi || '').trim(); });
+  }).filter(function(r){ return String(r.title || '').trim() || String(r.doi || '').trim(); }));
 }
 
 // Stable key for a possible-duplicate pair so re-running dedup on import doesn't
@@ -4558,6 +4635,19 @@ function importPairKey(pair) {
 function importResultRecords(input) {
   var files = input && input.files ? Array.prototype.slice.call(input.files) : [];
   if (!files.length) return;
+  // P9 — bound the batch: cap the file count and drop any oversized file up front,
+  // with a clear message, before reading anything.
+  if (files.length > EV_LIMITS.maxFilesPerOp) {
+    logIssue('search', 'Too many files selected (' + files.length + '; limit ' + EV_LIMITS.maxFilesPerOp + ')',
+             'Only the first ' + EV_LIMITS.maxFilesPerOp + ' were read. Split the import into smaller batches.');
+    files = files.slice(0, EV_LIMITS.maxFilesPerOp);
+  }
+  files = files.filter(function(file) {
+    var err = evFileSizeError(file, EV_LIMITS.textImportMaxBytes, file.name);
+    if (err) { logIssue('search', err, 'RIS/CSV exports are text — this is far larger than any real record set.'); }
+    return !err;
+  });
+  if (!files.length) { input.value = ''; return; }
   var sel = document.getElementById('import-source');
   var sourceLabel = (sel && sel.value) || 'Imported';
   var pending = files.length, collected = [], seq = 0;
@@ -7486,6 +7576,8 @@ function exportProtocolJSON() {
 function importProtocolFile(input) {
   var file = input.files && input.files[0];
   if (!file) return;
+  var szErr = evFileSizeError(file, EV_LIMITS.importMaxBytes, 'This protocol file');   // P9
+  if (szErr) { showToast(szErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function(){
     try {
@@ -10593,8 +10685,12 @@ function extractPdfText(pdfUrl) {
   // Security: only fetch http(s) URLs — block javascript:, data:, file:, etc.
   if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl)) return Promise.resolve(null);
 
+  // P9 — keep the loadingTask so we can destroy() it on finish/timeout (an 8 s
+  // promise race alone does not abort the underlying pdf.js decode work).
+  var loadingTask = null;
   function loadViaUrl(url) {
-    return pdfjsLib.getDocument({ url: url, verbosity: 0, isEvalSupported: false }).promise;
+    loadingTask = pdfjsLib.getDocument({ url: url, verbosity: 0, isEvalSupported: false });
+    return loadingTask.promise;
   }
 
   // P5 — a direct-retrieval failure must NEVER silently route an arbitrary
@@ -10629,22 +10725,45 @@ function extractPdfText(pdfUrl) {
   var pdfWork = loadViaUrl(pdfUrl).catch(function() {
     return tryProxied();
   }).then(function(pdf) {
-    var pagePromises = [];
-    for (var i = 1; i <= pdf.numPages; i++) {
-      pagePromises.push(
-        pdf.getPage(i).then(function(page) {
-          return page.getTextContent().then(function(tc) {
-            return tc.items.map(function(item) { return item.str; }).join(' ');
-          });
-        })
-      );
-    }
-    return Promise.all(pagePromises).then(function(pages) {
-      return pages.join(' ').replace(/\s+/g, ' ').trim();
-    });
+    return extractPdfPagesBounded(pdf);
   }).catch(function() { return null; });
 
-  return withTimeout(pdfWork, 8000).catch(function() { return null; });
+  // P9 — race the timeout AND release pdf.js resources whether we finished, timed
+  // out or errored, so a pathological PDF can't keep a decode task alive.
+  return withTimeout(pdfWork, 8000).catch(function() { return null; }).then(function(text) {
+    try { if (loadingTask && typeof loadingTask.destroy === 'function') loadingTask.destroy(); } catch (e) {}
+    return text;
+  });
+}
+
+// P9 — read a PDF's text with hard bounds: at most EV_LIMITS.pdfMaxPages pages, no
+// more than EV_LIMITS.pdfPageConcurrency decoded at once (a pathological page count
+// can't exhaust memory/CPU), stopping once EV_LIMITS.pdfMaxChars is reached. A bad
+// page is skipped, not fatal. Returns a Promise<string>.
+function extractPdfPagesBounded(pdf) {
+  var total = (pdf && typeof pdf.numPages === 'number') ? pdf.numPages : 0;
+  var maxPages = Math.min(total, EV_LIMITS.pdfMaxPages);
+  var conc = Math.max(1, EV_LIMITS.pdfPageConcurrency);
+  var out = [];
+  var chars = 0;
+  var next = 1;
+  function worker() {
+    if (next > maxPages || chars >= EV_LIMITS.pdfMaxChars) return Promise.resolve();
+    var i = next++;
+    return pdf.getPage(i).then(function(page) {
+      return page.getTextContent();
+    }).then(function(tc) {
+      var text = tc.items.map(function(item) { return item.str; }).join(' ');
+      out.push(text);
+      chars += text.length;
+      return worker();
+    }).catch(function() { return worker(); });   // skip an unreadable page, keep going
+  }
+  var pool = [];
+  for (var w = 0; w < conc; w++) pool.push(worker());
+  return Promise.all(pool).then(function() {
+    return out.join(' ').replace(/\s+/g, ' ').trim().slice(0, EV_LIMITS.pdfMaxChars);
+  });
 }
 
 // Detect if a URL points to a PMC article (route through XML instead of PDF)
@@ -11070,24 +11189,11 @@ async function runReferenceScanner() {
   setUploaderStatus('Extracting PDF text…', 'var(--ev-text-dim)');
   setUploaderProgress(10);
 
-  // Reuse already-extracted text or re-extract; merge supplementary if present
+  // Reuse already-extracted text or re-extract via the shared, size-guarded and
+  // page/char/concurrency-bounded reader (P9).
   var getPrimary = uploaderText
     ? Promise.resolve(uploaderText)
-    : new Promise(function(resolve, reject) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
-          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
-            var pages = [];
-            for (var i = 1; i <= pdf.numPages; i++) pages.push(pdf.getPage(i).then(function(pg) {
-              return pg.getTextContent().then(function(tc) { return tc.items.map(function(it){ return it.str; }).join(' '); });
-            }));
-            return Promise.all(pages).then(function(ps) { return ps.join(' ').replace(/\s+/g,' ').trim(); });
-          }).then(resolve).catch(reject);
-        };
-        reader.onerror = function(){ reject(new Error('File read failed')); };
-        reader.readAsArrayBuffer(uploaderFile);
-      });
+    : extractPdfFromFile(uploaderFile);
 
   getPrimary.then(function(primaryText) {
     uploaderText = primaryText;
@@ -11755,9 +11861,33 @@ function planBackupImport(data) {
   return { reject: null, settings: settings, secrets: secrets, hasKeys: Object.keys(secrets).length > 0 };
 }
 
+// P9 — reject an over-large or pathologically-shaped backup BEFORE any merge, so a
+// malformed file can never partially mutate persisted state. Pure: returns a human
+// message or null. Depth guard first — a deeply-nested object can defeat later walks.
+function evBackupSizeError(data) {
+  if (!evJsonDepthOk(data, EV_LIMITS.jsonMaxDepth)) return 'This backup is nested too deeply to be genuine. Import cancelled.';
+  var projN = Array.isArray(data.projects) ? data.projects.length : 0;
+  if (projN > EV_LIMITS.backupMaxProjects) return 'This backup claims ' + projN + ' projects (limit ' + EV_LIMITS.backupMaxProjects + '). Import cancelled.';
+  var papers = 0;
+  if (data.projectPapers && typeof data.projectPapers === 'object') {
+    var keys = Object.keys(data.projectPapers);
+    for (var i = 0; i < keys.length; i++) {
+      var arr = data.projectPapers[keys[i]];
+      if (Array.isArray(arr)) papers += arr.length;
+      if (papers > EV_LIMITS.backupMaxPapers) return 'This backup carries more than ' + EV_LIMITS.backupMaxPapers + ' papers. Import cancelled.';
+    }
+  }
+  var histN = Array.isArray(data.searchHistory) ? data.searchHistory.length : 0;
+  if (histN > EV_LIMITS.backupMaxHistory) return 'This backup claims ' + histN + ' history entries (limit ' + EV_LIMITS.backupMaxHistory + '). Import cancelled.';
+  return null;
+}
+
 function importFullBackup(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
+  // P9 — bound the raw file before reading it into memory.
+  var fileErr = evFileSizeError(file, EV_LIMITS.importMaxBytes, 'This backup');
+  if (fileErr) { showToast(fileErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function() {
     var data;
@@ -11765,6 +11895,9 @@ function importFullBackup(input) {
     if (!data || data.type !== 'full-backup' || !Array.isArray(data.projects)) {
       showToast('Not an Evidentum backup file', '#ef4444'); input.value = ''; return;
     }
+    // P9 — reject an oversized / pathologically-shaped backup BEFORE any mutation.
+    var sizeErr = evBackupSizeError(data);
+    if (sizeErr) { showToast(sizeErr, '#ef4444'); input.value = ''; return; }
     // Plan the (untrusted) settings/secret import up front. A secret smuggled into
     // the settings bag is a tampering signal → reject before any prompt or write, so
     // the confirmation dialog can never understate what will be imported (P4).
@@ -14382,6 +14515,8 @@ function exportReviewerPacket() {
 function importReviewerPacket(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
+  var szErr = evFileSizeError(file, EV_LIMITS.importMaxBytes, 'This reviewer packet');   // P9
+  if (szErr) { showToast(szErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function() {
     var data;
@@ -14439,6 +14574,8 @@ function exportVotesPacket() {
 function importVotesPacket(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
+  var szErr = evFileSizeError(file, EV_LIMITS.importMaxBytes, 'This votes packet');   // P9
+  if (szErr) { showToast(szErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function() {
     var data;
@@ -14921,31 +15058,16 @@ function extractSuppTexts() {
   if (suppFiles.length === 0) return Promise.resolve('');
   var promises = suppFiles.map(function(s, idx) {
     if (s.text) return Promise.resolve(s.text);
-    return new Promise(function(resolve) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        if (typeof pdfjsLib === 'undefined') { s.status = 'error'; renderSuppFileList(); resolve(''); return; }
-        pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
-          var pages = [];
-          for (var i = 1; i <= pdf.numPages; i++) {
-            pages.push(pdf.getPage(i).then(function(pg) {
-              return pg.getTextContent().then(function(tc) { return tc.items.map(function(it){ return it.str; }).join(' '); });
-            }));
-          }
-          return Promise.all(pages).then(function(ps) { return ps.join(' ').replace(/\s+/g,' ').trim(); });
-        }).then(function(text) {
-          s.text = text;
-          s.status = text.length > 50 ? 'ready' : 'error';
-          renderSuppFileList();
-          resolve(text);
-        }).catch(function() {
-          s.status = 'error';
-          renderSuppFileList();
-          resolve('');
-        });
-      };
-      reader.onerror = function(){ s.status = 'error'; renderSuppFileList(); resolve(''); };
-      reader.readAsArrayBuffer(s.file);
+    // P9 — shared, size-guarded and page/char/concurrency-bounded reader.
+    return extractPdfFromFile(s.file).then(function(text) {
+      s.text = text;
+      s.status = (text && text.length > 50) ? 'ready' : 'error';
+      renderSuppFileList();
+      return text || '';
+    }).catch(function() {
+      s.status = 'error';
+      renderSuppFileList();
+      return '';
     });
   });
   return Promise.all(promises).then(function(texts) {
@@ -14986,28 +15108,11 @@ function runUploaderChecklist() {
   setUploaderStatus('Reading PDF' + (suppCount > 0 ? ' + ' + suppCount + ' supplementary document' + (suppCount > 1 ? 's' : '') : '') + '…', 'var(--ev-text-dim)');
   setUploaderProgress(20);
 
-  // Extract primary PDF text (use cached if available)
+  // Extract primary PDF text (use cached if available) via the shared, size-guarded
+  // and page/char/concurrency-bounded reader (P9).
   var getPrimary = uploaderText
     ? Promise.resolve(uploaderText)
-    : new Promise(function(resolve, reject) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          if (typeof pdfjsLib === 'undefined') { reject(new Error('PDF.js not loaded')); return; }
-          pdfjsLib.getDocument({ data: e.target.result, verbosity: 0, isEvalSupported: false }).promise.then(function(pdf) {
-            var pagePromises = [];
-            for (var i = 1; i <= pdf.numPages; i++) {
-              pagePromises.push(pdf.getPage(i).then(function(page) {
-                return page.getTextContent().then(function(tc) {
-                  return tc.items.map(function(item) { return item.str; }).join(' ');
-                });
-              }));
-            }
-            return Promise.all(pagePromises).then(function(pages) { return pages.join(' ').replace(/\s+/g, ' ').trim(); });
-          }).then(resolve).catch(reject);
-        };
-        reader.onerror = function(){ reject(new Error('File read failed')); };
-        reader.readAsArrayBuffer(uploaderFile);
-      });
+    : extractPdfFromFile(uploaderFile);
 
   getPrimary.then(function(primaryText) {
     if (!primaryText || primaryText.length < 100) {
@@ -17208,6 +17313,8 @@ function evAssessExport() {
 function evAssessImport(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
+  var szErr = evFileSizeError(file, EV_LIMITS.importMaxBytes, 'This assessment file');   // P9
+  if (szErr) { showToast(szErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function() {
     var pack;
@@ -18665,6 +18772,9 @@ function evValDownloadTemplate() {
 function evValImportRef(input) {
   var file = input && input.files && input.files[0];
   if (!file) return;
+  // P9 — bound the file before reading it.
+  var szErr = evFileSizeError(file, EV_LIMITS.textImportMaxBytes, 'This CSV');
+  if (szErr) { showToast(szErr, '#ef4444'); input.value = ''; return; }
   var reader = new FileReader();
   reader.onload = function() {
     var proj = projects.find(function(x) { return x.id === currentProjectId; });
