@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-CVYK9VA1fK9c/kjdcRVBdjPop+/3QyYcyp0C6yZ5bTw=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0DLU3HpWqB9BS9ZstpXwRLQLY439U87kH2DxSuotLp4=' https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://cdnjs.cloudflare.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -825,7 +825,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <ul style="margin:8px 0 8px 18px;padding:0">
             <li><b>Searching</b> sends your query to each database you tick — PubMed/NCBI, Europe PMC, Cochrane, Crossref, OpenAlex, Semantic Scholar, Scopus/Elsevier, ClinicalTrials.gov — directly to that provider’s API.</li>
             <li><b>AI appraisal</b> sends the paper’s title/abstract (and fetched full text) plus the prompt to whichever AI provider’s key you entered (OpenAI, Anthropic, Google, xAI). It runs only when you start it, and is billed to your key.</li>
-            <li><b>Semantic Scholar</b> may retry through a public CORS proxy if the direct call is blocked — then your search terms pass through the proxy operator (see the Semantic Scholar section below). No other database uses a proxy.</li>
+            <li><b>Semantic Scholar</b> may retry through a public CORS proxy if the direct call is blocked — then your search terms pass through the proxy operator (see the Semantic Scholar section below). No other database search uses a proxy.</li>
+            <li><b>Full-text PDF retrieval</b> requests a paper’s PDF directly from its host. Only if that is blocked <b>and</b> you opt in (Full-text PDF retrieval section) does it retry via a public proxy, which then sees the full PDF URL; a signed / credential-bearing link is never proxied. Off by default.</li>
             <li><b>API keys</b> are saved in this browser (localStorage by default; browser extensions or scripts running on this page could read them). Untick <b>“Remember keys on this device”</b> in the AI keys section to keep them for the current tab only — cleared when you close it. Backups exclude keys unless you opt in.</li>
           </ul>
           AI output is an advisory draft for a human reviewer to verify — never a final eligibility or risk-of-bias judgement.
@@ -936,6 +937,17 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <input type="text" id="libkey-id" aria-label="LibKey library ID" placeholder="e.g. 1271  (from libkey.io/libraries/1271)"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" data-evinput="h28" />
       <div style="font-size:11px;color:var(--ev-text-dim)">One-click full-text access via your institution. <a href="https://libkey.io" target="_blank" rel="noopener noreferrer" style="color:var(--ev-text-dim)">Find your ID at libkey.io</a></div>
+    </div>
+
+    <!-- Full-text PDF retrieval -->
+    <div class="settings-section" id="settings-pdfproxy-section">
+      <div class="settings-section-title">&#128196; Full-text PDF retrieval</div>
+      <label style="display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--ev-text-2);margin:4px 0 6px;cursor:pointer">
+        <input type="checkbox" id="pdf-proxy-optin" data-evchange="h180" style="accent-color:#3b82f6;margin:2px 0 0" />
+        <span>Allow a public-proxy fallback when a full-text PDF can’t be fetched directly (off by default)</span>
+      </label>
+      <div style="font-size:11px;color:#8b6914;background:var(--ev-warn-bg);border:1px solid #f59e0b33;border-radius:6px;padding:7px 10px;margin-top:2px">&#128274; <b>Privacy note:</b> When Evidentum reads a paper’s full text for appraisal it requests the PDF <b>directly</b> from its host. If your browser blocks that (CORS) and you tick this box, it retries through a public CORS proxy (allorigins / codetabs / thingproxy) — which means the <b>complete PDF URL</b> is sent to the proxy operator. With the box unticked (the default) a blocked PDF is simply skipped and reported, with no third party in the path. To protect your access, a <b>signed or credential-bearing PDF link</b> (one carrying an access token, signature or institutional-resolver key) is <b>never</b> routed through a proxy even when this is on.</div>
+      <span id="pdf-proxy-status" style="font-size:11px;color:var(--ev-text-dim)"></span>
     </div>
 
     <!-- Scopus -->
@@ -10541,6 +10553,35 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, timeout]);
 }
 
+// P5 — Public-proxy fallback for full-text PDF retrieval is OPT-IN and OFF by
+// default: only when the user ticks the Settings box does a CORS-blocked PDF
+// request retry through a third-party proxy (which then sees the full PDF URL).
+// Persisted as pla_pdf_proxy; travels in the full backup like pla_s2_proxy.
+var pdfProxyOptIn = false;
+function savePdfProxyOptIn() {
+  var cb = document.getElementById('pdf-proxy-optin');
+  pdfProxyOptIn = !!(cb && cb.checked);
+  try { localStorage.setItem('pla_pdf_proxy', pdfProxyOptIn ? '1' : ''); } catch (e) {}
+  var status = document.getElementById('pdf-proxy-status');
+  if (status) { status.textContent = pdfProxyOptIn ? '✓ Proxy fallback enabled' : ''; status.style.color = 'var(--ev-ok-text)'; }
+}
+function loadPdfProxyOptIn() {
+  try { pdfProxyOptIn = localStorage.getItem('pla_pdf_proxy') === '1'; } catch (e) { pdfProxyOptIn = false; }
+  var cb = document.getElementById('pdf-proxy-optin');
+  if (cb) cb.checked = pdfProxyOptIn;
+}
+
+// A full-text link is "credential-bearing" when it carries an access token,
+// signature, expiry or institutional-resolver key in the URL — a personal,
+// often single-use grant. Routing it through a public proxy would expose that
+// credential to the proxy operator (and can breach a publisher agreement), so
+// it is never proxied. Direct retrieval from the issuing origin is unaffected.
+function looksCredentialBearing(url) {
+  if (!url) return false;
+  return /[?&#](?:access[_-]?token|auth(?:[_-]?token)?|api[_-]?key|apikey|signature|sig|expires|hmac|policy|jwt|sessionid|jsessionid|wskey|insttoken|token|awsaccesskeyid|key[_-]?pair[_-]?id)=/i.test(url) ||
+         /[?&#]x-amz-[a-z0-9-]+=/i.test(url);
+}
+
 // Extract all text from a PDF given its URL.
 // Returns a Promise<string|null>. Times out after 8 seconds.
 function extractPdfText(pdfUrl) {
@@ -10552,7 +10593,26 @@ function extractPdfText(pdfUrl) {
     return pdfjsLib.getDocument({ url: url, verbosity: 0, isEvalSupported: false }).promise;
   }
 
+  // P5 — a direct-retrieval failure must NEVER silently route an arbitrary
+  // (possibly user-imported or institutional) PDF URL through a public CORS
+  // proxy. The proxy fallback is opt-in (pdfProxyOptIn, off by default), and
+  // even when enabled a signed / credential-bearing link is refused so an
+  // access token or signature can't leak to the proxy operator.
   function tryProxied() {
+    if (typeof pdfProxyOptIn === 'undefined' || !pdfProxyOptIn) {
+      if (typeof logIssue === 'function') {
+        logIssue('pdf', 'A full-text PDF could not be fetched directly',
+          'The public-proxy fallback is off. Enable it in Settings → Full-text PDF retrieval to retry through a proxy (which sends the full PDF URL to a third party), or ignore — appraisal falls back to the abstract.');
+      }
+      return Promise.reject(new Error('pdf proxy disabled'));
+    }
+    if (looksCredentialBearing(pdfUrl)) {
+      if (typeof logIssue === 'function') {
+        logIssue('pdf', 'A signed / credential-bearing full-text link was not proxied',
+          'The link carries an access token, signature or institutional key; Evidentum never routes such a link through a public proxy (it would hand your credential to the proxy operator). Appraisal falls back to the abstract.');
+      }
+      return Promise.reject(new Error('pdf url is credential-bearing'));
+    }
     var chain = Promise.reject(new Error('start'));
     PROXIES.forEach(function(proxy) {
       chain = chain.catch(function() {
@@ -10855,6 +10915,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadScopusKey();
   loadNcbiKey();
   loadS2Key();
+  loadPdfProxyOptIn();
   loadProximity();
   loadEpmcSynonym();
   loadAiModels();
@@ -11612,7 +11673,7 @@ function sanitiseProjectData() {
 // Settings the backup always carries (preferences — nothing sensitive).
 var BACKUP_SETTINGS_KEYS = ['pla_ai_provider', 'pla_model_openai', 'pla_model_anthropic',
   'pla_model_gemini', 'pla_model_grok', 'pla_libkey_id', 'pla_epmc_synonym',
-  'pla_proximity', 'pla_s2_biomed', 'pla_s2_proxy'];
+  'pla_proximity', 'pla_s2_biomed', 'pla_s2_proxy', 'pla_pdf_proxy'];
 // API keys/tokens are OPT-IN only: a backup JSON travels (email, shared drives,
 // USB sticks) and keys inside it are plain text — exactly the exfil path the
 // security audit closed elsewhere. The nudge banner's one-click backup never
@@ -18908,6 +18969,10 @@ evOn('h177', function (event) { evValCopyMethods(); });   // evValCopyMethods()
 evOn('h178', function (event) { addMethodsToProtocol(); });   // addMethodsToProtocol() — U4
 evOn('h179', function (event) { importResultRecords(this); }); // import Embase/CENTRAL RIS/CSV into results
 /* @@REGISTRY-AUTO-END@@ */
+
+// Hand-registered constant handlers (kept BELOW the auto marker so a registry
+// regeneration can't wipe them — these controls never had inline on*="" handlers).
+evOn('h180', function (event) { savePdfProxyOptIn(); });   // P5 — full-text PDF proxy consent toggle
 
 // ── Handlers that closed over runtime data (hand-written) ─────────────────────
 //
