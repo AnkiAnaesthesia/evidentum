@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-f9uCi4z9QupPX6HLzv5T6814Z8EDtM5aRRo3PUxkUtU='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-UrF3mRA4REYveSnHu9yIqVH3xzqF5fRlXgJu6o+A4Cw='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -10744,9 +10744,13 @@ function extractPdfPagesBounded(pdf) {
   var total = (pdf && typeof pdf.numPages === 'number') ? pdf.numPages : 0;
   var maxPages = Math.min(total, EV_LIMITS.pdfMaxPages);
   var conc = Math.max(1, EV_LIMITS.pdfPageConcurrency);
-  var out = [];
-  var chars = 0;
+  var out = [];        // indexed by PAGE number (out[i-1]) — NOT completion order
+  var chars = 0;       // scheduling-stop heuristic only; the authoritative truncation is at join
   var next = 1;
+  // Pages are pulled by a shared counter in ascending index order, so the pages that
+  // ever get read are always a contiguous prefix {1..k}; storing each by its page
+  // index and joining in index order keeps the extracted text in document order even
+  // though pages finish concurrently and out of order (MV1 — page-order regression).
   function worker() {
     if (next > maxPages || chars >= EV_LIMITS.pdfMaxChars) return Promise.resolve();
     var i = next++;
@@ -10754,14 +10758,16 @@ function extractPdfPagesBounded(pdf) {
       return page.getTextContent();
     }).then(function(tc) {
       var text = tc.items.map(function(item) { return item.str; }).join(' ');
-      out.push(text);
+      out[i - 1] = text;
       chars += text.length;
       return worker();
-    }).catch(function() { return worker(); });   // skip an unreadable page, keep going
+    }).catch(function() { return worker(); });   // skip an unreadable page (leaves a hole), keep going
   }
   var pool = [];
   for (var w = 0; w < conc; w++) pool.push(worker());
   return Promise.all(pool).then(function() {
+    // Join surviving pages in PAGE ORDER (holes from failed pages collapse), then
+    // truncate ONCE — deterministic, never reorders or drops an earlier page.
     return out.join(' ').replace(/\s+/g, ' ').trim().slice(0, EV_LIMITS.pdfMaxChars);
   });
 }
