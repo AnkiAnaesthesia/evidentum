@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-UrF3mRA4REYveSnHu9yIqVH3xzqF5fRlXgJu6o+A4Cw='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-+TXnhHsHSYwesU1j3Ps4TWdRHwZZhb/HKMiM4/t9xcA='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -11789,7 +11789,13 @@ function sanitiseProjectData() {
 // Settings the backup always carries (preferences — nothing sensitive).
 var BACKUP_SETTINGS_KEYS = ['pla_ai_provider', 'pla_model_openai', 'pla_model_anthropic',
   'pla_model_gemini', 'pla_model_grok', 'pla_libkey_id', 'pla_epmc_synonym',
-  'pla_proximity', 'pla_s2_biomed', 'pla_s2_proxy', 'pla_pdf_proxy'];
+  'pla_proximity', 'pla_s2_biomed'];
+// MV2 — the public-proxy opt-ins (pla_s2_proxy, pla_pdf_proxy) are DELIBERATELY
+// excluded from the backup: they are privacy-sensitive third-party-proxy CONSENT and
+// must be re-granted on each device/origin. Backing them up let a restored file
+// silently route Semantic Scholar / PDF traffic through public proxies after a
+// generic "settings applied" confirmation. Treated as device-local, like
+// pla_remember_keys — see the backup-classification test.
 // API keys/tokens are OPT-IN only: a backup JSON travels (email, shared drives,
 // USB sticks) and keys inside it are plain text — exactly the exfil path the
 // security audit closed elsewhere. The nudge banner's one-click backup never
