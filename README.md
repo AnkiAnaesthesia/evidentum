@@ -5,7 +5,7 @@ Search across major biomedical databases, screen and de-duplicate results, run A
 
 > **Status:** Beta. Features and interfaces are still changing between builds.
 
-🔗 **Live:** https://ankianaesthesia.evidentum.app/
+🔗 **Live:** https://evidentum.app/
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21159986.svg)](https://doi.org/10.5281/zenodo.21159986)
 
@@ -105,6 +105,12 @@ Keys and saved data are never sent to or stored by *this project* — but note t
 
 ---
 
+## Security review
+
+Evidentum has been reviewed for common web-security issues — cross-site scripting, credential handling, Content-Security-Policy, and injection at its import and render boundaries — through several rounds of automated review using large language models, alongside the maintainer's own review. **Automated review is not a substitute for a professional security audit**, and it is not a guarantee that the app is free of vulnerabilities. If you find a security problem, please report it — see [`SECURITY.md`](SECURITY.md).
+
+---
+
 ## Technical notes
 
 - **Single file.** The shipped app is one `index.html` — markup, styles, and logic. No bundler, no dependencies to install at runtime.
@@ -113,7 +119,7 @@ Keys and saved data are never sent to or stored by *this project* — but note t
   - `manifest.webmanifest` — app metadata.
   - `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — app icons.
   - `sw.js` — service worker. **Network-first for same-origin app assets** (page and icons alike) so a new deploy is always served fresh, with the cache used only as an offline fallback. **Cross-origin requests are never intercepted or cached** — every scholarly-database call, AI-provider request, CORS-proxy fetch and credential-bearing URL (e.g. `?api_key=…`) goes straight to the network and never lands in the Cache API. The service worker only touches the Cache API; it never reads or clears your projects, appraisals or keys (those live in IndexedDB / local storage). Bump the `CACHE` version string in `sw.js` on release to evict old caches.
-- **Fonts are embedded** (WOFF2 data URIs) — no font-CDN requests, so typography survives offline and on `file://`. **`pdf.js` is vendored** (`pdf.min.js` / `pdf.worker.min.js` in the repo root, loaded from the same origin); if those files are missing it falls back to the cdnjs copy. It is the only third-party runtime library, and both its self-hosted and fallback origins are pinned in the page's Content-Security-Policy.
+- **Fonts are embedded** (WOFF2 data URIs) — no font-CDN requests, so typography survives offline and on `file://`. **`pdf.js` is vendored** (`pdf.min.js` / `pdf.worker.min.js` in the repo root, loaded from the same origin) — the only third-party runtime library. There is **no CDN fallback**: if the vendored files can't load, PDF text extraction fails closed (appraisal falls back to the title/abstract) rather than fetching an unpinned third-party script. The page's Content-Security-Policy `script-src` allows only same-origin scripts plus the two hash-pinned inline blocks.
 
 ---
 

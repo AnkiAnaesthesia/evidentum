@@ -33,6 +33,16 @@ open a public issue for an unfixed security problem.
 - **CSV exports** neutralise spreadsheet formula injection (a leading `= + - @`, even
   behind whitespace or control characters, is quoted to literal text).
 
+## Security review
+
+This codebase has been reviewed for common web-application security issues — cross-site
+scripting, credential handling, Content-Security-Policy, injection at its import and
+render boundaries, and prototype pollution — through several rounds of large-language-
+model-assisted review, alongside the maintainer's own review. This is **automated,
+LLM-assisted review, not a certified third-party security audit**, and it is not a
+guarantee that the application is free of vulnerabilities. Please report anything you
+find (see *Reporting a vulnerability* above).
+
 ## API keys and credentials
 
 Persisting API keys in the browser **by default** is a deliberate product choice for a
@@ -54,12 +64,12 @@ scope. The public build is served from its **own dedicated origin**, used for no
 other application:
 
 ```
-https://ankianaesthesia.evidentum.app/
+https://evidentum.app/
 ```
 
-Because nothing else runs on `ankianaesthesia.evidentum.app`, no sibling site can share
+Because nothing else runs on `evidentum.app`, no sibling site can share
 Evidentum's storage or read its persisted keys and project data. (It is served on
-GitHub Pages infrastructure via a custom domain.) The earlier
+GitHub Pages infrastructure via a custom apex domain.) The earlier
 `ankianaesthesia.github.io/evidentum/` path is deprecated: it shared one storage
 origin with every other Pages project under that account, which is exactly why the
 app moved to a dedicated host. If you fork or self-host, do the same — serve
