@@ -135,7 +135,7 @@ See **Licensing** below and the in-app **Settings → References & licences** pa
 
 If you use Evidentum in a review, please cite it (or use GitHub's *Cite this repository* button):
 
-> McNally A. *Evidentum: a self-contained systematic review search and appraisal workbench* (v1.0.0-beta). Zenodo. https://doi.org/10.5281/zenodo.21159986
+> McNally A, Duckworth A. *Evidentum: a self-contained systematic review search and appraisal workbench* (v1.0.0-beta). Zenodo. https://doi.org/10.5281/zenodo.21159986
 
 ## Acknowledgements
 

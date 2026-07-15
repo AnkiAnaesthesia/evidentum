@@ -1,5 +1,5 @@
 {
-  "name": "Evidentum Pro — Systematic Review Workbench",
+  "name": "Evidentum — Systematic Review Workbench",
   "short_name": "Evidentum",
   "description": "A self-contained systematic review search and appraisal workbench. Installable and offline-capable, with no project-operated backend — your projects stay in your browser; searches go directly to the scholarly databases you pick and AI analysis calls the provider you configure.",
   "start_url": "./",

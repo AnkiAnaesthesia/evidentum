@@ -5,9 +5,11 @@ type: software
 authors:
   - family-names: McNally
     given-names: Angus
+  - family-names: Duckworth
+    given-names: Andrew
 version: 1.0.0-beta
 date-released: "2026-07-03"
-url: "https://ankianaesthesia.evidentum.app/"
+url: "https://evidentum.app/"
 repository-code: "https://github.com/AnkiAnaesthesia/evidentum"
 license: MIT
 doi: 10.5281/zenodo.21159986

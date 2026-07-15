@@ -11,12 +11,12 @@
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-tWgPmoL8A+wgQhxnUpY8rqH6vHPOrnHp8zHWtFaXjV0='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
-<title>Evidentum Pro — Systematic Review Workbench</title>
+<title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
      Stored choice wins; otherwise follow the OS prefers-color-scheme. -->
 <script>(function(){try{var t=localStorage.getItem('ev_theme');if(!t)t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
-<meta name="description" content="Evidentum Pro — a systematic review search and appraisal workbench. Installable; your projects, screening decisions and appraisals stay in your browser. Searches go directly to the public scholarly APIs; AI analysis calls the provider you configure.">
+<meta name="description" content="Evidentum — a systematic review search and appraisal workbench. Installable; your projects, screening decisions and appraisals stay in your browser. Searches go directly to the public scholarly APIs; AI analysis calls the provider you configure.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- Fonts are embedded as data: URIs in the stylesheet (see src/02a-fonts.css):
@@ -750,7 +750,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <path d="M233 132h20M233 140h20M233 148h13"/>
     </g>
   </svg>
-  <div id="ev-splash-word">Evidentum <span>Pro</span></div>
+  <div id="ev-splash-word">Evidentum</div>
   <div id="ev-splash-tag">search · screen · appraise</div>
   <div id="ev-splash-cards" role="group" aria-label="Choose where to start">
     <button class="ev-card" id="ev-card-build" data-evclick="h1">
@@ -778,7 +778,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <div id="logo">
     <div id="logo-icon">🔬</div>
     <div>
-      <div id="logo-title" style="font-family:'Fraunces',Georgia,serif;font-weight:650;letter-spacing:-0.01em">Evidentum <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:700;vertical-align:middle;margin-left:4px;font-family:'Inter',sans-serif">PRO</span></div>
+      <div id="logo-title" style="font-family:'Fraunces',Georgia,serif;font-weight:650;letter-spacing:-0.01em">Evidentum</div>
       <div id="logo-sub">AI-powered systematic literature review</div>
     </div>
   </div>
@@ -1052,7 +1052,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <details>
         <summary>Appraisal tools &amp; reporting guidelines — citations &amp; licences</summary>
         <div class="details-body">
-          <div style="font-size:11px;color:var(--ev-text-muted);line-height:1.6;margin-bottom:10px">Evidentum Pro is a <b>free, non-commercial</b> research tool. The reporting guidelines and risk-of-bias / quality-appraisal instruments below are reproduced for use within the app with attribution to their authors. Items under a <b>NonCommercial-NoDerivatives</b> licence are reproduced <b>verbatim</b> (signalling questions unaltered) and used only because this tool is non-commercial. Always consult the original source for full guidance.</div>
+          <div style="font-size:11px;color:var(--ev-text-muted);line-height:1.6;margin-bottom:10px">Evidentum is a <b>free, non-commercial</b> research tool. The reporting guidelines and risk-of-bias / quality-appraisal instruments below are reproduced for use within the app with attribution to their authors. Items under a <b>NonCommercial-NoDerivatives</b> licence are reproduced <b>verbatim</b> (signalling questions unaltered) and used only because this tool is non-commercial. Always consult the original source for full guidance.</div>
           <div id="licences-list" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
       </details>
@@ -1477,8 +1477,8 @@ button:not(:disabled):active { filter: brightness(0.95); }
 
     <!-- Citation Helper -->
     <div class="card" style="margin-top:16px; border-color:var(--ev-border)">
-      <div class="card-label" style="margin-bottom:10px">&#128196; How to Cite Evidentum Pro</div>
-      <div style="font-size:12px; color:var(--ev-text-dim); margin-bottom:12px">If you use Evidentum Pro in your research or systematic review, please cite it using one of the formats below.</div>
+      <div class="card-label" style="margin-bottom:10px">&#128196; How to Cite Evidentum</div>
+      <div style="font-size:12px; color:var(--ev-text-dim); margin-bottom:12px">If you use Evidentum in your research or systematic review, please cite it using one of the formats below.</div>
       <div id="cite-tabs" style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap">
         <button class="cite-tab-btn active" data-cite="apa" data-evclick="h82">APA</button>
         <button class="cite-tab-btn" data-cite="vancouver" data-evclick="h83">Vancouver</button>
@@ -1486,16 +1486,16 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <button class="cite-tab-btn" data-cite="bibtex" data-evclick="h85">BibTeX</button>
       </div>
       <div id="cite-apa" class="cite-panel active">
-        <div class="cite-text">McNally, A., &amp; Duckworth, A. (<span class="cite-year"></span>). <i>Evidentum Pro: AI-powered systematic literature review tool</i> (Version <span class="cite-ver">1.0</span>) [Software]. Retrieved from https://ankianaesthesia.evidentum.app/</div>
+        <div class="cite-text">McNally, A., &amp; Duckworth, A. (<span class="cite-year"></span>). <i>Evidentum: AI-powered systematic literature review tool</i> (Version <span class="cite-ver">1.0</span>) [Software]. Retrieved from https://evidentum.app/</div>
       </div>
       <div id="cite-vancouver" class="cite-panel" style="display:none">
-        <div class="cite-text">McNally A, Duckworth A. Evidentum Pro: AI-powered systematic literature review tool [Software]. Version <span class="cite-ver">1.0</span>. <span class="cite-year"></span>. Available from: https://ankianaesthesia.evidentum.app/</div>
+        <div class="cite-text">McNally A, Duckworth A. Evidentum: AI-powered systematic literature review tool [Software]. Version <span class="cite-ver">1.0</span>. <span class="cite-year"></span>. Available from: https://evidentum.app/</div>
       </div>
       <div id="cite-harvard" class="cite-panel" style="display:none">
-        <div class="cite-text">McNally, A. and Duckworth, A. (<span class="cite-year"></span>) <i>Evidentum Pro: AI-powered systematic literature review tool</i>, Version <span class="cite-ver">1.0</span> [Software]. Available at: https://ankianaesthesia.evidentum.app/</div>
+        <div class="cite-text">McNally, A. and Duckworth, A. (<span class="cite-year"></span>) <i>Evidentum: AI-powered systematic literature review tool</i>, Version <span class="cite-ver">1.0</span> [Software]. Available at: https://evidentum.app/</div>
       </div>
       <div id="cite-bibtex" class="cite-panel" style="display:none">
-        <div class="cite-text">@software{mcnally<span class="cite-year"></span>evidentum,<br>&nbsp;&nbsp;author = {McNally, Angus and Duckworth, Andrew},<br>&nbsp;&nbsp;title = {Evidentum Pro: AI-powered systematic literature review tool},<br>&nbsp;&nbsp;year = {<span class="cite-year"></span>},<br>&nbsp;&nbsp;version = {1.0},<br>&nbsp;&nbsp;url = {https://ankianaesthesia.evidentum.app/}<br>}</div>
+        <div class="cite-text">@software{mcnally<span class="cite-year"></span>evidentum,<br>&nbsp;&nbsp;author = {McNally, Angus and Duckworth, Andrew},<br>&nbsp;&nbsp;title = {Evidentum: AI-powered systematic literature review tool},<br>&nbsp;&nbsp;year = {<span class="cite-year"></span>},<br>&nbsp;&nbsp;version = {1.0},<br>&nbsp;&nbsp;url = {https://evidentum.app/}<br>}</div>
       </div>
       <button class="btn btn-ghost" style="margin-top:10px; font-size:11px" data-evclick="h86">&#128203; Copy citation</button>
       <span id="cite-copy-confirm" style="font-size:11px; color:var(--ev-ok-text); margin-left:10px; display:none">&#10003; Copied!</span>
