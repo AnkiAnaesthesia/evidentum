@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-tWgPmoL8A+wgQhxnUpY8rqH6vHPOrnHp8zHWtFaXjV0='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-bzHCpYP8Ydd7mU3/LwQiNjFSd1ERdGw61tVDGjCyK60='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -9009,7 +9009,7 @@ function updateCardScore(p) {
     var scoreLabel = card.querySelector('.score-label');
     if (scoreLabel) scoreLabel.textContent = boost > 0 ? 'Triage+Cit.' : 'Triage';
     var scoreNum = card.querySelector('.score-num');
-    if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = boostedScore + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
+    if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = (Number(boostedScore) || 0) + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
     var scoreBar = card.querySelector('.score-bar');
     if (scoreBar) { scoreBar.style.width = boostedScore + '%'; scoreBar.style.background = scoreColor; }
     var passCount = card.querySelector('.pass-count');
@@ -9275,8 +9275,8 @@ function buildAgentBadge(p, withId) {
   var qLabel  = p.queryMatch === true ? '✓ Matches question' : p.queryMatch === false ? '✗ Off-topic' : '? Not assessed';
   var scoreColour = p.agentScore >= 75 ? 'var(--ev-ok-text)' : p.agentScore >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
   return '<div' + (withId ? ' id="agent-rank-badge-' + safeId(p.pmid) + '"' : '') + ' style="display:flex;flex-direction:column;gap:1px;margin-top:2px">' +
-    '<span title="' + esc(p.agentScoreReasoning || '') + '" style="background:var(--ev-surface-3);border:1px solid ' + scoreColour + '55;color:' + scoreColour + ';font-size:10px;font-weight:700;font-family:\'IBM Plex Mono\',monospace;padding:2px 8px;border-radius:10px;white-space:nowrap;cursor:default">&#128202; ' + p.agentScore + '/100</span>' +
-    (clSc ? '<span style="font-size:10px;color:var(--ev-text-dim);padding-left:2px">' + esc(clKey) + ' ' + clSc.pct + '%</span>' : '') +
+    '<span title="' + esc(p.agentScoreReasoning || '') + '" style="background:var(--ev-surface-3);border:1px solid ' + scoreColour + '55;color:' + scoreColour + ';font-size:10px;font-weight:700;font-family:\'IBM Plex Mono\',monospace;padding:2px 8px;border-radius:10px;white-space:nowrap;cursor:default">&#128202; ' + (Number(p.agentScore) || 0) + '/100</span>' +
+    (clSc ? '<span style="font-size:10px;color:var(--ev-text-dim);padding-left:2px">' + esc(clKey) + ' ' + (Number(clSc.pct) || 0) + '%</span>' : '') +
     '<span style="font-size:10px;padding-left:2px"><span style="color:' + robColour + '">' + esc(robLabel) + '</span> &middot; <span style="color:' + qColour + '">' + qLabel + '</span></span>' +
   '</div>';
 }
@@ -10944,7 +10944,7 @@ function applyFullText(p, text, depthType, db) {
     var scoreColor = p.score >= 80 ? '#22c55e' : p.score >= 50 ? '#f59e0b' : '#ef4444';
     if (!poolBox2) {
       var scoreNum = card.querySelector('.score-num');
-      if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = p.score + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
+      if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = (Number(p.score) || 0) + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
       var scoreBar = card.querySelector('.score-bar');
       if (scoreBar) { scoreBar.style.width = p.score + '%'; scoreBar.style.background = scoreColor; }
       var passCount = card.querySelector('.pass-count');
@@ -12117,9 +12117,23 @@ function evNormaliseExtractionFields(arr) {
 // keys stripped, strings clamped, arrays bounded) then the audited fields are
 // schema-normalised. Unknown top-level project keys are retained only after
 // evDeepClean, so they can never carry markup-length strings or pollution keys.
+// Every top-level field a project legitimately carries. Runtime writers:
+// 04g (core fields, scanCriteria, protocol, gradeOutcomes, searchEvents,
+// extractionFields), 04d workbench (searchProtocol/protocolVersions/runs),
+// 04j validation harness (validationRef). Anything else in a restored backup
+// is dropped — an unknown key has no renderer, so it can only be a payload.
+var EV_PROJECT_KEYS = ['id', 'name', 'desc', 'picoQuestion', 'created', 'dualReviewer',
+  'activeReviewer', 'packetRole', 'protocol', 'gradeOutcomes', 'searchEvents',
+  'extractionFields', 'searchProtocol', 'protocolVersions', 'runs', 'scanCriteria',
+  'validationRef'];
 function evNormaliseProject(pr) {
   if (!pr || typeof pr !== 'object') return null;
-  var out = evDeepClean(pr, 0) || {};
+  var cleaned = evDeepClean(pr, 0) || {};
+  var out = {};
+  for (var i = 0; i < EV_PROJECT_KEYS.length; i++) {
+    var k = EV_PROJECT_KEYS[i];
+    if (k in cleaned) out[k] = cleaned[k];
+  }
   out.id = safeId(out.id);
   out.name = evClampStr(out.name, 1000);
   out.desc = evClampStr(out.desc, 5000);
@@ -12134,6 +12148,32 @@ function evNormaliseProject(pr) {
   if ('extractionFields' in out) out.extractionFields = evNormaliseExtractionFields(out.extractionFields) || [];
   return out;
 }
+// Assessment records enter IndexedDB from two import paths (full backup restore
+// here, assessment-pack import in 04i). Rebuild each record to the exact shape
+// assessPut writes — strings clamped, enums failed closed, result deep-cleaned
+// (pollution keys stripped, depth/size bounded) — so a crafted file can't smuggle
+// arbitrary structure into the cache. applyAgentResults re-validates ids/values
+// again at apply-time; this is the storage-side half.
+function evNormaliseAssessRecord(r) {
+  if (!r || typeof r !== 'object') return null;
+  if (typeof r.key !== 'string' || !r.key || r.key.length > 1000) return null;
+  if (!r.result || typeof r.result !== 'object' || Array.isArray(r.result)) return null;
+  var result = evDeepClean(r.result, 0);
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return null;
+  return {
+    key: r.key,
+    doi: evClampStr(r.doi, 300),
+    pmid: evClampStr(r.pmid, 100),
+    title: evClampStr(r.title, 2000),
+    studyType: evClampStr(r.studyType, 100),
+    textSourceClass: evEnumOr(r.textSourceClass, ['abstract', 'fulltext'], 'fulltext'),
+    model: evClampStr(r.model, 200),
+    promptVersion: evClampStr(String(r.promptVersion == null ? '' : r.promptVersion), 20),
+    result: result,
+    savedAt: evIsoTimestamp(r.savedAt)
+  };
+}
+
 function sanitiseProjectData() {
   try {
     projects = (Array.isArray(projects) ? projects : []).filter(Boolean).map(evNormaliseProject).filter(Boolean);
@@ -12336,7 +12376,9 @@ function importFullBackup(input) {
     }
     saveProjects();
 
-    var assessRecords = (Array.isArray(data.assessments) ? data.assessments : []).filter(function(r){ return r && r.key && r.result; });
+    var assessRecords = (Array.isArray(data.assessments) ? data.assessments : [])
+      .slice(0, EV_LIMITS.backupMaxPapers)
+      .map(evNormaliseAssessRecord).filter(Boolean);
     function finish(extra) {
       input.value = '';
       if (typeof renderProjList === 'function') renderProjList();
@@ -17699,7 +17741,9 @@ function evAssessImport(input) {
     var pack;
     try { pack = JSON.parse(reader.result); } catch(e) { showToast('Not a valid JSON file', '#ef4444'); return; }
     var records = (pack && pack.assessments) || (Array.isArray(pack) ? pack : null);
-    var valid = (records || []).filter(function(r) { return r && r.key && r.result; });
+    var valid = (Array.isArray(records) ? records : [])
+      .slice(0, EV_LIMITS.backupMaxPapers)
+      .map(evNormaliseAssessRecord).filter(Boolean);   // deep-normalise: untrusted file
     if (!valid.length) { showToast('No valid assessments found in file', '#ef4444'); return; }
     assessDbOpen().then(function(db) {
       var tx = db.transaction(ASSESS_STORE, 'readwrite');
@@ -17781,14 +17825,22 @@ function applyAgentResults(p, result, fullText, textSource) {
   if (checklistKey && result.checklist) {
     if (!p.checklists) p.checklists = {};
     p.checklists[checklistKey] = p.checklists[checklistKey] || {};
+    // Apply-time id/value validation (mirrors evNormaliseChecklists at the import
+    // boundary): a cached assessment rehydrated from IndexedDB may have entered via
+    // a crafted backup/pack, so pollution keys, unknown item ids and off-vocabulary
+    // statuses are discarded here too — the storage-side normaliser is not trusted
+    // to be the only line.
+    var clItemIds = evChecklistItemIds(checklistKey);
     Object.keys(result.checklist).forEach(function(id) {
-      p.checklists[checklistKey][id] = result.checklist[id];
+      if (!evSafeKey(id) || !clItemIds[id]) return;   // unknown/pollution id → discard
+      p.checklists[checklistKey][id] = evClStatus(result.checklist[id]);
     });
     // Per-item evidence (parallel map; statuses stay plain strings so scoring/skip
     // logic is untouched). Capped so a runaway quote can't bloat storage.
     if (result.checklist_evidence && typeof result.checklist_evidence === 'object') {
       var evMap = {};
       Object.keys(result.checklist_evidence).forEach(function(id) {
+        if (!evSafeKey(id) || !clItemIds[id]) return;
         var ev = result.checklist_evidence[id];
         if (ev != null && String(ev).trim()) evMap[id] = String(ev).trim().slice(0, 240);
       });
@@ -17820,9 +17872,15 @@ function applyAgentResults(p, result, fullText, textSource) {
   if (biasToolKey && biasData && CHECKLISTS[biasToolKey]) {
     if (!p.checklists) p.checklists = {};
     p.checklists[biasToolKey] = p.checklists[biasToolKey] || {};
+    // Same apply-time discipline as the checklist block above: only registry item
+    // ids and domain ids for THIS tool may be written, values forced onto the
+    // status/judgement vocabularies (a cached assessment is untrusted input).
+    var biasItemIds = evChecklistItemIds(biasToolKey);
+    var biasDomIds = evChecklistDomainIds(biasToolKey);
     var domainJudgements = {};
     var domainRationales = {};
     Object.keys(biasData).forEach(function(id) {
+      if (!evSafeKey(id)) return;   // __proto__/constructor/prototype → discard
       // Check the exact overall_* keys BEFORE the suffix tests — "overall_judgement"
       // also ends with "_judgement", which previously routed it into a phantom
       // "overall" domain and left __overall_judgement__ unset (masked only by
@@ -17832,15 +17890,20 @@ function applyAgentResults(p, result, fullText, textSource) {
       } else if (id === 'overall_rationale') {
         // accepted but not separately rendered — domain rationales carry the detail
       } else if (id.endsWith('_rationale')) {
+        var domR = id.replace('_rationale', '');
+        if (!biasDomIds[domR]) return;                    // unknown domain → discard
         var dev = biasData[id];
-        if (dev != null && String(dev).trim()) domainRationales[id.replace('_rationale', '')] = String(dev).trim().slice(0, 240);
+        if (dev != null && String(dev).trim()) domainRationales[domR] = String(dev).trim().slice(0, 240);
       } else if (id.endsWith('_judgement')) {
-        domainJudgements[id.replace('_judgement', '')] = normaliseJudgement(biasData[id]);
+        var domJ = id.replace('_judgement', '');
+        if (!biasDomIds[domJ]) return;                    // unknown domain → discard
+        domainJudgements[domJ] = normaliseJudgement(biasData[id]);
       } else {
+        if (!biasItemIds[id]) return;                     // unknown item id → discard
         // AMSTAR 2 items use the CL statuses (yes/partial/no/na/unclear) — a stray
         // "ni" from the signalling-question wire format means unanswered there, and
         // storing it raw would leave the item select with no matching option.
-        p.checklists[biasToolKey][id] = (biasToolKey === 'AMSTAR2' && biasData[id] === 'ni') ? 'unclear' : biasData[id];
+        p.checklists[biasToolKey][id] = evClStatus((biasToolKey === 'AMSTAR2' && biasData[id] === 'ni') ? 'unclear' : biasData[id]);
       }
     });
     if (Object.keys(domainJudgements).length > 0) {
@@ -17854,8 +17917,10 @@ function applyAgentResults(p, result, fullText, textSource) {
 
   // Also handle legacy domain_judgements field
   if (result.domain_judgements && biasToolKey && p.checklists && p.checklists[biasToolKey]) {
+    var legacyDomIds = evChecklistDomainIds(biasToolKey);
     var normDj = {};
     Object.keys(result.domain_judgements).forEach(function(k) {
+      if (!evSafeKey(k) || !legacyDomIds[k]) return;   // unknown/pollution domain → discard
       normDj[k] = normaliseJudgement(result.domain_judgements[k]);
     });
     p.checklists[biasToolKey]['__domain_judgements__'] = Object.assign(
@@ -17868,7 +17933,7 @@ function applyAgentResults(p, result, fullText, textSource) {
   if (card) {
     var scoreColor = p.score >= 80 ? '#22c55e' : p.score >= 50 ? '#f59e0b' : '#ef4444';
     var scoreNum = card.querySelector('.score-num');
-    if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = p.score + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
+    if (scoreNum) { scoreNum.style.color = scoreColor; scoreNum.innerHTML = (Number(p.score) || 0) + '<span style="font-size:11px;color:var(--ev-text-dim)">%</span>'; }
     var scoreBar = card.querySelector('.score-bar');
     if (scoreBar) { scoreBar.style.width = p.score + '%'; scoreBar.style.background = scoreColor; }
     var passCount = card.querySelector('.pass-count');
