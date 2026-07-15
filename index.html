@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-dkrc/nM2H+28RXDbqT8rHK4rXY43h3zXyxCzY6lUwj4='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-tWgPmoL8A+wgQhxnUpY8rqH6vHPOrnHp8zHWtFaXjV0='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum Pro — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -11829,24 +11829,319 @@ function loadProjects() { return loadProjectsAsync(); }
 // hand-crafted backup file. Assessment-pack records need no equivalent pass:
 // their ids only serve as IndexedDB keys, and their text fields are esc()'d at
 // every render site.
+// ── Deep-normalisation primitives ────────────────────────────────────────────
+// The 2026-07 security follow-up: shallow id/URL cleaning is not enough. A crafted
+// backup can drop HTML strings into fields the app renders as numbers or fixed
+// enumerations (score, biasRisk, a checklist key …), and those reach innerHTML
+// sinks. Every restored field is schema-normalised here (fail closed) so a hostile
+// value can never survive as attacker-controlled text/markup. Renderers escape at
+// the sink too — this is the belt, that is the braces.
+// Direct string comparison, NOT an object lookup: an object literal keyed by
+// "__proto__" sets the prototype instead of an own property, so a lookup table
+// would silently fail to flag the very key we must reject.
+function evSafeKey(k) { return k !== '__proto__' && k !== 'prototype' && k !== 'constructor'; }
+// Clamp any value to a bounded string (never returns markup-length surprises).
+function evClampStr(v, max) {
+  if (v == null) return '';
+  var s = (typeof v === 'string') ? v : String(v);
+  return s.length > max ? s.slice(0, max) : s;
+}
+// Finite number within [min,max] else the documented default. Accepts numeric
+// strings (legacy/CSV compatibility) but NEVER preserves an arbitrary string.
+function evNumOr(v, min, max, def, isInt) {
+  var n = (typeof v === 'number') ? v : ((typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
+  if (!isFinite(n)) return def;
+  if (isInt) n = Math.round(n);
+  if (min != null && n < min) return def;   // out of range is suspicious → fail closed
+  if (max != null && n > max) return def;
+  return n;
+}
+function evEnumOr(v, allowed, def) { return allowed.indexOf(v) !== -1 ? v : def; }
+function evBoolStrict(v) { return v === true; }     // no broad truthiness on untrusted input
+// A null-prototype dictionary copied from an untrusted map: pollution keys skipped,
+// optional key allowlist, values mapped, entry count bounded.
+function evCleanMap(obj, mapVal, allowKey, maxKeys) {
+  var out = Object.create(null), n = 0;
+  if (obj && typeof obj === 'object') {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (!evSafeKey(k)) continue;
+      if (allowKey && !allowKey(k)) continue;
+      if (maxKeys && n >= maxKeys) break;
+      var mv = mapVal(obj[k], k);
+      if (mv !== undefined) { out[k] = mv; n++; }
+    }
+  }
+  return out;
+}
+// A general deep clean for sub-trees we keep structurally but do not schema-map
+// (searchProtocol, runs, validationRef …): strips pollution keys, clamps strings,
+// bounds arrays and recursion depth. Returns plain objects (app expects them).
+function evDeepClean(v, depth) {
+  if (depth > 12) return null;
+  if (v == null) return v;
+  var t = typeof v;
+  if (t === 'string') return evClampStr(v, EV_LIMITS.maxFieldChars);
+  if (t === 'number') return isFinite(v) ? v : null;
+  if (t === 'boolean') return v;
+  if (t === 'function') return undefined;
+  if (Array.isArray(v)) {
+    var arr = [], cap = Math.min(v.length, 10000);
+    for (var i = 0; i < cap; i++) { var e = evDeepClean(v[i], depth + 1); if (e !== undefined) arr.push(e); }
+    return arr;
+  }
+  if (t === 'object') {
+    var out = {}, keys = Object.keys(v);
+    for (var j = 0; j < keys.length && j < 5000; j++) {
+      var k = keys[j];
+      if (!evSafeKey(k)) continue;
+      var cv = evDeepClean(v[k], depth + 1);
+      if (cv !== undefined) out[k] = cv;
+    }
+    return out;
+  }
+  return undefined;
+}
+// Judgement scales (RoB2 low/some_concerns/high · ROBINS-I low/moderate/serious/
+// critical · plus unclear). Unknown → 'unclear' (fail closed, safe class token).
+var EV_JUDGEMENTS = ['low', 'some_concerns', 'moderate', 'high', 'serious', 'critical', 'unclear'];
+function evJudgement(v) {
+  if (typeof v !== 'string') return 'unclear';
+  var s = v.toLowerCase().trim().replace(' risk', '').replace(' of bias', '').trim();
+  if (s === 'some concerns' || s === 'some') s = 'some_concerns';
+  return EV_JUDGEMENTS.indexOf(s) !== -1 ? s : 'unclear';
+}
+var EV_CL_STATUSES = ['yes', 'no', 'partial', 'na', 'ni', 'unclear'];
+function evClStatus(v) { return EV_CL_STATUSES.indexOf(v) !== -1 ? v : 'unclear'; }
+var EV_DECISIONS = ['include', 'exclude', 'maybe'];
+var EV_RESOLVE_STATES = ['pending', 'found', 'error', 'notfound'];
+function evExclusionReasonOr(v) {
+  for (var i = 0; i < PRISMA_EXCLUSION_REASONS.length; i++) if (PRISMA_EXCLUSION_REASONS[i].code === v) return v;
+  return '';
+}
+function evUrlOrEmpty(u) { if (!u) return ''; var s = safeUrl(u); return s === '#' ? '' : s; }
+// Accept only an ISO-8601-shaped timestamp (what new Date().toISOString() emits);
+// a length check alone is not enough — the injection markers are short too.
+function evIsoTimestamp(v) { return (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) ? v.slice(0, 40) : ''; }
+// The exact item ids / domain ids a checklist tool defines — anything else in a
+// restored checklist object is discarded rather than rendered.
+function evChecklistItemIds(clKey) {
+  var cl = CHECKLISTS[clKey], ids = Object.create(null);
+  if (!cl) return ids;
+  (cl.items || []).forEach(function(it) { ids[it.id] = 1; });
+  (cl.domains || []).forEach(function(d) { (d.questions || []).forEach(function(q) { ids[q.id] = 1; }); });
+  return ids;
+}
+function evChecklistDomainIds(clKey) {
+  var cl = CHECKLISTS[clKey], ids = Object.create(null);
+  if (cl) (cl.domains || []).forEach(function(d) { ids[d.id] = 1; });
+  return ids;
+}
+// Only registry tools; only defined item/domain ids + the documented sentinel maps
+// (__overall_judgement__, __domain_judgements__, __domain_rationales__, __evidence__).
+function evNormaliseChecklists(obj) {
+  var out = Object.create(null);
+  if (!obj || typeof obj !== 'object') return out;
+  Object.keys(obj).forEach(function(clKey) {
+    if (!evSafeKey(clKey) || !CHECKLISTS[clKey]) return;   // unknown tool → discard
+    var src = obj[clKey];
+    if (!src || typeof src !== 'object') return;
+    var itemIds = evChecklistItemIds(clKey), domIds = evChecklistDomainIds(clKey);
+    var cl = Object.create(null);
+    Object.keys(src).forEach(function(k) {
+      if (!evSafeKey(k)) return;
+      if (k === '__overall_judgement__') { cl[k] = evJudgement(src[k]); return; }
+      if (k === '__domain_judgements__') { cl[k] = evCleanMap(src[k], function(v) { return evJudgement(v); }, function(id) { return !!domIds[id]; }); return; }
+      if (k === '__domain_rationales__') { cl[k] = evCleanMap(src[k], function(v) { return evClampStr(v, 2000); }, function(id) { return !!domIds[id]; }); return; }
+      if (k === '__evidence__') { cl[k] = evCleanMap(src[k], function(v) { return evClampStr(v, 2000); }, function(id) { return !!itemIds[id]; }); return; }
+      if (itemIds[k]) cl[k] = evClStatus(src[k]);           // per-item status; unknown item id → discard
+    });
+    out[clKey] = cl;
+  });
+  return out;
+}
+function evNormaliseReviews(obj) {
+  var out = Object.create(null);
+  if (!obj || typeof obj !== 'object') return out;
+  ['A', 'B'].forEach(function(lens) {           // only the two real reviewer lenses
+    var r = obj[lens];
+    if (!r || typeof r !== 'object') return;
+    var rv = Object.create(null);
+    rv.decision = evEnumOr(r.decision, EV_DECISIONS, '');
+    rv.exclusionReason = evExclusionReasonOr(r.exclusionReason);
+    rv.reason = evClampStr(r.reason, 5000);
+    rv.at = evIsoTimestamp(r.at);
+    if (typeof r.rev === 'number' && isFinite(r.rev)) rv.rev = Math.max(0, Math.round(r.rev));
+    out[lens] = rv;
+  });
+  return out;
+}
+function evNormaliseRetraction(r) {
+  if (!r || typeof r !== 'object') return null;
+  return { retracted: evBoolStrict(r.retracted), source: evClampStr(r.source, 100), date: evClampStr(r.date, 40),
+    noticeDoi: evClampStr(r.noticeDoi, 300), reason: evClampStr(r.reason, 2000), recordId: evClampStr(r.recordId, 100) };
+}
+function evExtractionKeyOk(k) { return /^[A-Za-z0-9_\-]{1,60}$/.test(k); }
+function evNormaliseScannedRef(r) {
+  if (!r || typeof r !== 'object') return null;
+  var out = Object.create(null);
+  out.title = evClampStr(r.title, 1000);
+  out.authors = (typeof r.authors === 'string') ? evClampStr(r.authors, 1000)
+    : (Array.isArray(r.authors) ? r.authors.slice(0, 50).map(function(a) { return evClampStr(a, 300); }).join(', ') : '');
+  out.year = evClampStr(r.year, 20);
+  out.journal = evClampStr(r.journal, 500);
+  out.doi = evClampStr(r.doi, 300);
+  out.pmid = safeId(r.pmid);
+  out.pmcid = safeId(r.pmcid);
+  out.url = evUrlOrEmpty(r.url);
+  out.fullTextUrl = evUrlOrEmpty(r.fullTextUrl);
+  out.fullTextSource = evClampStr(r.fullTextSource, 100);
+  out.abstract = evClampStr(r.abstract, 10000);
+  out.resolveState = evEnumOr(r.resolveState, EV_RESOLVE_STATES, 'pending');
+  out.study_type = evClampStr(r.study_type, 100);
+  out.relevance_score = evNumOr(r.relevance_score, 0, 100, null);
+  out.checklists = evNormaliseChecklists(r.checklists);
+  out.selectedChecklist = CHECKLISTS[r.selectedChecklist] ? r.selectedChecklist : null;
+  out.biasToolUsed = CHECKLISTS[r.biasToolUsed] ? r.biasToolUsed : null;
+  out.bias_checklist = CHECKLISTS[r.bias_checklist] ? r.bias_checklist : null;
+  out.bias_risk = evEnumOr(r.bias_risk, EV_JUDGEMENTS, null);
+  out.agentAnalysed = evBoolStrict(r.agentAnalysed);
+  out.agentSummary = evClampStr(r.agentSummary, 5000);
+  out.agentKeyFinding = evClampStr(r.agentKeyFinding, 2000);
+  out.agentSampleSize = evNumOr(r.agentSampleSize, 0, 1e9, null);
+  out.agentPopulation = evClampStr(r.agentPopulation, 1000);
+  return out;   // agentBusy and any unknown field are intentionally NOT carried
+}
+// A restored project paper, rebuilt field-by-field from an allowlist. Anything not
+// named here (unknown/injected fields, bulky transients like fullText) is dropped.
+function evNormalisePaper(p) {
+  if (!p || typeof p !== 'object') return null;
+  var out = {};
+  out.pmid  = safeId(p.pmid) || ('proj_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+  out.pmcid = safeId(p.pmcid);
+  out.nctId = safeId(p.nctId);
+  out.title = evClampStr(p.title, 2000);
+  out.authors = (typeof p.authors === 'string') ? evClampStr(p.authors, 1000)
+    : (Array.isArray(p.authors) ? p.authors.slice(0, 50).map(function(a) { return evClampStr(a, 300); }) : '');
+  out.year = evClampStr(p.year, 20);
+  out.journal = evClampStr(p.journal, 500);
+  out.doi = evClampStr(p.doi, 300);
+  out.url = evUrlOrEmpty(p.url);
+  out.fullTextUrl = evUrlOrEmpty(p.fullTextUrl);
+  out.fullTextSource = evClampStr(p.fullTextSource, 100);
+  out.abstract = evClampStr(p.abstract, 12000);
+  out.notes = evClampStr(p.notes, 50000);
+  out.correctionNotice = evClampStr(p.correctionNotice, 1000);
+  out.studyType = evClampStr(p.studyType, 100);
+  // numbers (never a preserved string)
+  out.score = evNumOr(p.score, 0, 100, 0);
+  out.relevanceScore = evNumOr(p.relevance_score != null ? p.relevance_score : p.relevanceScore, 0, 100, null);
+  out.agentScore = evNumOr(p.agentScore, 0, 100, null);
+  out.citationCount = evNumOr(p.citationCount, 0, 1e9, null, true);
+  out.agentSampleSize = evNumOr(p.agentSampleSize, 0, 1e9, null);
+  out.passedCriteria = evNumOr(p.passedCriteria, 0, 100000, 0, true);
+  out.totalCriteria = evNumOr(p.totalCriteria, 0, 100000, 0, true);
+  var addedAt = evNumOr(p.addedAt, 0, 1e15, undefined, true);
+  if (addedAt !== undefined) out.addedAt = addedAt;
+  // booleans
+  out.agentAnalysed = evBoolStrict(p.agentAnalysed);
+  out.retracted = evBoolStrict(p.retracted);
+  out.retractionChecked = evBoolStrict(p.retractionChecked);
+  out.decisionAuto = evBoolStrict(p.decisionAuto);
+  out.queryMatch = (p.queryMatch === true) ? true : (p.queryMatch === false ? false : null);
+  // enums (fail closed)
+  out.source = evEnumOr(p.source, ['search', 'reference', 'upload'], 'search');
+  out.scanDepth = evEnumOr(p.scanDepth, ['abstract', 'full'], 'abstract');
+  out.appraisalDepth = evEnumOr(p.appraisalDepth, ['abstract', 'full-text'], '');
+  out.decision = evEnumOr(p.decision, EV_DECISIONS, '');
+  out.exclusionReason = evExclusionReasonOr(p.exclusionReason);
+  out.decisionReason = evClampStr(p.decisionReason, 5000);
+  out.biasRisk = evEnumOr(p.biasRisk, EV_JUDGEMENTS, null);
+  out.biasToolUsed = CHECKLISTS[p.biasToolUsed] ? p.biasToolUsed : null;
+  out.selectedChecklist = CHECKLISTS[p.selectedChecklist] ? p.selectedChecklist : null;
+  out.decisionAt = evIsoTimestamp(p.decisionAt);
+  // AI-appraisal text
+  out.agentSummary = evClampStr(p.agentSummary, 5000);
+  out.agentKeyFinding = evClampStr(p.agentKeyFinding, 2000);
+  out.agentPopulation = evClampStr(p.agentPopulation, 1000);
+  out.agentScoreReasoning = evClampStr(p.agentScoreReasoning, 2000);
+  out.agentTextSource = evClampStr(p.agentTextSource, 200);
+  out.queryMatchReasoning = evClampStr(p.queryMatchReasoning, 2000);
+  out.retractionInfo = evNormaliseRetraction(p.retractionInfo);
+  // structured / nested
+  out.checklists = evNormaliseChecklists(p.checklists);
+  out.reviews = evNormaliseReviews(p.reviews);
+  out.manualTags = Array.isArray(p.manualTags) ? p.manualTags.slice(0, 50).map(function(t) { return evClampStr(t, 100); }) : [];
+  out.extraction = evCleanMap(p.extraction, function(v) { return evClampStr(v, 20000); }, evExtractionKeyOk, 200);
+  out.extractionAi = Array.isArray(p.extractionAi) ? p.extractionAi.slice(0, 200).map(function(id) { return evClampStr(id, 60); }) : [];
+  out.scannedRefs = Array.isArray(p.scannedRefs) ? p.scannedRefs.slice(0, 150).map(evNormaliseScannedRef).filter(Boolean) : [];
+  return out;
+}
+function evNormaliseProtocol(pr) {
+  var out = {};
+  if (!pr || typeof pr !== 'object') return out;
+  PROTOCOL_FIELDS.forEach(function(f) { if (typeof pr[f.id] !== 'undefined') out[f.id] = evClampStr(pr[f.id], 20000); });
+  return out;
+}
+function evNormaliseGradeOutcomes(arr) {
+  if (!Array.isArray(arr)) return undefined;
+  return arr.slice(0, 100).map(function(o) {
+    if (!o || typeof o !== 'object') return null;
+    var g = {};
+    g.id = safeId(o.id) || ('g_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+    g.name = evClampStr(o.name, 300);
+    g.design = evClampStr(o.design, 40);
+    g.nStudies = evClampStr(o.nStudies, 20);
+    g.nParticipants = evClampStr(o.nParticipants, 20);
+    g.domains = {};
+    GRADE_DOMAINS.forEach(function(d) { g.domains[d.key] = evEnumOr((o.domains || {})[d.key], ['not_serious', 'serious', 'very_serious'], 'not_serious'); });
+    g.upgrades = {};
+    GRADE_UPGRADES.forEach(function(u) { g.upgrades[u.key] = evNumOr((o.upgrades || {})[u.key], 0, u.max, 0, true); });
+    g.certaintyOverride = evEnumOr(o.certaintyOverride, ['high', 'moderate', 'low', 'very_low'], '');
+    g.finding = evClampStr(o.finding, 5000);
+    return g;
+  }).filter(Boolean);
+}
+function evNormaliseExtractionFields(arr) {
+  if (!Array.isArray(arr)) return undefined;
+  return arr.slice(0, 200).map(function(f) {
+    if (!f || typeof f !== 'object') return null;
+    var id = String(f.id == null ? '' : f.id).replace(/[^A-Za-z0-9_\-]/g, '').slice(0, 60);
+    if (!id) return null;
+    return { id: id, label: evClampStr(f.label, 300) };
+  }).filter(Boolean);
+}
+// A restored project. Bulk sub-trees (searchProtocol, protocolVersions, runs,
+// scanCriteria, validationRef) are kept structurally via evDeepClean (pollution
+// keys stripped, strings clamped, arrays bounded) then the audited fields are
+// schema-normalised. Unknown top-level project keys are retained only after
+// evDeepClean, so they can never carry markup-length strings or pollution keys.
+function evNormaliseProject(pr) {
+  if (!pr || typeof pr !== 'object') return null;
+  var out = evDeepClean(pr, 0) || {};
+  out.id = safeId(out.id);
+  out.name = evClampStr(out.name, 1000);
+  out.desc = evClampStr(out.desc, 5000);
+  out.picoQuestion = evClampStr(out.picoQuestion, 5000);
+  out.created = evNumOr(out.created, 0, 1e15, Date.now(), true);
+  out.dualReviewer = evBoolStrict(pr.dualReviewer);
+  out.activeReviewer = evEnumOr(out.activeReviewer, ['A', 'B'], 'A');
+  out.packetRole = evEnumOr(out.packetRole, ['B'], '');
+  out.protocol = evNormaliseProtocol(out.protocol);
+  if ('gradeOutcomes' in out) out.gradeOutcomes = evNormaliseGradeOutcomes(out.gradeOutcomes) || [];
+  if ('searchEvents' in out) out.searchEvents = Array.isArray(out.searchEvents) ? out.searchEvents.slice(-50) : [];
+  if ('extractionFields' in out) out.extractionFields = evNormaliseExtractionFields(out.extractionFields) || [];
+  return out;
+}
 function sanitiseProjectData() {
   try {
-    projects = (Array.isArray(projects) ? projects : []).filter(Boolean);
-    projects.forEach(function(pr) { pr.id = safeId(pr.id); });
+    projects = (Array.isArray(projects) ? projects : []).filter(Boolean).map(evNormaliseProject).filter(Boolean);
     var clean = {};
     Object.keys(projectPapers || {}).forEach(function(pid) {
+      if (!evSafeKey(pid)) return;   // reject a pollution key masquerading as a project id
       var arr = Array.isArray(projectPapers[pid]) ? projectPapers[pid].filter(Boolean) : [];
-      arr.forEach(function(p) {
-        p.pmid  = safeId(p.pmid);
-        p.pmcid = safeId(p.pmcid);
-        p.nctId = safeId(p.nctId);
-        if (p.url && safeUrl(p.url) === '#') p.url = '';
-        if (p.fullTextUrl && safeUrl(p.fullTextUrl) === '#') p.fullTextUrl = '';
-        // Transient flags must never survive a reload/import (a page closed
-        // mid-analysis would otherwise leave a spinner stuck forever).
-        (p.scannedRefs || []).forEach(function(r) { delete r.agentBusy; });
-      });
-      clean[safeId(pid)] = arr;
+      clean[safeId(pid)] = arr.map(evNormalisePaper).filter(Boolean);
     });
     projectPapers = clean;
   } catch(e) { console.warn('sanitiseProjectData:', e); }
@@ -12925,10 +13220,10 @@ function renderProjDetail() {
     if (qcKey && p.checklists && p.checklists[qcKey]) {
       var qcName = (CHECKLISTS[qcKey] && CHECKLISTS[qcKey].short) || qcKey;
       var sc = checklistScore(p, qcKey);
-      if (sc) qualBadge = '<span class="ref-badge ref-badge-quality">' + qcName + ' ' + sc.pct + '%</span>';
+      if (sc) qualBadge = '<span class="ref-badge ref-badge-quality">' + esc(String(qcName)) + ' ' + esc(String(sc.pct)) + '%</span>';
     }
 
-    var scoreBadge = p.score ? '<span class="ref-badge ref-badge-score">Criteria ' + p.score + '%</span>' : '';
+    var scoreBadge = p.score ? '<span class="ref-badge ref-badge-score">Criteria ' + esc(String(p.score)) + '%</span>' : '';
     var tagBadges = (p.manualTags||[]).map(function(t){ return '<span class="ref-badge" style="background:var(--ev-border);color:var(--ev-text-muted);border:1px solid var(--ev-border-2)">' + esc(t) + '</span>'; }).join('');
 
     // Agent status badge
@@ -12994,7 +13289,7 @@ function renderProjDetail() {
           var qcB = '';
           if (r.selectedChecklist && r.checklists && r.checklists[r.selectedChecklist]) {
             var rsc = checklistScore(r, r.selectedChecklist);
-            if (rsc) qcB = '<span class="ref-badge ref-badge-quality">' + esc((CHECKLISTS[r.selectedChecklist] || {}).short || r.selectedChecklist) + ' ' + rsc.pct + '%</span>';
+            if (rsc) qcB = '<span class="ref-badge ref-badge-quality">' + esc((CHECKLISTS[r.selectedChecklist] || {}).short || r.selectedChecklist) + ' ' + esc(String(rsc.pct)) + '%</span>';
           }
           var btB = (r.bias_checklist && BIAS_TOOLS[r.bias_checklist]) ? '<span class="ref-badge ref-badge-biastool">' + BIAS_TOOLS[r.bias_checklist] + '</span>' : '';
           var brB = r.bias_risk ? '<span class="ref-badge ' + (biasClass[r.bias_risk] || 'ref-badge-bias-unclear') + '">' + (biasLabel[r.bias_risk] || 'Unclear') + '</span>' : '';
@@ -13019,7 +13314,7 @@ function renderProjDetail() {
             (pendingN ? '<span style="font-size:10px;color:var(--ev-text-dim)">' + pendingN + ' still locating…</span>' : '') +
           '</div>'
         : '';
-      refsDD = '<details class="proj-refs-dd"' + (projRefsOpen.has(String(p.pmid)) ? ' open' : '') + ' ontoggle="projRefsToggle(\'' + safeId(p.pmid) + '\', this.open)">' +
+      refsDD = '<details class="proj-refs-dd"' + (projRefsOpen.has(String(p.pmid)) ? ' open' : '') + ' ' + evAttr('toggle', 'projRefsToggle', [safeId(p.pmid)], ['open']) + '>' +
         '<summary>&#128218; References (' + p.scannedRefs.length + (locatedN ? ' &middot; ' + locatedN + ' located' : '') + ')</summary>' +
         '<div class="proj-refs-list">' + addAllRow + refRows + '</div>' +
       '</details>';
@@ -18969,10 +19264,11 @@ var EV_H = Object.create(null);
 function evOn(key, fn) { EV_H[key] = fn; }
 
 (function () {
-  // Only the event types actually used by the app. blur/focus don't bubble, so
-  // they are captured; the rest bubble to document.
+  // Only the event types actually used by the app. blur and toggle don't bubble,
+  // so they are captured (a capturing listener on document still sees them); the
+  // rest bubble to document.
   var BUBBLE  = ['click', 'change', 'input', 'keydown', 'drop', 'dragover', 'dragleave'];
-  var CAPTURE = ['blur'];
+  var CAPTURE = ['blur', 'toggle'];
   function makeListener(type) {
     var attr = 'data-ev' + type;
     return function (event) {
@@ -19235,7 +19531,7 @@ var EV_CALLABLE_DYNAMIC = [
   'updateChecklistItem', 'updateProjClItem', 'updateRobDomainJudgement', 'updateProjClDomain',
   'updateGradeDomain', 'updateGradeUpgrade', 'updateGradeField'
 ];
-var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
+var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
 EV_CALLABLE_LITERALS.concat(EV_CALLABLE_DYNAMIC).forEach(function (name) {
   var f = (typeof window !== 'undefined') ? window[name] : undefined;
   if (typeof f === 'function') EV_CALLABLE[name] = f;
@@ -19256,6 +19552,7 @@ evOn('@call', function (event) {
       case 'val':   return el.value;
       case 'chk':   return el.checked;
       case 'self':  return el;
+      case 'open':  return el.open;             // <details> open-state, for toggle bindings
       case 'file0': return el.files && el.files[0];
       case 'event': return event;
     }
@@ -19279,7 +19576,14 @@ function evSetWbQuery(gid, v)     { wbQueries[gid] = v; evMarkEdited(gid); }
 function evClickSuppFile(pmid)    { var el = document.getElementById('supp-file-' + pmid); if (el) el.click(); }
 function evSuppDrop(pmid, event)  { handlePaperSuppDrop(event, pmid); }        // orig arg order (event, pmid)
 function evSuppFile(pmid, file)   { handlePaperSuppFile(file, pmid); }         // orig arg order (file, pmid)
-function evOpenExternal(url)      { window.open(url, '_blank', 'noopener'); }
+// Defence in depth: independently re-validate the URL here and fail closed on a
+// rejected scheme, rather than trusting every caller to have run safeUrl first. A
+// javascript:/data: link that slipped through can never reach window.open.
+function evOpenExternal(url) {
+  var safe = (typeof safeUrl === 'function') ? safeUrl(url) : url;
+  if (!safe || safe === '#') return;
+  window.open(safe, '_blank', 'noopener');
+}
 function evEnterRunWbGroup(gid, event) { if (event && event.key === 'Enter') runWbGroup(gid); }
 function evEnterAddBuildTerm(bi, event) { if (event && event.key === 'Enter') addBuildTerm(bi); }
 /* @@REGISTRY-MANUAL@@ */
