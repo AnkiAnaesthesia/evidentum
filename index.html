@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-fmWQs2lCulEtPs4MvgoLW9VX/5pm3jBq8Km087iTQq4='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-viQ+K5we8rEZET1gstq5t3sSoTumA+2OZLo9qYvorqo='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -1618,7 +1618,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <input id="ranked-question" type="text" aria-label="Review question for the relevance scan" placeholder="Your PICO question — e.g. Does dexmedetomidine reduce postoperative delirium after cardiac surgery?" style="flex:1;min-width:240px;font-size:12px;padding:7px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
         <button class="btn btn-ghost" data-evclick="h187" style="font-size:11px;padding:6px 12px;white-space:nowrap" title="Fill the question from the PICO you entered on the Build Search tab">&#10554; Use Build-tab PICO</button>
         <button class="agent-btn" id="quick-screen-btn" data-evclick="h182" title="Fast pass: every pooled title + abstract judged against your question — verdicts and rank appear on the cards, no full-text fetching">&#9889; Scan &amp; rank</button>
-        <div style="flex-basis:100%;font-size:11px;color:var(--ev-text-muted);line-height:1.5;margin-top:2px">The quick scan reads each record&rsquo;s <b>title and abstract</b> (no full text) and ranks its <b>relevance to your question</b> &mdash; cards sort into <span style="color:var(--ev-ok-text);font-weight:600">relevant</span> / <span style="color:#f59e0b;font-weight:600">unclear</span> / <span style="color:var(--ev-danger-text);font-weight:600">off-topic</span> sections with a 0&ndash;100 score and a one-line reason. Nothing is removed automatically: tick the records you want out, then <b>Remove selected</b>. Fast and cheap &mdash; it judges relevance only, not study quality (that&rsquo;s the in-depth analysis).</div>
+        <div style="flex-basis:100%;font-size:11px;color:var(--ev-text-muted);line-height:1.5;margin-top:2px">The quick scan reads each record&rsquo;s <b>title and abstract</b> (no full text), ranks its <b>relevance to your question</b>, and tags the <b>study design</b> where identifiable &mdash; cards sort into <span style="color:var(--ev-ok-text);font-weight:600">relevant</span> / <span style="color:#f59e0b;font-weight:600">unclear</span> / <span style="color:var(--ev-danger-text);font-weight:600">off-topic</span> sections with a 0&ndash;100 score and a one-line reason. Nothing is removed automatically: tick the records you want out, then <b>Remove selected</b>. Fast and cheap &mdash; it judges relevance only, not study quality (that&rsquo;s the in-depth analysis).</div>
       </div>
       <div id="relscan-progress" style="display:none;align-items:center;gap:10px;font-size:11px;color:#f59e0b;margin:-4px 0 12px 4px">
         <span id="relscan-progress-text"></span>
@@ -17009,7 +17009,11 @@ function runAgentQueue(startIndex) {
     const activeCard = document.getElementById('card-' + p.pmid);
     if (activeCard) activeCard.classList.add('agent-processing-card');
 
-    analyseOneWithAgent(p).then(function() {
+    // Judge query_match against the SAME question the quick scan used (the
+    // scan box, falling back to currentQuery) — the deep run previously used
+    // currentQuery alone, which in pool mode is a raw boolean string or empty
+    // ("Not specified"), so its relevance verdicts contradicted the scan's.
+    analyseOneWithAgent(p, rankedQuestion()).then(function() {
       // A force-reset may have started a NEW queue while this appraisal was in
       // flight. The result still lands on the paper (it's real work — keep it),
       // but only the owning generation may touch the counters/progress UI, or a
@@ -18387,10 +18391,11 @@ function evRelVerdict(v) { return (v === 'relevant' || v === 'unclear' || v === 
 // Pure: the batched screening prompt. Abstracts truncated so a 20-record batch
 // stays well inside every provider's context; the model must answer JSON only.
 function buildRelevanceScreenPrompt(question, items) {
-  const sys = 'You are screening records for a systematic review. For EACH numbered record (title + abstract) judge its RELEVANCE to the review question — relevance only, never methodological quality. '
+  const sys = 'You are screening records for a systematic review. For EACH numbered record (title + abstract) judge its RELEVANCE to the review question — relevance only, never methodological quality. Also identify the study design when the title/abstract makes it clear. '
     + 'Reply with ONLY this JSON, one entry per record, same order: '
-    + '{"verdicts":[{"n":<record number>,"v":"relevant"|"unclear"|"off","s":<relevance 0-100>,"r":"<one short sentence>"}]} '
-    + '"off" = clearly does not address the question; "unclear" = cannot tell from title/abstract (keep for human review).';
+    + '{"verdicts":[{"n":<record number>,"v":"relevant"|"unclear"|"off","s":<relevance 0-100>,"r":"<one short sentence>","t":"<study design or empty>"}]} '
+    + '"off" = clearly does not address the question; "unclear" = cannot tell from title/abstract (keep for human review). '
+    + '"t" must be one of: RCT | Clinical Trial | Systematic Review | Meta-Analysis | Review | Cohort | Case-Control | Cross-Sectional | Observational | Case Report | Case Series | Guideline — or "" when not identifiable.';
   const user = 'REVIEW QUESTION: ' + question + '\n\nRECORDS:\n' + items.map(function(p, i) {
     return (i + 1) + '. TITLE: ' + (p.title || 'No title') + '\n   ABSTRACT: ' + String(p.abstract || '(no abstract)').slice(0, 1200);
   }).join('\n');
@@ -18429,6 +18434,19 @@ async function aiRelevanceBatch(question, items) {
   return safeParseAgentJson(raw);
 }
 
+// The scan's study-design tag, validated against the app's type vocabulary —
+// anything off-list fails closed to '' (no change to the card).
+var EV_SCAN_TYPES = ['RCT', 'Clinical Trial', 'Systematic Review', 'Meta-Analysis', 'Review',
+  'Cohort', 'Cohort Study', 'Case-Control', 'Cross-Sectional', 'Observational',
+  'Case Report', 'Case Series', 'Guideline', 'Consensus'];
+function evScanStudyType(v) {
+  if (typeof v !== 'string') return '';
+  const s = v.trim().toLowerCase();
+  if (!s) return '';
+  const hit = EV_SCAN_TYPES.filter(function(t){ return t.toLowerCase() === s; })[0];
+  return hit || '';
+}
+
 // Apply one batch's parsed verdicts back onto the batch papers. Fail-closed:
 // junk verdicts become 'unclear', scores clamp 0–100, reasons clamp to 300
 // chars; an entry with an out-of-range n is ignored. Returns applied count.
@@ -18443,6 +18461,10 @@ function applyRelevanceVerdicts(items, parsed) {
     p.relVerdict = evRelVerdict(v.v);
     p.relScore = Math.max(0, Math.min(100, parseInt(v.s, 10) || 0));
     p.relReason = String(v.r == null ? '' : v.r).trim().slice(0, 300);
+    // Study design from title/abstract — fills a MISSING/generic type only
+    // (database metadata or the deep analysis stays authoritative otherwise).
+    const t = evScanStudyType(v.t);
+    if (t && (!p.studyType || p.studyType === 'Other')) p.studyType = t;
     applied++;
   });
   return applied;
