@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-cR0OLCbBMcKfktVlTT7bq8P7JRQg2FWwdhRZ3dfyvj8='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-fmWQs2lCulEtPs4MvgoLW9VX/5pm3jBq8Km087iTQq4='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -333,7 +333,9 @@ textarea:focus-visible, label:focus-visible, [tabindex]:focus-visible {
 #controls-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 #controls-bar select { padding: 6px 9px; font-size: 12px; }
 #paper-count { font-size: 12px; color: var(--ev-text-dim); }
-#controls-right { margin-left: auto; display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+/* justify-content:flex-end keeps WRAPPED rows hugging the same right edge as the
+   first row (Export CSV / Reset used to drop to a left-aligned second line). */
+#controls-right { margin-left: auto; display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 /* ── Paper card ── */
 .paper-card { background: var(--ev-surface); border: 1px solid var(--ev-border); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
@@ -1616,6 +1618,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <input id="ranked-question" type="text" aria-label="Review question for the relevance scan" placeholder="Your PICO question — e.g. Does dexmedetomidine reduce postoperative delirium after cardiac surgery?" style="flex:1;min-width:240px;font-size:12px;padding:7px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
         <button class="btn btn-ghost" data-evclick="h187" style="font-size:11px;padding:6px 12px;white-space:nowrap" title="Fill the question from the PICO you entered on the Build Search tab">&#10554; Use Build-tab PICO</button>
         <button class="agent-btn" id="quick-screen-btn" data-evclick="h182" title="Fast pass: every pooled title + abstract judged against your question — verdicts and rank appear on the cards, no full-text fetching">&#9889; Scan &amp; rank</button>
+        <div style="flex-basis:100%;font-size:11px;color:var(--ev-text-muted);line-height:1.5;margin-top:2px">The quick scan reads each record&rsquo;s <b>title and abstract</b> (no full text) and ranks its <b>relevance to your question</b> &mdash; cards sort into <span style="color:var(--ev-ok-text);font-weight:600">relevant</span> / <span style="color:#f59e0b;font-weight:600">unclear</span> / <span style="color:var(--ev-danger-text);font-weight:600">off-topic</span> sections with a 0&ndash;100 score and a one-line reason. Nothing is removed automatically: tick the records you want out, then <b>Remove selected</b>. Fast and cheap &mdash; it judges relevance only, not study quality (that&rsquo;s the in-depth analysis).</div>
       </div>
       <div id="relscan-progress" style="display:none;align-items:center;gap:10px;font-size:11px;color:#f59e0b;margin:-4px 0 12px 4px">
         <span id="relscan-progress-text"></span>
@@ -5491,6 +5494,12 @@ function deriveSecondaryQuery(pubmedQuery) {
   //     clean-up passes below absorb the dangling AND/OR.
   s = s.replace(/"[^"]*"\[(la|lang|language|sb|pdat|dp|filt|filter)\]/gi, ' ');
   s = s.replace(/[^\s()\[\]"]+\[(la|lang|language|sb|pdat|dp|filt|filter)\]/gi, ' ');
+  //     Dropping both sides of a PubMed date range ("2015"[PDAT] : "2025"[PDAT])
+  //     leaves the range colon behind — "AND ( : )" is a syntax error in Scopus
+  //     (this exact leftover broke every date-carrying Scopus search). Remove
+  //     freestanding colons and colon-only parens before the operator tidy-up.
+  s = s.replace(/\(\s*:\s*\)/g, ' ');
+  s = s.replace(/(^|\s):(\s|$)/g, ' ');
   // 2. Remove field tags but KEEP the attached term (quoted or bareword)
   s = s.replace(/\[(mesh|majr|mh|mesh terms|tiab|tw|ti|ab|all fields|sb|la|pt|sh|nm)\]/gi, '');
   // 3. Strip any other leftover [xxx] field tags defensively
@@ -16839,8 +16848,15 @@ function startAgentAnalysis() {
     });
   }
 
-  // Sort papers by score descending so highest-ranked papers are analysed first
-  papers.sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+  // Analysis order = what the user is looking at: after a quick scan, work
+  // through the scan-relevance ranking (top of the visible list first);
+  // otherwise highest triage score first. (Array order drives the queue;
+  // the DISPLAYED order still comes from the sort-by mode via getSorted.)
+  if (papers.some(function(p){ return p.relVerdict; })) {
+    papers.sort(function(a, b) { return scanSortRank(b) - scanSortRank(a); });
+  } else {
+    papers.sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+  }
   renderPapers(); // re-render cards in new order only — don't re-trigger background fetches
 
   agentRunning = true;
@@ -17047,6 +17063,12 @@ function updateCardAfterAgentAnalysis(p) {
 var _agentRerankLast = 0;
 var _agentRerankTimer = null;
 function progressiveAgentRerank(force) {
+  // Scan-relevance mode: the cards sit in verdict SECTIONS the user just
+  // built with the quick scan — physically re-appending them in quality order
+  // shuffles cards out from under their section headers mid-run (utterly
+  // confusing). Hold the scan order; quality chips still appear in place.
+  const sortSel = document.getElementById('sort-by');
+  if (sortSel && sortSel.value === 'scan') return;
   if (!force) {
     const wait = 2000 - (Date.now() - _agentRerankLast);
     if (wait > 0) {
