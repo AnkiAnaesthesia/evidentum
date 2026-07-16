@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-bzHCpYP8Ydd7mU3/LwQiNjFSd1ERdGw61tVDGjCyK60='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-ksEXhdFzy+P+IAfBsEs50oiqUKbuun8CwT0dOvueWVw='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -5407,6 +5407,13 @@ function deriveSecondaryQuery(pubmedQuery) {
   s = s.replace(/"([^"\/]+)(\/[^"]+)?"\[(mesh|majr|mh|mesh terms)\]/gi, function(_, head){
     return '"' + deinvertMeshHeading(head) + '"';
   });
+  // 1.5 Restriction tags whose TERM is meaningless as a keyword — language, subset
+  //     and date limits ('english[la]', 'medline[sb]', '2020[pdat]'). Keeping the
+  //     bare term would make it a REQUIRED keyword in Scopus/S2/OpenAlex ("english"
+  //     in the title/abstract!), so drop term and tag together; the operator
+  //     clean-up passes below absorb the dangling AND/OR.
+  s = s.replace(/"[^"]*"\[(la|lang|language|sb|pdat|dp|filt|filter)\]/gi, ' ');
+  s = s.replace(/[^\s()\[\]"]+\[(la|lang|language|sb|pdat|dp|filt|filter)\]/gi, ' ');
   // 2. Remove field tags but KEEP the attached term (quoted or bareword)
   s = s.replace(/\[(mesh|majr|mh|mesh terms|tiab|tw|ti|ab|all fields|sb|la|pt|sh|nm)\]/gi, '');
   // 3. Strip any other leftover [xxx] field tags defensively
@@ -5487,16 +5494,30 @@ function normalizeRole(r) {
 // Returns null when no block carries a structured role (condition/intervention/
 // outcome/comparator) — the caller then falls back to the legacy keyword path, so
 // existing role-less protocols stay byte-identical.
-function ctgovExpertQuery(blocks) {
+function ctgovExpertQuery(blocks, pico) {
   blocks = blocks || [];
   if (!blocks.some(function(b){ return b.role && b.role !== 'other'; })) return null;
+  function ctgovTermStr(t) {
+    var term = (t.term || '').replace(/\*+$/, '').trim();   // CT.gov has no truncation operator
+    if (!term) return '';
+    return /\s/.test(term) ? '"' + term.replace(/"/g, '') + '"' : term;   // quote phrases for exact match
+  }
+  // v2 (pico.ctgovLogic >= 2): route through the SAME methodology core as every other
+  // engine (conceptGroupsWith), so the Intervention-OR-Comparator merge and the
+  // outcome-not-searched default can never disagree with the PubMed strategy. The
+  // old path AND-ed I and C as separate AREA groups (recall collapse on head-to-head
+  // questions) and always searched the Outcome block. Legacy path (no marker on the
+  // pico) is kept byte-identical so previously-frozen protocols still re-assemble
+  // exactly for the offline re-test.
+  if (pico && pico.ctgovLogic >= 2) {
+    var v2 = conceptGroupsWith(blocks, pico, ctgovTermStr).map(function(g){
+      return 'AREA[' + (CTGOV_AREA[g.role] || 'BasicSearch') + ']' + g.expr;
+    });
+    return v2.length ? v2.join(' AND ') : null;
+  }
   var groups = [];
   blocks.forEach(function(b) {
-    var terms = (b.terms || []).map(function(t) {
-      var term = (t.term || '').replace(/\*+$/, '').trim();   // CT.gov has no truncation operator
-      if (!term) return '';
-      return /\s/.test(term) ? '"' + term.replace(/"/g, '') + '"' : term;   // quote phrases for exact match
-    }).filter(Boolean);
+    var terms = (b.terms || []).map(ctgovTermStr).filter(Boolean);
     if (!terms.length) return;
     var area = CTGOV_AREA[b.role || 'other'] || 'BasicSearch';
     groups.push('AREA[' + area + '](' + terms.join(' OR ') + ')');
@@ -5598,7 +5619,12 @@ function picoInputs() {
     //   searchOutcome   false → do NOT restrict the search by outcome (Cochrane); the
     //                           user opts in per question.
     comparatorLogic: (document.getElementById('build-comparator-and') && document.getElementById('build-comparator-and').checked) ? 'and' : 'or',
-    searchOutcome: !!(document.getElementById('build-search-outcome') && document.getElementById('build-search-outcome').checked)
+    searchOutcome: !!(document.getElementById('build-search-outcome') && document.getElementById('build-search-outcome').checked),
+    // Generator-logic marker, frozen onto a protocol's pico: >=2 routes the
+    // ClinicalTrials.gov expert query through conceptGroupsWith (I/C merge +
+    // outcome rule). Old frozen picos lack it, so their queries re-assemble
+    // byte-identically via the legacy path in ctgovExpertQuery.
+    ctgovLogic: 2
   };
 }
 
@@ -6879,7 +6905,10 @@ var WB_GROUPS = {
 var WB_FETCH = {
   pubmed:         function(query, max){ return fetchPubMed(pubmedWithWbDate(query), max); },
   europepmc:      function(query, max){ return fetchEuropePMC(epmcWithWbDate(query), max, 'EuropePMC'); },
-  cochrane:       function(query, max){ return fetchEuropePMC(epmcWithWbDate(query) + ' JOURNAL:"Cochrane Database Syst Rev"', max, 'Cochrane'); },
+  // The journal filter must be AND-ed onto a PARENTHESISED query: space-joining it
+  // after an unparenthesised top-level OR makes Europe PMC's parser swallow the
+  // topic terms and return the entire CDSR (verified live: 20,005 vs the correct 65).
+  cochrane:       function(query, max){ var q = epmcWithWbDate(query); return fetchEuropePMC((q ? '(' + q + ') AND ' : '') + 'JOURNAL:"Cochrane Database Syst Rev"', max, 'Cochrane'); },
   scopus:         function(query, max){ return fetchScopus(query, max, wbDateFrom(), wbDateTo()); },
   semantic:       function(query, max){ return fetchSemanticScholar(query, max, wbDateFrom(), wbDateTo()); },
   openalex:       function(query, max){ return fetchOpenAlex(query, max, wbDateFrom(), wbDateTo()); },
@@ -6909,7 +6938,13 @@ function pubmedWithWbDate(q) {
 // other engines. FIRST_PDATE ranges survive the pubmedToEuropePMC normalisation (the
 // [YYYY-MM-DD TO …] bracket is preserved, not treated as a stripped field tag).
 function epmcWithWbDate(q) {
-  return q + europePmcDateClause(wbDateFrom(), wbDateTo());
+  var c = europePmcDateClause(wbDateFrom(), wbDateTo());
+  if (!c) return q;
+  q = (q || '').trim();
+  // Parenthesise before AND-ing the date clause: Lucene's AND binds tighter than
+  // OR, so a hand-typed 'a OR b' would otherwise lose the date limit on the first
+  // branch ('a OR (b AND FIRST_PDATE…)'). Verified live against Europe PMC.
+  return q ? '(' + q + ')' + c : q + c;
 }
 
 // Simple-mode fan-out derivation: which base query each database gets when the
@@ -6921,7 +6956,8 @@ function getDbQuery(dbId, q, secQ) {
     case 'europepmc':
       return q;
     case 'cochrane':
-      return q + ' JOURNAL:"Cochrane Database Syst Rev"';
+      // Parenthesise + explicit AND — same precedence guard as WB_FETCH.cochrane.
+      return (q ? '(' + q + ') AND ' : '') + 'JOURNAL:"Cochrane Database Syst Rev"';
     case 'openalex': // Boolean is translated to concept filters inside fetchOpenAlex
       return secQ;
     default: // semantic, scopus, clinicaltrials — keyword engines
@@ -7446,7 +7482,7 @@ function assembleProtocolQueries(blocks, pico) {
   // FIELD-TARGETED expert query (AREA[…]) deterministically from the blocks —
   // recorded here, re-assembled byte-identically, replayed verbatim. Falls back to
   // the legacy keyword derivation when no roles are tagged (role-less protocols).
-  var ctExpert = ctgovExpertQuery(searchableBlocks(blocks));
+  var ctExpert = ctgovExpertQuery(searchableBlocks(blocks), pico);
   ['epmc','scopus','keyword','clinicaltrials','openalex'].forEach(function(gid){
     if (gid === 'clinicaltrials' && ctExpert) { out[gid] = ctExpert; return; }
     var base; try { base = WB_GROUPS[gid].derive(conceptBase); } catch(e) { base = conceptBase; }
@@ -8346,7 +8382,8 @@ function pubmedToEuropePMC(query) {
   //    out as bare, unscoped tokens and ballooning the result set.
   //    Operators are matched case-sensitively: a lowercase "and"/"or" inside a term
   //    (e.g. "head and neck") is a literal word, not an operator.
-  var WORD = "\\b(?!(?:AND|OR|NOT)\\b)[A-Za-z0-9][\\w*?'\\-]*";
+  // Accented + Greek starts included (β-blocker[tiab]) — see quoteMultiwordTerms.
+  var WORD = "(?!(?:AND|OR|NOT)\\b)(?:\\b[A-Za-z0-9]|[\\u00C0-\\u024F\\u0370-\\u03FF])[\\w*?'\\-\\u00C0-\\u024F\\u0370-\\u03FF]*";
   var phraseRe = new RegExp('(' + WORD + '(?:\\s+' + WORD + ')*)\\s*\\[([^\\]]+)\\]', 'g');
   result = result.replace(phraseRe, function(_, phrase, tag) {
     var ep = tagMap[tag.trim().toLowerCase()];
@@ -8646,14 +8683,16 @@ function fetchSemanticScholar(query, maxResults, dateFrom, dateTo, design) {
 // than collapsing to a loose fulltext relevance search.
 function openAlexConcepts(query) {
   if (!query) return [];
-  // Split a string on a top-level operator (" AND " / " OR "), respecting parens.
+  // Split a string on a top-level operator (" AND " / " OR "), respecting parens
+  // AND quoted phrases (an operator word inside "quotes" is literal text).
   function splitTop(str, op) {
-    var out = [], depth = 0, cur = '';
+    var out = [], depth = 0, cur = '', inQ = false;
     for (var i = 0; i < str.length; i++) {
       var ch = str[i];
-      if (ch === '(') { depth++; cur += ch; }
-      else if (ch === ')') { depth--; cur += ch; }
-      else if (depth === 0 && str.substr(i, op.length) === op) { out.push(cur); cur = ''; i += op.length - 1; continue; }
+      if (ch === '"') { inQ = !inQ; cur += ch; }
+      else if (!inQ && ch === '(') { depth++; cur += ch; }
+      else if (!inQ && ch === ')') { depth--; cur += ch; }
+      else if (!inQ && depth === 0 && str.substr(i, op.length) === op) { out.push(cur); cur = ''; i += op.length - 1; continue; }
       else cur += ch;
     }
     if (cur) out.push(cur);
@@ -8684,6 +8723,23 @@ function openAlexConcepts(query) {
     while (g.charAt(0) === '(' && g.charAt(g.length - 1) === ')') g = g.slice(1, -1).trim();
     var parts = [];
     splitTop(g, ' OR ').forEach(function(cand) {
+      // A candidate with its own boolean structure (nested AND / NOT — e.g.
+      // 'delirium NOT tremens', '(septic AND shock)') must NOT collapse into an
+      // exact phrase: OpenAlex understands boolean operators natively inside the
+      // search filter, and the quoted form matches almost nothing (verified live:
+      // "delirium NOT tremens" as a phrase = 17 hits vs 56,907 passed through).
+      // Strip only what OpenAlex can't use; keep parens and operators.
+      var outsideQuotes = String(cand).replace(/"[^"]*"/g, '');
+      if (/\b(AND|NOT)\b/.test(outsideQuotes)) {
+        var kept = String(cand)
+          .replace(/\[[^\]]*\]/g, ' ')   // field tags
+          .replace(/,/g, ' ')            // comma is the OpenAlex filter delimiter
+          .replace(/[*?]/g, '')          // no truncation — lean on the stemmer
+          .replace(/\s+/g, ' ').trim();
+        kept = quoteMultiwordTerms(kept);   // phrase-quote plain multi-word runs; operators/parens untouched
+        if (kept) parts.push(kept);
+        return;
+      }
       var t = quoteIfPhrase(cleanCand(cand));
       if (t) parts.push(t);
     });
@@ -10142,6 +10198,14 @@ function scopusNegation(q) {
     .replace(/\b(AND|OR)\s+AND\s+NOT\b/gi, '$1 NOT');
 }
 
+// Is a query already scoped by a REAL Scopus field code? Matched against the
+// known field list, not "any uppercase word before a paren" — an acronym like
+// "COPD (chronic obstructive…)" is a term + synonym group, and treating it as
+// field-scoped would skip the TITLE-ABS-KEY wrap and search all fields.
+function scopusFieldScoped(q) {
+  return /\b(TITLE-ABS-KEY|TITLE|ABS|KEY|AUTH|AUTHKEY|AFFIL|ALL|DOCTYPE|SRCTITLE|EXACTSRCTITLE|ISSN|DOI|PMID|CHEM|CASREGNUMBER|LANGUAGE|REF|FUND-ALL|INDEXTERMS)\s*\(/.test(q || '');
+}
+
 function fetchScopus(query, maxResults, dateFrom, dateTo) {
   if (!scopusApiKey) return Promise.reject(new Error('No Scopus API key'));
 
@@ -10158,13 +10222,17 @@ function fetchScopus(query, maxResults, dateFrom, dateTo) {
   // field restriction is gone. (Entitled institutional keys lose only INDEXTERMS' extra
   // precision, which TITLE-ABS-KEY largely subsumes.)
   q = q.replace(/\bINDEXTERMS\s*\(/gi, 'TITLE-ABS-KEY(');
-  // Detect a real Scopus field code immediately before a "(" — but never treat the
-  // Boolean operators AND/OR/NOT as field codes (otherwise "concept AND (...)" looks
-  // field-scoped and the TITLE-ABS-KEY wrap is wrongly skipped, breaking the search).
-  var alreadyFieldScoped = /\b(?!AND\b|OR\b|NOT\b)[A-Z][A-Z\-]{2,}\s*\(/.test(q);
+  // Detect a real Scopus field code (known-field list — see scopusFieldScoped);
+  // a bare acronym before a paren must still get the TITLE-ABS-KEY wrap.
+  var alreadyFieldScoped = scopusFieldScoped(q);
   var scopusQ = alreadyFieldScoped ? q : 'TITLE-ABS-KEY(' + q + ')';
-  if (dateFrom) scopusQ += ' AND PUBYEAR > ' + (parseInt(dateFrom) - 1);
-  if (dateTo)   scopusQ += ' AND PUBYEAR < ' + (parseInt(dateTo)   + 1);
+  // Scopus precedence is NOT > AND > OR, so a field-scoped query with a top-level
+  // OR ('TITLE(x) OR TITLE-ABS-KEY(y)') would bind the year limit to the last
+  // branch only — parenthesise the whole query before AND-ing the date clause.
+  var dateClause = '';
+  if (dateFrom) dateClause += ' AND PUBYEAR > ' + (parseInt(dateFrom) - 1);
+  if (dateTo)   dateClause += ' AND PUBYEAR < ' + (parseInt(dateTo)   + 1);
+  if (dateClause) scopusQ = '(' + scopusQ + ')' + dateClause;
 
   // Scopus caps EACH request at 25 results (a service-level limit — count=50 is rejected
   // outright). To honour the user's max-results we PAGINATE with `start`, 25 at a time, up
@@ -10283,7 +10351,9 @@ function mapScopusType(subtype) {
 // with loosely-related trials. Already-quoted spans, single words, operators and
 // parentheses are left untouched.
 function quoteMultiwordTerms(q) {
-  var WORD = "\\b(?!(?:AND|OR|NOT)\\b)[A-Za-z0-9][\\w*?'\\-]*";
+  // Accented + Greek starts included (β-blocker, α-agonist): \b can't assert before
+  // a non-ASCII char, so those get their own alternative without the boundary.
+  var WORD = "(?!(?:AND|OR|NOT)\\b)(?:\\b[A-Za-z0-9]|[\\u00C0-\\u024F\\u0370-\\u03FF])[\\w*?'\\-\\u00C0-\\u024F\\u0370-\\u03FF]*";
   var multiRe = new RegExp(WORD + '(?:\\s+' + WORD + ')+', 'g'); // 2+ consecutive non-operator words
   var out = '', i = 0;
   while (i < q.length) {
