@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-p1/E+OtZludafzbU34xU6+pwaHyUQH0kH6/vxig4PsY='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0zZWxQ7exE8N4L9R3IaQpE8pn7268KxV0gArsAQ6Fbk='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -790,11 +790,12 @@ button:not(:disabled):active { filter: brightness(0.95); }
   </div>
   <div id="tabs" role="tablist" aria-label="Main sections">
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h5" title="Start from your clinical question &mdash; concept blocks become reproducible strategies for every database">&#129513; Build Search</button>
-    <button class="tab-btn active" role="tab" aria-selected="true" data-evclick="h6" title="Run searches &mdash; simple one-box mode, or the per-database advanced workbench">Search</button>
-    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" data-evclick="h7" title="Everything your searches found, deduplicated and ready to screen">Results</button>
-    <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h8" title="Every search you've run &mdash; re-run with one click or save as an alert">History</button>
+    <button class="tab-btn active" role="tab" aria-selected="true" data-evclick="h6" title="Run the multi-database search &mdash; simple one-box mode, or the per-database advanced workbench">Workbench</button>
+    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" data-evclick="h7" title="Tier 1 &mdash; everything your searches found, deduplicated, keyword-triaged and ready to screen">Results</button>
+    <button class="tab-btn" role="tab" aria-selected="false" id="ranked-tab-btn" data-evclick="h181" title="Tier 2 &mdash; in-depth AI (agentic) analysis of the pooled results: relevance verdicts, quality scores and a ranked shortlist">&#129302; Ranked Results</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h9" title="Upload PDFs to extract, screen and appraise papers you already have">&#128203; PDF Scanner</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h10" title="Your review projects &mdash; screening, dual review, PRISMA flow and AI appraisal">&#128193; Projects</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h8" title="Every search you've run &mdash; re-run with one click or save as an alert">History</button>
   </div>
   <!-- Provider selector — dropdown (sits between tabs and settings cog) -->
   <select id="header-provider-select" data-evchange="h11" title="Active AI provider" aria-label="Active AI provider"
@@ -1093,6 +1094,12 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <!-- ══ SEARCH TAB ══════════════════════════════════════ -->
   <!-- ══════════════ BUILD SEARCH TAB ══════════════ -->
   <div class="tab-panel" role="tabpanel" id="tab-build">
+    <!-- Workflow disclaimer: this tab AUTHORS a strategy; reviewers who already
+         have one should go straight to the Workbench and run it. -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border:1px solid #3b82f644;border-radius:10px;background:var(--ev-surface-2)">
+      <span style="font-size:12px;color:var(--ev-text-2);flex:1;min-width:240px">&#128161; <b>Already have a search strategy?</b> You can skip this step &mdash; go straight to the <b>Workbench</b> to run it across every database (paste it into the per-database query bars, or import Embase/CENTRAL exports on the Results tab).</span>
+      <button class="btn btn-blue" data-evclick="h6" style="font-size:12px;padding:7px 16px;white-space:nowrap">Go to Workbench &#8594;</button>
+    </div>
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span class="step-num">1</span>
@@ -1573,21 +1580,17 @@ button:not(:disabled):active { filter: brightness(0.95); }
             <input type="checkbox" id="citation-boost-cb" data-evchange="h89" style="accent-color:#3b82f6;cursor:pointer">
             &#128218; Citation boost
           </label>
-          <!-- Workflow order, destructive action last: appraise → visualise →
-               integrity-check → export → (escape hatch) reset. -->
-          <button class="agent-btn" id="agent-run-btn" data-evclick="h90" disabled title="Add your OpenAI, Anthropic, Google Gemini or xAI Grok API key in Settings to enable">🤖 Agent analysis</button>
-          <button class="btn btn-blue" id="rob2-viz-btn" data-evclick="h91" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 visualisation</button>
+          <!-- Workflow order, destructive action last: integrity-check → export →
+               (escape hatch) reset. The agent-analysis controls live on the
+               Ranked Results tab (tier 2 of the two-tier results workflow). -->
           <button class="btn" id="retraction-check-btn" data-evclick="h92" style="background:var(--ev-danger-bg);color:var(--ev-danger-text);border:1px solid #ef4444;font-size:12px" title="Check all papers against Retraction Watch / Crossref (free, no API key needed)">⚠️ Check retractions</button>
           <button class="btn btn-green" data-evclick="h93" title="Send every result to a project for screening. Records already in the project are skipped — so re-running a search later and sending again adds only the new records (a Cochrane update search), and the project records the search dates">&#128193; Send all to project</button>
           <button class="btn btn-green" data-evclick="h94">&#8595; Export CSV</button>
           <button class="btn btn-reset" data-evclick="h95" title="Clear all results and the search pool to start a new search (keeps projects, criteria, history & API keys)">&#10227; Reset &amp; new search</button>
         </div>
-        <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
       </div>
       <div id="source-filter-bar" style="display:none;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:14px"></div>
       <div id="dup-review-bar" style="display:none;margin-bottom:14px"></div>
-      <!-- Agent progress -->
-      <div id="agent-summary-bar"></div>
       <div id="retraction-summary-panel" style="display:none;background:var(--ev-danger-bg);border:1px solid var(--ev-danger-bg);border-radius:10px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:13px;font-weight:700;color:#ef4444">⚠️ Retracted Papers Detected</div>
@@ -1596,24 +1599,50 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <div id="retraction-summary-list" style="font-size:12px;color:var(--ev-danger-text);display:flex;flex-direction:column;gap:6px"></div>
         <div style="font-size:10px;color:#6b7280;margin-top:8px">Source: <a href="https://retractionwatch.com" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Retraction Watch</a> via <a href="https://www.crossref.org" target="_blank" rel="noopener noreferrer" style="color:#6b7280">Crossref</a></div>
       </div>
-      <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:10px;padding:12px 16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div>
-            <div style="font-size:12px;font-weight:600;color:#f59e0b">🤖 Agent Analysis Running</div>
-            <div id="agent-status-line" style="display:block;margin-top:2px"></div>
-          </div>
-          <button class="btn agent-btn-stop" data-evclick="h97" style="font-size:11px;padding:5px 12px">■ Stop</button>
-        </div>
-        <div id="agent-progress-bar-wrap" style="display:block;margin-top:8px">
-          <div id="agent-progress-bar-fill"></div>
-        </div>
-        <div id="agent-counters" style="font-size:11px;color:var(--ev-text-dim);margin-top:6px"></div>
-      </div>
       <div id="papers-list"></div>
       <div style="margin-top:18px;text-align:center">
         <button class="btn btn-green" style="padding:11px 28px;font-size:13px" data-evclick="h94">&#8595; Export All to CSV</button>
       </div>
     </div>
+  </div>
+
+  <!-- ══ RANKED RESULTS TAB (tier 2 — agentic analysis of the pooled results) ══ -->
+  <div class="tab-panel" role="tabpanel" id="tab-ranked">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-label">&#129302; Tier 2 &mdash; agentic analysis &amp; ranked shortlist</div>
+      <div class="info-box" style="border-color:#a78bfa44;color:var(--ev-ai-text);background:var(--ev-surface-ai)">
+        A systematic search pools <b>everything</b> &mdash; often thousands of records (that&rsquo;s tier&nbsp;1, the Results tab). Here the AI agent reads each paper in depth (full text where available), judges its <b>relevance to your question</b>, appraises <b>study quality</b>, and produces the ranked shortlist below &mdash; highest-triage papers are analysed first, and nothing is excluded for you: every verdict links back to the full record for a human decision.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="agent-btn" id="agent-run-btn" data-evclick="h90" disabled title="Add your OpenAI, Anthropic, Google Gemini or xAI Grok API key in Settings to enable">🤖 Agent analysis</button>
+        <button class="btn btn-blue" id="rob2-viz-btn" data-evclick="h91" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 visualisation</button>
+      </div>
+      <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
+    </div>
+    <div id="agent-summary-bar"></div>
+    <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:10px;padding:12px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#f59e0b">🤖 Agent Analysis Running</div>
+          <div id="agent-status-line" style="display:block;margin-top:2px"></div>
+        </div>
+        <button class="btn agent-btn-stop" data-evclick="h97" style="font-size:11px;padding:5px 12px">■ Stop</button>
+      </div>
+      <div id="agent-progress-bar-wrap" style="display:block;margin-top:8px">
+        <div id="agent-progress-bar-fill"></div>
+      </div>
+      <div id="agent-counters" style="font-size:11px;color:var(--ev-text-dim);margin-top:6px"></div>
+    </div>
+    <div id="ranked-empty" class="empty">
+      <div class="empty-icon">&#129302;</div>
+      <div style="margin-bottom:6px">No agentic analysis yet.</div>
+      <div style="font-size:12px;color:var(--ev-text-dim);margin-bottom:14px">Pool your search results first (Workbench &rarr; Results), then run the agent here &mdash; each paper gets a relevance verdict, a quality score and its place in the ranked shortlist.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-green" data-evclick="h6" style="font-size:12px;padding:8px 20px">&#128269; Go to Workbench</button>
+        <button class="btn" data-evclick="h7" style="font-size:12px;padding:8px 20px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted)">View pooled results</button>
+      </div>
+    </div>
+    <div id="ranked-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
   <!-- ══ HISTORY TAB ══════════════════════════════════════ -->
@@ -3811,7 +3840,11 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
   document.getElementById('tab-' + name).classList.add('active');
-  const map = { build:'Build Search', search:'Search', results:'Results', history:'History', uploader:'PDF Scanner', projects:'Projects' };
+  // Workflow order: Build Search → Workbench → Results (tier 1, keyword triage)
+  // → Ranked Results (tier 2, agentic analysis) → PDF Scanner → Projects → History.
+  // Internal panel names are unchanged ('search' still drives #tab-search) — only
+  // the visible labels/order moved, so every existing switchTab() call still works.
+  const map = { build:'Build Search', search:'Workbench', results:'Results', ranked:'Ranked Results', history:'History', uploader:'PDF Scanner', projects:'Projects' };
   document.querySelectorAll('.tab-btn').forEach(function(b){
     // Compare the label with any leading emoji/whitespace stripped, then match EXACTLY.
     // (A substring match lit up "Build Search" whenever "Search" was selected.)
@@ -3819,6 +3852,7 @@ function switchTab(name) {
     if (label === map[name]) { b.classList.add('active'); b.setAttribute('aria-selected', 'true'); }
   });
   if (name === 'search') renderCriteriaPreview();
+  if (name === 'ranked' && typeof renderRankedResults === 'function') renderRankedResults();
 }
 
 // The header declares role="tablist"/"tab", which promises arrow-key movement
@@ -7375,6 +7409,7 @@ function resetResults() {
   const asb = document.getElementById('agent-summary-bar'); if (asb) asb.classList.remove('visible');
   const rtb = document.getElementById('results-tab-btn'); if (rtb) rtb.textContent = 'Results';
   const pc = document.getElementById('paper-count'); if (pc) pc.textContent = '';
+  if (typeof renderRankedResults === 'function') renderRankedResults();   // tier-2 tab back to empty
 
   // Workbench pool UI
   if (typeof recomputePool === 'function') recomputePool();
@@ -9203,6 +9238,9 @@ function renderResults() {
   fetchFullTextLinks();
   fetchAndRescanPMCPapers();
   fetchAndScanPDFs();
+  // Keep the tier-2 Ranked Results tab (count badge + shortlist) in step with
+  // the pool — analysed flags ride on the same paper objects. (04i defines it.)
+  if (typeof renderRankedResults === 'function') renderRankedResults();
 }
 
 // Log-normalised citation boost — max 15 pts.
@@ -18254,10 +18292,71 @@ function updateAgentCounters() {
   }
 }
 
+// ── Ranked Results tab (tier 2) ──────────────────────────────────────────────
+// The Results tab is tier 1: the full deduplicated pool with keyword triage.
+// This renders tier 2: every agent-analysed paper as a lean ranked row —
+// relevance verdict first (matches > unassessed > off-topic), then agent
+// quality score. Rows use the SAME delegated actions as the full cards
+// (document-level data-ev* delegation works in any container), and every
+// dynamic value is esc()'d / Number-coerced per the render-sink policy.
+function rankedVerdictRank(p) { return p.queryMatch === true ? 2 : p.queryMatch == null ? 1 : 0; }
+function renderRankedResults() {
+  const list = document.getElementById('ranked-list');
+  const empty = document.getElementById('ranked-empty');
+  const tabBtn = document.getElementById('ranked-tab-btn');
+  if (!list || !empty) return;
+  const analysed = (typeof papers !== 'undefined' && Array.isArray(papers))
+    ? papers.filter(function(p){ return p && p.agentAnalysed; }) : [];
+  if (tabBtn) tabBtn.textContent = '🤖 Ranked Results' + (analysed.length ? ' (' + analysed.length + ')' : '');
+  if (!analysed.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  const ranked = analysed.slice().sort(function(a, b) {
+    const dv = rankedVerdictRank(b) - rankedVerdictRank(a);
+    if (dv) return dv;
+    return (Number(b.agentScore) || 0) - (Number(a.agentScore) || 0);
+  });
+  list.innerHTML = ranked.map(function(p, i) {
+    const score = Number(p.agentScore) || 0;
+    const scoreColour = score >= 75 ? 'var(--ev-ok-text)' : score >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
+    const vIcon = p.queryMatch === true ? '✓' : p.queryMatch === false ? '✗' : '?';
+    const vColour = p.queryMatch === true ? 'var(--ev-ok-text)' : p.queryMatch === false ? 'var(--ev-danger-text)' : 'var(--ev-text-dim)';
+    const vLabel = p.queryMatch === true ? 'Matches question' : p.queryMatch === false ? 'Off-topic' : 'Not assessed';
+    const meta = [p.year && p.year !== 'N/A' ? p.year : '', p.studyType && p.studyType !== 'Other' ? p.studyType : '', p.journal || '']
+      .filter(Boolean).map(function(s){ return esc(String(s)); }).join(' · ');
+    return '<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 14px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)' + (p.retracted ? ';border-color:#ef444488' : '') + '">'
+      + '<div style="min-width:34px;text-align:center"><div style="font-size:15px;font-weight:700;color:var(--ev-text-dim);font-family:\'IBM Plex Mono\',monospace">' + (i + 1) + '</div>'
+      + '<div style="font-size:12px;font-weight:700;color:' + scoreColour + ';font-family:\'IBM Plex Mono\',monospace" title="Agent quality score">' + score + '</div></div>'
+      + '<div style="flex:1;min-width:0">'
+      + (p.retracted ? '<div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:0.05em">⚠️ RETRACTED</div>' : '')
+      + '<div style="font-size:13px;font-weight:600;color:var(--ev-text);line-height:1.4">' + esc(p.title || 'No title') + '</div>'
+      + (meta ? '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:2px">' + meta + '</div>' : '')
+      + '<div style="font-size:11px;color:' + vColour + ';margin-top:4px"><b>' + vIcon + ' ' + vLabel + '</b>'
+      + (p.queryMatchReasoning ? ' — ' + esc(p.queryMatchReasoning) : '') + '</div>'
+      + (p.agentKeyFinding ? '<div style="font-size:11px;color:var(--ev-ai-text);font-style:italic;margin-top:3px">' + esc(p.agentKeyFinding) + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">'
+      + '<button class="btn btn-green" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'openAddToProjModal', [p.pmid, 'search']) + ' title="Send this paper to a project for screening">&#128193; Add to project</button>'
+      + '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'evRankedViewCard', [p.pmid]) + ' title="Open the full record card on the Results tab">&#128269; Full record</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+// Jump from a ranked row to its full card on the Results tab.
+function evRankedViewCard(pmid) {
+  switchTab('results');
+  const card = document.getElementById('card-' + pmid);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const prev = card.style.boxShadow;
+  card.style.boxShadow = '0 0 0 2px #3b82f6';
+  setTimeout(function(){ card.style.boxShadow = prev; }, 1600);
+}
+
 function showAgentSummary() {
   const bar = document.getElementById('agent-summary-bar');
   if (!bar) return;
   bar.className = 'visible';
+  if (typeof renderRankedResults === 'function') renderRankedResults();   // tier-2 shortlist is now current
   bar.innerHTML =
     '<div class="agent-sum-item"><div class="agent-sum-num" style="color:var(--ev-ok-text)">' + agentStats.done + '</div><div style="font-size:11px">analysed</div></div>' +
     '<div style="color:var(--ev-border)">|</div>' +
@@ -19573,6 +19672,7 @@ evOn('h7', function (event) { switchTab('results'); });   // switchTab('results'
 evOn('h8', function (event) { switchTab('history'); });   // switchTab('history')
 evOn('h9', function (event) { switchTab('uploader'); });   // switchTab('uploader')
 evOn('h10', function (event) { switchTab('projects'); });   // switchTab('projects')
+evOn('h181', function (event) { switchTab('ranked'); });   // switchTab('ranked') — tier-2 Ranked Results tab
 evOn('h11', function (event) { setAiProvider(this.value); });   // setAiProvider(this.value)
 evOn('h12', function (event) { toggleSettings(); });   // toggleSettings()
 evOn('h13', function (event) { toggleIssuesPanel(); });   // toggleIssuesPanel()
@@ -19796,7 +19896,7 @@ var EV_CALLABLE_DYNAMIC = [
   'updateChecklistItem', 'updateProjClItem', 'updateRobDomainJudgement', 'updateProjClDomain',
   'updateGradeDomain', 'updateGradeUpgrade', 'updateGradeField'
 ];
-var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
+var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedViewCard","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
 EV_CALLABLE_LITERALS.concat(EV_CALLABLE_DYNAMIC).forEach(function (name) {
   const f = (typeof window !== 'undefined') ? window[name] : undefined;
   if (typeof f === 'function') EV_CALLABLE[name] = f;
