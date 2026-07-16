@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-G/Y2JSSU7nGdya2d7SrgvZYTwse+egZGA+Hxs5W6EGk='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Mp+9hkg+HjH4+Hm6yEOwUyEqr8n36OY2m3WGnblIyc8='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -791,8 +791,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <div id="tabs" role="tablist" aria-label="Main sections">
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h5" title="Start from your clinical question &mdash; concept blocks become reproducible strategies for every database">&#129513; Build Search</button>
     <button class="tab-btn active" role="tab" aria-selected="true" data-evclick="h6" title="Run the multi-database search &mdash; simple one-box mode, or the per-database advanced workbench">Workbench</button>
-    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" data-evclick="h7" title="Tier 1 &mdash; everything your searches found, deduplicated, keyword-triaged and ready to screen">Results</button>
-    <button class="tab-btn" role="tab" aria-selected="false" id="ranked-tab-btn" data-evclick="h181" title="Tier 2 &mdash; in-depth AI (agentic) analysis of the pooled results: relevance verdicts, quality scores and a ranked shortlist">&#129302; Ranked Results</button>
+    <button class="tab-btn" role="tab" aria-selected="false" id="results-tab-btn" data-evclick="h7" title="Everything your searches found, deduplicated &mdash; quick-scan against your PICO, cull, then analyse in depth">Results</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h9" title="Upload PDFs to extract, screen and appraise papers you already have">&#128203; PDF Scanner</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h10" title="Your review projects &mdash; screening, dual review, PRISMA flow and AI appraisal">&#128193; Projects</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-evclick="h8" title="Every search you've run &mdash; re-run with one click or save as an alert">History</button>
@@ -1561,6 +1560,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
           <button data-evclick="h88" title="Edit the keyword criteria that score these results, then re-score — useful after pulling a broad search into the pool" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-link);cursor:pointer;white-space:nowrap">&#9998; Edit criteria</button>
           <select id="sort-by" aria-label="Sort results by" data-evchange="h89">
             <option value="relevance">Sort: Search Relevance</option>
+            <option value="scan">Sort: Scan Relevance &#8595;</option>
             <option value="sources">Sort: Most Databases</option>
             <option value="score">Sort: Triage signals &#8595;</option>
             <option value="agent_rank">Sort: Agent Rank &#8595;</option>
@@ -1580,30 +1580,49 @@ button:not(:disabled):active { filter: brightness(0.95); }
             <input type="checkbox" id="citation-boost-cb" data-evchange="h89" style="accent-color:#3b82f6;cursor:pointer">
             &#128218; Citation boost
           </label>
-          <!-- Workflow order, destructive action last: integrity-check → export →
-               (escape hatch) reset. The agent-analysis controls live on the
-               Ranked Results tab (tier 2 of the two-tier results workflow). -->
+          <!-- Workflow order, destructive action last: appraise → visualise →
+               integrity-check → export → (escape hatch) reset. -->
+          <button class="agent-btn" id="agent-run-btn" data-evclick="h90" disabled title="In-depth pass on the (culled) pool: full text where available, quality appraisal, risk of bias — add an API key in Settings to enable">🤖 In-depth analysis</button>
+          <button class="btn btn-blue" id="rob2-viz-btn" data-evclick="h91" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 visualisation</button>
           <button class="btn" id="retraction-check-btn" data-evclick="h92" style="background:var(--ev-danger-bg);color:var(--ev-danger-text);border:1px solid #ef4444;font-size:12px" title="Check all papers against Retraction Watch / Crossref (free, no API key needed)">⚠️ Check retractions</button>
           <button class="btn btn-green" data-evclick="h93" title="Send every result to a project for screening. Records already in the project are skipped — so re-running a search later and sending again adds only the new records (a Cochrane update search), and the project records the search dates">&#128193; Send all to project</button>
           <button class="btn btn-green" data-evclick="h94">&#8595; Export CSV</button>
           <button class="btn btn-reset" data-evclick="h95" title="Clear all results and the search pool to start a new search (keeps projects, criteria, history & API keys)">&#10227; Reset &amp; new search</button>
         </div>
+        <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
       </div>
       <div id="source-filter-bar" style="display:none;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:14px"></div>
       <div id="dup-review-bar" style="display:none;margin-bottom:14px"></div>
-      <!-- ⚡ Quick relevance scan — the tier-1 CULL. Every pooled title+abstract is
-           judged against the PICO question; verdicts group below with tick-boxes so
-           off-topic records can be removed BEFORE tier-2 in-depth analysis. -->
+      <!-- Agent (in-depth analysis) progress -->
+      <div id="agent-summary-bar"></div>
+      <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:10px;padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#f59e0b">🤖 In-depth Analysis Running</div>
+            <div id="agent-status-line" style="display:block;margin-top:2px"></div>
+          </div>
+          <button class="btn agent-btn-stop" data-evclick="h97" style="font-size:11px;padding:5px 12px">■ Stop</button>
+        </div>
+        <div id="agent-progress-bar-wrap" style="display:block;margin-top:8px">
+          <div id="agent-progress-bar-fill"></div>
+        </div>
+        <div id="agent-counters" style="font-size:11px;color:var(--ev-text-dim);margin-top:6px"></div>
+      </div>
+      <!-- ⚡ Quick relevance scan — the CULL step. Every pooled title+abstract is
+           judged against the PICO question; verdicts appear ON the result cards
+           (sorted by scan relevance) with tick-boxes for removal. -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:1px solid #a78bfa44;border-radius:10px;background:var(--ev-surface-ai)">
         <span style="font-size:12px;font-weight:700;color:var(--ev-ai-text);white-space:nowrap">&#9889; Quick scan</span>
         <input id="ranked-question" type="text" aria-label="Review question for the relevance scan" placeholder="Your PICO question — e.g. Does dexmedetomidine reduce postoperative delirium after cardiac surgery?" style="flex:1;min-width:240px;font-size:12px;padding:7px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
-        <button class="agent-btn" id="quick-screen-btn" data-evclick="h182" title="Fast pass: every pooled title + abstract judged against your question — rank, verdicts and a cullable list, no full-text fetching">&#9889; Scan &amp; rank</button>
+        <button class="btn btn-ghost" data-evclick="h187" style="font-size:11px;padding:6px 12px;white-space:nowrap" title="Fill the question from the PICO you entered on the Build Search tab">&#10554; Use Build-tab PICO</button>
+        <button class="agent-btn" id="quick-screen-btn" data-evclick="h182" title="Fast pass: every pooled title + abstract judged against your question — verdicts and rank appear on the cards, no full-text fetching">&#9889; Scan &amp; rank</button>
       </div>
       <div id="relscan-progress" style="display:none;align-items:center;gap:10px;font-size:11px;color:#f59e0b;margin:-4px 0 12px 4px">
         <span id="relscan-progress-text"></span>
         <button class="btn agent-btn-stop" data-evclick="h97" style="font-size:10px;padding:3px 10px">■ Stop</button>
       </div>
-      <!-- Grouped cull list (hidden until a scan has verdicts) -->
+      <!-- Cull toolbar (hidden until a scan has verdicts) — selection acts on the
+           tick-boxes the scan adds to each result card below. -->
       <div id="ranked-sift-bar" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding:9px 13px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)">
         <span id="ranked-verdict-summary" style="font-size:12px"></span>
         <span style="flex:1"></span>
@@ -1614,7 +1633,6 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <span id="ranked-sel-count" style="font-size:11px;color:var(--ev-link);font-weight:600;min-width:70px;text-align:right"></span>
         <button class="btn" id="ranked-remove-btn" data-evclick="h186" disabled style="font-size:11px;padding:5px 12px;background:var(--ev-danger-bg);color:var(--ev-danger-text);border:1px solid #ef4444" title="Remove the ticked records from this session's pool (projects are never affected)">🗑 Remove selected</button>
       </div>
-      <div id="relsift-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
       <div id="retraction-summary-panel" style="display:none;background:var(--ev-danger-bg);border:1px solid var(--ev-danger-bg);border-radius:10px;padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:13px;font-weight:700;color:#ef4444">⚠️ Retracted Papers Detected</div>
@@ -1628,46 +1646,6 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <button class="btn btn-green" style="padding:11px 28px;font-size:13px" data-evclick="h94">&#8595; Export All to CSV</button>
       </div>
     </div>
-  </div>
-
-  <!-- ══ RANKED RESULTS TAB (tier 2 — agentic analysis of the pooled results) ══ -->
-  <div class="tab-panel" role="tabpanel" id="tab-ranked">
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-label">&#129302; Tier 2 &mdash; in-depth analysis of your curated pool</div>
-      <div class="info-box" style="border-color:#a78bfa44;color:var(--ev-ai-text);background:var(--ev-surface-ai)">
-        After the <b>quick scan &amp; cull</b> on the Results tab, whatever remains in the pool is your <b>curated list</b> &mdash; it appears below, ranked by scan relevance. The agent then reads each survivor <b>in depth</b> (full text where available): quality appraisal, risk of bias, key findings. From here, send papers on to a <b>project</b> for screening, PRISMA and export.
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button class="agent-btn" id="agent-run-btn" data-evclick="h90" disabled title="Deep pass: full text where available, quality appraisal, risk of bias — add an API key in Settings to enable">🤖 In-depth agent analysis</button>
-        <button class="btn btn-blue" id="rob2-viz-btn" data-evclick="h91" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 visualisation</button>
-        <button class="btn btn-green" data-evclick="h93" style="font-size:12px" title="Send every curated record to a project for screening — duplicates are skipped, so this is safe to repeat">&#128193; Send all to project</button>
-      </div>
-      <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
-    </div>
-    <div id="agent-summary-bar"></div>
-    <div id="agent-progress-wrap" style="display:none;background:var(--ev-surface-2);border:1px solid var(--ev-border);border-radius:10px;padding:12px 16px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:12px;font-weight:600;color:#f59e0b">🤖 Agent Analysis Running</div>
-          <div id="agent-status-line" style="display:block;margin-top:2px"></div>
-        </div>
-        <button class="btn agent-btn-stop" data-evclick="h97" style="font-size:11px;padding:5px 12px">■ Stop</button>
-      </div>
-      <div id="agent-progress-bar-wrap" style="display:block;margin-top:8px">
-        <div id="agent-progress-bar-fill"></div>
-      </div>
-      <div id="agent-counters" style="font-size:11px;color:var(--ev-text-dim);margin-top:6px"></div>
-    </div>
-    <div id="ranked-empty" class="empty">
-      <div class="empty-icon">&#129302;</div>
-      <div style="margin-bottom:6px">No curated pool yet.</div>
-      <div style="font-size:12px;color:var(--ev-text-dim);margin-bottom:14px">Run your searches (Workbench), then <b>quick-scan &amp; cull</b> the pooled results on the Results tab &mdash; whatever survives lands here as your curated list, ready for in-depth analysis.</div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-green" data-evclick="h6" style="font-size:12px;padding:8px 20px">&#128269; Go to Workbench</button>
-        <button class="btn" data-evclick="h7" style="font-size:12px;padding:8px 20px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted)">Scan &amp; cull the pool</button>
-      </div>
-    </div>
-    <div id="ranked-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
   <!-- ══ HISTORY TAB ══════════════════════════════════════ -->
@@ -3865,11 +3843,11 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
   document.getElementById('tab-' + name).classList.add('active');
-  // Workflow order: Build Search → Workbench → Results (tier 1, keyword triage)
-  // → Ranked Results (tier 2, agentic analysis) → PDF Scanner → Projects → History.
-  // Internal panel names are unchanged ('search' still drives #tab-search) — only
-  // the visible labels/order moved, so every existing switchTab() call still works.
-  const map = { build:'Build Search', search:'Workbench', results:'Results', ranked:'Ranked Results', history:'History', uploader:'PDF Scanner', projects:'Projects' };
+  // Workflow order: Build Search → Workbench → Results (pool → ⚡ quick-scan vs
+  // PICO → cull → 🤖 in-depth analysis, all in one place) → PDF Scanner →
+  // Projects → History. Internal panel names are unchanged ('search' still
+  // drives #tab-search) — only the visible labels/order moved.
+  const map = { build:'Build Search', search:'Workbench', results:'Results', history:'History', uploader:'PDF Scanner', projects:'Projects' };
   document.querySelectorAll('.tab-btn').forEach(function(b){
     // Compare the label with any leading emoji/whitespace stripped, then match EXACTLY.
     // (A substring match lit up "Build Search" whenever "Search" was selected.)
@@ -3877,7 +3855,6 @@ function switchTab(name) {
     if (label === map[name]) { b.classList.add('active'); b.setAttribute('aria-selected', 'true'); }
   });
   if (name === 'search') renderCriteriaPreview();
-  if (name === 'ranked' && typeof renderRankedResults === 'function') renderRankedResults();
 }
 
 // The header declares role="tablist"/"tab", which promises arrow-key movement
@@ -7434,8 +7411,7 @@ function resetResults() {
   const asb = document.getElementById('agent-summary-bar'); if (asb) asb.classList.remove('visible');
   const rtb = document.getElementById('results-tab-btn'); if (rtb) rtb.textContent = 'Results';
   const pc = document.getElementById('paper-count'); if (pc) pc.textContent = '';
-  if (typeof renderRelevanceSift === 'function') renderRelevanceSift();   // cull list cleared
-  if (typeof renderRankedResults === 'function') renderRankedResults();   // tier-2 tab back to empty
+  if (typeof renderRelevanceSift === 'function') renderRelevanceSift();   // cull toolbar cleared
 
   // Workbench pool UI
   if (typeof recomputePool === 'function') recomputePool();
@@ -9264,10 +9240,9 @@ function renderResults() {
   fetchFullTextLinks();
   fetchAndRescanPMCPapers();
   fetchAndScanPDFs();
-  // Keep the tier-1 cull list and the tier-2 curated tab in step with the
-  // pool — verdicts/analysis ride on the same paper objects. (04i defines both.)
+  // Keep the cull toolbar in step with the pool — verdicts ride on the same
+  // paper objects. (04i defines it.)
   if (typeof renderRelevanceSift === 'function') renderRelevanceSift();
-  if (typeof renderRankedResults === 'function') renderRankedResults();
 }
 
 // Log-normalised citation boost — max 15 pts.
@@ -9314,6 +9289,9 @@ function paperSortComparator(sortBy) {
       const bScore = b.score + citationBoostScore(b);
       return bScore - aScore;
     }
+    // ⚡ Quick-scan relevance: verdict tier first (relevant > unclear > off >
+    // unscanned), the scan score inside a tier. scanSortRank lives in 04i.
+    if (sortBy === 'scan') return scanSortRank(b) - scanSortRank(a);
     if (sortBy === 'agent_rank') return (b.agentScore || 0) - (a.agentScore || 0);
     if (sortBy === 'citations') return (b.citationCount || 0) - (a.citationCount || 0);
     if (sortBy === 'date_new') return (parseInt(b.year)||0) - (parseInt(a.year)||0);
@@ -9624,10 +9602,14 @@ function renderPapers() {
             // analysis unhides it when it detects the study type.
             '<span class="badge" id="type-badge-' + p.pmid + '" style="background:' + color + '22;color:' + color + ';border-color:' + color + '44' + (p.studyType ? '' : ';display:none') + '">' + esc(p.studyType) + '</span>' +
             agentRankBadge +
+            // ⚡ Cull tick-box — appears once the quick scan has judged this record.
+            (typeof scanCullCheckboxHtml === 'function' ? scanCullCheckboxHtml(p) : '') +
           '</div>' +
           '<div style="flex:1;min-width:0">' +
             '<div class="paper-title-link" ' + evAttr('click', 'evOpenExternal', [(p.nctId ? 'https://clinicaltrials.gov/study/'+p.nctId : p.pmid && !String(p.pmid).startsWith('EP_') && !String(p.pmid).startsWith('SS_') && !String(p.pmid).startsWith('CT_') ? 'https://pubmed.ncbi.nlm.nih.gov/'+p.pmid+'/' : (safeDoi(p.doi)||'#'))]) + '>'+esc(p.title)+'</div>' +
             '<div class="paper-meta">' + esc(authorStr) + ' &middot; ' + esc(p.journal) + ' &middot; ' + esc(p.year) + (safeDoi(p.doi) ? ' &middot; <a href="' + esc(safeDoi(p.doi)) + '" target="_blank" rel="noopener" style="color:var(--ev-text-faint)">DOI</a>' : '') +'</div>' +
+            // ⚡ Quick-scan verdict — one coloured line on the ORIGINAL card.
+            (typeof scanVerdictLineHtml === 'function' ? scanVerdictLineHtml(p) : '') +
             '<div style="margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">' +
               (p.scanDepth==='full' ? '<span class="depth-badge depth-full" id="db-'+p.pmid+'">&#9670; Full text scanned</span>' :
                p.scanDepth==='pdf' ? '<span class="depth-badge depth-pdf" id="db-'+p.pmid+'">&#9670; PDF scanned</span>' :
@@ -18327,22 +18309,29 @@ function updateAgentCounters() {
   }
 }
 
-// ── Ranked Results tab (tier 2) ──────────────────────────────────────────────
-// The Results tab is tier 1: the full deduplicated pool with keyword triage.
-// Tier 2 = (a) a QUICK RELEVANCE SCREEN — titles+abstracts judged in batches
-// against the review question (fast, cheap; verdicts relevant/unclear/off) —
-// then (b) the ranked, grouped shortlist below with tick-box SIFTING: selected
-// records can be removed from the session pool. The full agentic appraisal
-// (quality scores, RoB) remains available as the optional deep step. Every
-// dynamic value is esc()'d / Number-coerced per the render-sink policy.
+// ── ⚡ Quick relevance scan + cull (Results tab) ──────────────────────────────
+// The pooled Results are culled IN PLACE: titles+abstracts judged in batches
+// against the PICO question (fast, cheap; verdicts relevant/unclear/off + a
+// 0-100 score). Verdicts appear ON the original result cards (a badge line +
+// a tick-box); the cull toolbar removes ticked records from the session pool.
+// The full agentic appraisal (quality scores, RoB) is the separate in-depth
+// step on the same tab. Every dynamic value is esc()'d / Number-coerced per
+// the render-sink policy.
 var screenRunning = false;
 
-// Unified verdict: the quick screen's relVerdict wins; a deep-analysed paper
+// Unified verdict: the quick scan's relVerdict wins; a deep-analysed paper
 // without one maps its question-relevance verdict onto the same scale.
 function rankedVerdictOf(p) {
   if (p.relVerdict === 'relevant' || p.relVerdict === 'unclear' || p.relVerdict === 'off') return p.relVerdict;
   if (p.agentAnalysed) return p.queryMatch === true ? 'relevant' : p.queryMatch === false ? 'off' : 'unclear';
   return null;   // not screened yet
+}
+// Comparator rank for the "Sort: Scan Relevance" mode — verdict tier first
+// (relevant > unclear > off > unscanned), score inside a tier.
+function scanSortRank(p) {
+  const v = p.relVerdict;
+  const tier = v === 'relevant' ? 3 : v === 'unclear' ? 2 : v === 'off' ? 1 : 0;
+  return tier * 1000 + (v ? rankedScoreOf(p) : 0);
 }
 function rankedScoreOf(p) {
   if (p.relScore != null && isFinite(Number(p.relScore))) return Math.max(0, Math.min(100, Number(p.relScore)));
@@ -18454,22 +18443,26 @@ async function quickRelevanceScreen() {
         failed += items.length;
         if (typeof logIssue === 'function') logIssue('search', 'Quick relevance scan batch failed: ' + (describeAiError ? describeAiError(e) : e.message));
       }
-      renderRelevanceSift();   // cull list grows batch by batch
+      renderRelevanceSift();   // toolbar tallies grow batch by batch
     }
   } finally {
     screenRunning = false;
     if (btn) btn.disabled = false;
     if (prog) prog.style.display = 'none';
+    // Re-rank the cards by the fresh verdicts: switch the sort to Scan Relevance
+    // and re-render the pool (verdict lines + cull tick-boxes appear on cards).
+    const sortSel = document.getElementById('sort-by');
+    if (sortSel && !agentStop) sortSel.value = 'scan';
+    if (typeof renderPapers === 'function') renderPapers();
     renderRelevanceSift();
-    renderRankedResults();
-    showToast(agentStop ? '⚡ Scan stopped — ' + done + ' ranked' : '⚡ Quick scan done — ' + done + ' ranked' + (failed ? ', ' + failed + ' failed' : '') + '. Cull below, then move on to Ranked Results.', agentStop ? '#f59e0b' : '#22c55e');
+    showToast(agentStop ? '⚡ Scan stopped — ' + done + ' ranked' : '⚡ Quick scan done — ' + done + ' ranked' + (failed ? ', ' + failed + ' failed' : '') + '. Cards are re-ranked — tick off-topic records and remove them.', agentStop ? '#f59e0b' : '#22c55e');
   }
 }
 
-// ── Sifting: tick-box selection + remove-from-pool (Results tab cull list) ───
+// ── Sifting: tick-box selection + remove-from-pool (boxes live ON the cards) ─
 function rankedSelectedPmids() {
   const out = [];
-  document.querySelectorAll('#relsift-list .ranked-cb:checked').forEach(function(cb){ out.push(cb.getAttribute('data-pmid')); });
+  document.querySelectorAll('#papers-list .ranked-cb:checked').forEach(function(cb){ out.push(cb.getAttribute('data-pmid')); });
   return out;
 }
 function evRankedCbChanged() {
@@ -18480,7 +18473,7 @@ function evRankedCbChanged() {
   if (rm) rm.disabled = !n;
 }
 function rankedSelect(mode) {
-  document.querySelectorAll('#relsift-list .ranked-cb').forEach(function(cb) {
+  document.querySelectorAll('#papers-list .ranked-cb').forEach(function(cb) {
     if (mode === 'none') cb.checked = false;
     else if (mode === 'all') cb.checked = true;
     else if (mode === 'off') cb.checked = cb.getAttribute('data-verdict') === 'off';
@@ -18511,127 +18504,77 @@ function rankedRemoveSelected() {
     const er = document.getElementById('empty-results'); if (er) er.style.display = 'block';
     const rtb = document.getElementById('results-tab-btn'); if (rtb) rtb.textContent = 'Results';
     renderRelevanceSift();
-    renderRankedResults();
   }
   showToast('🗑 Removed ' + ids.length + ' record' + (ids.length !== 1 ? 's' : '') + ' from the pool', '#3b82f6');
 }
 
 const RANKED_SECTIONS = [
-  { v: 'relevant', icon: '✓', label: 'Relevant', colour: 'var(--ev-ok-text)' },
-  { v: 'unclear',  icon: '?', label: 'Unclear — human review', colour: '#f59e0b' },
-  { v: 'off',      icon: '✗', label: 'Off-topic', colour: 'var(--ev-danger-text)' },
+  { v: 'relevant', icon: '\u2713', label: 'Relevant', colour: 'var(--ev-ok-text)' },
+  { v: 'unclear',  icon: '?', label: 'Unclear \u2014 human review', colour: '#f59e0b' },
+  { v: 'off',      icon: '\u2717', label: 'Off-topic', colour: 'var(--ev-danger-text)' },
 ];
 
-// Tier-1 CULL list (Results tab): the scanned pool grouped by verdict —
-// relevant → unclear → off-topic, score-sorted within — each row with a
-// tick-box so off-topic records can be removed from the pool before tier 2.
+// Cull toolbar (Results tab): verdict tallies + selection state. The verdicts
+// themselves render on the ORIGINAL result cards via scanVerdictLineHtml /
+// scanCullCheckboxHtml below \u2014 there is no separate lean list.
 function renderRelevanceSift() {
-  const list = document.getElementById('relsift-list');
   const sift = document.getElementById('ranked-sift-bar');
-  if (!list) return;
+  if (!sift) return;
   const scanned = (typeof papers !== 'undefined' && Array.isArray(papers))
     ? papers.filter(function(p){ return p && p.relVerdict; }) : [];
   const qEl = document.getElementById('ranked-question');
   if (qEl && !qEl.value && typeof currentQuery !== 'undefined' && currentQuery) qEl.value = String(currentQuery);
-  if (!scanned.length) {
-    list.innerHTML = '';
-    if (sift) sift.style.display = 'none';
-    return;
-  }
-  if (sift) sift.style.display = 'flex';
+  if (!scanned.length) { sift.style.display = 'none'; return; }
+  sift.style.display = 'flex';
   const summary = document.getElementById('ranked-verdict-summary');
   if (summary) summary.innerHTML = RANKED_SECTIONS.map(function(s) {
     const n = scanned.filter(function(p){ return p.relVerdict === s.v; }).length;
-    return '<span style="color:' + s.colour + ';font-weight:700">' + s.icon + ' ' + n + '</span> <span style="color:var(--ev-text-dim)">' + s.label.split(' —')[0].toLowerCase() + '</span>';
-  }).join(' <span style="color:var(--ev-border)">·</span> ');
-  let html = '';
-  RANKED_SECTIONS.forEach(function(sec) {
-    const group = scanned.filter(function(p){ return p.relVerdict === sec.v; })
-      .sort(function(a, b){ return rankedScoreOf(b) - rankedScoreOf(a); });
-    if (!group.length) return;
-    html += '<div style="display:flex;align-items:center;gap:8px;margin:' + (html ? '16px' : '2px') + ' 0 4px">'
-      + '<span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:' + sec.colour + '">' + sec.icon + ' ' + sec.label + '</span>'
-      + '<span style="font-size:11px;color:var(--ev-text-dim)">' + group.length + '</span>'
-      + '<span style="flex:1;border-top:1px solid var(--ev-border)"></span></div>';
-    html += group.map(function(p) {
-      const score = rankedScoreOf(p);
-      const scoreColour = score >= 75 ? 'var(--ev-ok-text)' : score >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
-      const meta = [p.year && p.year !== 'N/A' ? p.year : '', p.studyType && p.studyType !== 'Other' ? p.studyType : '', p.journal || '']
-        .filter(Boolean).map(function(s){ return esc(String(s)); }).join(' · ');
-      return '<div style="display:flex;gap:11px;align-items:flex-start;padding:9px 13px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)' + (p.retracted ? ';border-color:#ef444488' : '') + '">'
-        + '<input type="checkbox" class="ranked-cb" data-pmid="' + esc(String(p.pmid)) + '" data-verdict="' + esc(sec.v) + '" ' + evAttr('change', 'evRankedCbChanged', []) + ' aria-label="Select record" style="margin-top:4px;accent-color:#3b82f6;cursor:pointer">'
-        + '<div style="min-width:26px;text-align:center;font-size:12px;font-weight:700;color:' + scoreColour + ';font-family:\'IBM Plex Mono\',monospace;margin-top:2px" title="Relevance score">' + score + '</div>'
-        + '<div style="flex:1;min-width:0">'
-        + (p.retracted ? '<div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:0.05em">⚠️ RETRACTED</div>' : '')
-        + '<div style="font-size:12px;font-weight:600;color:var(--ev-text);line-height:1.4">' + esc(p.title || 'No title') + '</div>'
-        + (meta ? '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:2px">' + meta + '</div>' : '')
-        + (p.relReason ? '<div style="font-size:11px;color:var(--ev-text-muted);margin-top:3px">' + esc(p.relReason) + '</div>' : '')
-        + '</div>'
-        + '<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap" ' + evAttr('click', 'evRankedViewCard', [p.pmid]) + ' title="Jump to the full record card below">&#128269; Full record</button>'
-        + '</div>';
-    }).join('');
-  });
-  list.innerHTML = html;
+    return '<span style="color:' + s.colour + ';font-weight:700">' + s.icon + ' ' + n + '</span> <span style="color:var(--ev-text-dim)">' + s.label.split(' \u2014')[0].toLowerCase() + '</span>';
+  }).join(' <span style="color:var(--ev-border)">\u00b7</span> ');
   evRankedCbChanged();
 }
 
-// Tier-2 CURATED list (Ranked Results tab): whatever survived the cull, ranked
-// by scan relevance (unscanned records last), with the in-depth analysis
-// results layered on as they arrive.
-function renderRankedResults() {
-  const list = document.getElementById('ranked-list');
-  const empty = document.getElementById('ranked-empty');
-  const tabBtn = document.getElementById('ranked-tab-btn');
-  if (!list || !empty) return;
-  const pool = (typeof papers !== 'undefined' && Array.isArray(papers)) ? papers.filter(Boolean) : [];
-  if (tabBtn) tabBtn.textContent = '🤖 Ranked Results' + (pool.length ? ' (' + pool.length + ')' : '');
-  if (!pool.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
-  const ranked = pool.slice().sort(function(a, b) {
-    const sa = a.relVerdict ? rankedScoreOf(a) : -1;   // unscanned sink to the bottom
-    const sb = b.relVerdict ? rankedScoreOf(b) : -1;
-    return sb - sa;
-  });
-  list.innerHTML = ranked.map(function(p, i) {
-    const score = p.relVerdict ? rankedScoreOf(p) : null;
-    const scoreColour = score == null ? 'var(--ev-text-dim)' : score >= 75 ? 'var(--ev-ok-text)' : score >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
-    const sec = RANKED_SECTIONS.filter(function(s){ return s.v === p.relVerdict; })[0];
-    const meta = [p.year && p.year !== 'N/A' ? p.year : '', p.studyType && p.studyType !== 'Other' ? p.studyType : '', p.journal || '']
-      .filter(Boolean).map(function(s){ return esc(String(s)); }).join(' · ');
-    return '<div style="display:flex;gap:11px;align-items:flex-start;padding:10px 13px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)' + (p.retracted ? ';border-color:#ef444488' : '') + '">'
-      + '<div style="min-width:30px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--ev-text-dim);font-family:\'IBM Plex Mono\',monospace">' + (i + 1) + '</div>'
-      + '<div style="font-size:12px;font-weight:700;color:' + scoreColour + ';font-family:\'IBM Plex Mono\',monospace" title="Scan relevance score">' + (score == null ? '–' : score) + '</div></div>'
-      + '<div style="flex:1;min-width:0">'
-      + (p.retracted ? '<div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:0.05em">⚠️ RETRACTED</div>' : '')
-      + '<div style="font-size:13px;font-weight:600;color:var(--ev-text);line-height:1.4">' + esc(p.title || 'No title') + '</div>'
-      + (meta ? '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:2px">' + meta + '</div>' : '')
-      + (sec ? '<div style="font-size:11px;color:' + sec.colour + ';margin-top:3px"><b>' + sec.icon + ' ' + sec.label.split(' —')[0] + '</b>' + (p.relReason ? ' — ' + esc(p.relReason) : '') + '</div>'
-             : '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:3px">– not scanned (run the quick scan on Results)</div>')
-      + (p.agentAnalysed ? '<div style="font-size:11px;color:var(--ev-ai-text);margin-top:3px">🤖 analysed · quality ' + (Number(p.agentScore) || 0) + '/100' + (p.agentKeyFinding ? ' — <i>' + esc(p.agentKeyFinding) + '</i>' : '') + '</div>' : '')
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">'
-      + '<button class="btn btn-green" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'openAddToProjModal', [p.pmid, 'search']) + ' title="Send this paper to a project for screening">&#128193; Add to project</button>'
-      + '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'evRankedViewCard', [p.pmid]) + ' title="Open the full record card on the Results tab">&#128269; Full record</button>'
-      + '</div></div>';
-  }).join('');
+// The scan verdict AS SHOWN ON the original result card: one coloured line
+// (icon + word + score + the model's one-sentence reason). Empty string until
+// the record has been scanned. Pure \u2192 unit-tested.
+function scanVerdictLineHtml(p) {
+  const sec = RANKED_SECTIONS.filter(function(s){ return s.v === p.relVerdict; })[0];
+  if (!sec) return '';
+  const score = rankedScoreOf(p);
+  return '<div class="scan-verdict-line" style="margin-top:5px;font-size:11px;color:' + sec.colour + '">'
+    + '<b>\u26a1 ' + sec.icon + ' ' + sec.label.split(' \u2014')[0] + ' \u00b7 ' + score + '/100</b>'
+    + (p.relReason ? ' <span style="color:var(--ev-text-muted)">\u2014 ' + esc(p.relReason) + '</span>' : '')
+    + '</div>';
 }
 
-// Jump from a ranked row to its full card on the Results tab.
-function evRankedViewCard(pmid) {
-  switchTab('results');
-  const card = document.getElementById('card-' + pmid);
-  if (!card) return;
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  const prev = card.style.boxShadow;
-  card.style.boxShadow = '0 0 0 2px #3b82f6';
-  setTimeout(function(){ card.style.boxShadow = prev; }, 1600);
+// The cull tick-box for a scanned card (top-right of the card header row).
+function scanCullCheckboxHtml(p) {
+  if (!p.relVerdict) return '';
+  return '<label title="Tick to select this record for removal from the pool" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--ev-text-dim);cursor:pointer;white-space:nowrap;user-select:none">'
+    + '<input type="checkbox" class="ranked-cb" data-pmid="' + esc(String(p.pmid)) + '" data-verdict="' + esc(String(p.relVerdict)) + '" '
+    + evAttr('change', 'evRankedCbChanged', []) + ' aria-label="Select record for removal" style="accent-color:#3b82f6;cursor:pointer;margin:0">cull</label>';
 }
+
+// Fill the scan question from the Build-tab PICO inputs.
+function importPicoToScan() {
+  const el = document.getElementById('ranked-question');
+  if (!el) return;
+  const pico = (typeof picoInputs === 'function') ? picoInputs() : {};
+  const parts = [];
+  if (pico.p) parts.push('Population: ' + pico.p);
+  if (pico.i) parts.push('Intervention: ' + pico.i);
+  if (pico.c) parts.push('Comparator: ' + pico.c);
+  if (pico.o) parts.push('Outcome: ' + pico.o);
+  if (!parts.length) { showToast('No PICO on the Build Search tab yet \u2014 enter it there first', '#f59e0b'); return; }
+  el.value = parts.join('; ');
+  showToast('\u26a1 PICO imported \u2014 review the question, then Scan & rank', '#22c55e');
+}
+
 
 function showAgentSummary() {
   const bar = document.getElementById('agent-summary-bar');
   if (!bar) return;
   bar.className = 'visible';
-  if (typeof renderRankedResults === 'function') renderRankedResults();   // tier-2 shortlist is now current
   bar.innerHTML =
     '<div class="agent-sum-item"><div class="agent-sum-num" style="color:var(--ev-ok-text)">' + agentStats.done + '</div><div style="font-size:11px">analysed</div></div>' +
     '<div style="color:var(--ev-border)">|</div>' +
@@ -19947,12 +19890,12 @@ evOn('h7', function (event) { switchTab('results'); });   // switchTab('results'
 evOn('h8', function (event) { switchTab('history'); });   // switchTab('history')
 evOn('h9', function (event) { switchTab('uploader'); });   // switchTab('uploader')
 evOn('h10', function (event) { switchTab('projects'); });   // switchTab('projects')
-evOn('h181', function (event) { switchTab('ranked'); });   // switchTab('ranked') — tier-2 Ranked Results tab
-evOn('h182', function (event) { quickRelevanceScreen(); });   // ⚡ quick title+abstract relevance screen
+evOn('h182', function (event) { quickRelevanceScreen(); });   // ⚡ quick title+abstract relevance scan
 evOn('h183', function (event) { rankedSelect('off'); });      // sift: select all off-topic
 evOn('h184', function (event) { rankedSelect('all'); });      // sift: select all
 evOn('h185', function (event) { rankedSelect('none'); });     // sift: clear selection
 evOn('h186', function (event) { rankedRemoveSelected(); });   // sift: remove selected from pool
+evOn('h187', function (event) { importPicoToScan(); });       // fill the scan question from the Build-tab PICO
 evOn('h11', function (event) { setAiProvider(this.value); });   // setAiProvider(this.value)
 evOn('h12', function (event) { toggleSettings(); });   // toggleSettings()
 evOn('h13', function (event) { toggleIssuesPanel(); });   // toggleIssuesPanel()
@@ -20176,7 +20119,7 @@ var EV_CALLABLE_DYNAMIC = [
   'updateChecklistItem', 'updateProjClItem', 'updateRobDomainJudgement', 'updateProjClDomain',
   'updateGradeDomain', 'updateGradeUpgrade', 'updateGradeField'
 ];
-var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedCbChanged","evRankedViewCard","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
+var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedCbChanged","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
 EV_CALLABLE_LITERALS.concat(EV_CALLABLE_DYNAMIC).forEach(function (name) {
   const f = (typeof window !== 'undefined') ? window[name] : undefined;
   if (typeof f === 'function') EV_CALLABLE[name] = f;
