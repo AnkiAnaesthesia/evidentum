@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Mp+9hkg+HjH4+Hm6yEOwUyEqr8n36OY2m3WGnblIyc8='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-cR0OLCbBMcKfktVlTT7bq8P7JRQg2FWwdhRZ3dfyvj8='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -9538,7 +9538,7 @@ function renderPapers() {
   const list = document.getElementById('papers-list');
   if (!list) return;
 
-  list.innerHTML = sorted.map(function(p) {
+  const cardsHtml = sorted.map(function(p) {
     const color = TYPE_COLORS[p.studyType] || '#6b7280';
     const authors = p.authors || [];
     const authorStr = authors.slice(0,3).join(', ') + (authors.length > 3 ? ' et al.' : '');
@@ -9690,7 +9690,30 @@ function renderPapers() {
         '<textarea class="notes-area" placeholder="Research notes\u2026" ' + evAttr('change', 'updateNotes', [p.pmid], ['val']) + '>' + esc(p.notes) + '</textarea>' +
       '</div>' +
     '</div>';
-  }).join('');
+  });
+  // ⚡ Scan-relevance mode: interleave verdict section headers so the ORIGINAL
+  // cards physically sit under Relevant / Unclear / Off-topic / Not yet scanned
+  // — and visibly migrate between sections as each scan batch lands.
+  const sortEl2 = document.getElementById('sort-by');
+  if (sortEl2 && sortEl2.value === 'scan' && sorted.some(function(p){ return p.relVerdict; })) {
+    list.innerHTML = groupCardsByVerdict(sorted, cardsHtml);
+  } else {
+    list.innerHTML = cardsHtml.join('');
+  }
+}
+
+// Pure: interleave scan-verdict section headers at tier boundaries. `sorted`
+// must already be in scan order (scanSortRank) so each tier is contiguous.
+function groupCardsByVerdict(sorted, cardsHtml) {
+  const counts = {};
+  sorted.forEach(function(p){ const t = p.relVerdict || 'none'; counts[t] = (counts[t] || 0) + 1; });
+  let out = '', prevTier = null;
+  sorted.forEach(function(p, i) {
+    const tier = p.relVerdict || 'none';
+    if (tier !== prevTier) { out += scanSectionHeaderHtml(tier, counts[tier]); prevTier = tier; }
+    out += cardsHtml[i];
+  });
+  return out;
 }
 
 function toggleExpand(pmid) {
@@ -18431,6 +18454,10 @@ async function quickRelevanceScreen() {
   const btn = document.getElementById('quick-screen-btn');
   if (btn) btn.disabled = true;
   if (prog) prog.style.display = 'flex';
+  // Switch to scan-relevance sort up front: from the first batch on, the cards
+  // physically migrate into their verdict sections as results stream in.
+  const sortSel = document.getElementById('sort-by');
+  if (sortSel) sortSel.value = 'scan';
   try {
     for (let b = 0; b < batches; b++) {
       if (agentStop) break;
@@ -18443,19 +18470,16 @@ async function quickRelevanceScreen() {
         failed += items.length;
         if (typeof logIssue === 'function') logIssue('search', 'Quick relevance scan batch failed: ' + (describeAiError ? describeAiError(e) : e.message));
       }
-      renderRelevanceSift();   // toolbar tallies grow batch by batch
+      if (typeof renderPapers === 'function') renderPapers();   // cards move into their sections
+      renderRelevanceSift();                                     // toolbar tallies grow with them
     }
   } finally {
     screenRunning = false;
     if (btn) btn.disabled = false;
     if (prog) prog.style.display = 'none';
-    // Re-rank the cards by the fresh verdicts: switch the sort to Scan Relevance
-    // and re-render the pool (verdict lines + cull tick-boxes appear on cards).
-    const sortSel = document.getElementById('sort-by');
-    if (sortSel && !agentStop) sortSel.value = 'scan';
     if (typeof renderPapers === 'function') renderPapers();
     renderRelevanceSift();
-    showToast(agentStop ? '⚡ Scan stopped — ' + done + ' ranked' : '⚡ Quick scan done — ' + done + ' ranked' + (failed ? ', ' + failed + ' failed' : '') + '. Cards are re-ranked — tick off-topic records and remove them.', agentStop ? '#f59e0b' : '#22c55e');
+    showToast(agentStop ? '⚡ Scan stopped — ' + done + ' ranked' : '⚡ Quick scan done — ' + done + ' ranked' + (failed ? ', ' + failed + ' failed' : '') + '. Tick off-topic records and remove them.', agentStop ? '#f59e0b' : '#22c55e');
   }
 }
 
@@ -18532,6 +18556,17 @@ function renderRelevanceSift() {
     return '<span style="color:' + s.colour + ';font-weight:700">' + s.icon + ' ' + n + '</span> <span style="color:var(--ev-text-dim)">' + s.label.split(' \u2014')[0].toLowerCase() + '</span>';
   }).join(' <span style="color:var(--ev-border)">\u00b7</span> ');
   evRankedCbChanged();
+}
+
+// Section header between verdict groups in the papers list (scan-sort mode).
+// 'none' = records the scan hasn't reached yet. Pure → unit-tested.
+function scanSectionHeaderHtml(verdict, n) {
+  const sec = RANKED_SECTIONS.filter(function(s){ return s.v === verdict; })[0]
+    || { icon: '⏳', label: 'Not yet scanned', colour: 'var(--ev-text-dim)' };
+  return '<div class="scan-section-header" style="display:flex;align-items:center;gap:8px;margin:14px 0 6px">'
+    + '<span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:' + sec.colour + '">' + sec.icon + ' ' + sec.label + '</span>'
+    + '<span style="font-size:11px;color:var(--ev-text-dim)">' + (Number(n) || 0) + '</span>'
+    + '<span style="flex:1;border-top:1px solid var(--ev-border)"></span></div>';
 }
 
 // The scan verdict AS SHOWN ON the original result card: one coloured line
