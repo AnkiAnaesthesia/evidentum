@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-0zZWxQ7exE8N4L9R3IaQpE8pn7268KxV0gArsAQ6Fbk='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-fulmuJnORaNH/f7ka2bykP3hDEStBltQNvF7YZ5hDNg='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -1609,12 +1609,17 @@ button:not(:disabled):active { filter: brightness(0.95); }
   <!-- ══ RANKED RESULTS TAB (tier 2 — agentic analysis of the pooled results) ══ -->
   <div class="tab-panel" role="tabpanel" id="tab-ranked">
     <div class="card" style="margin-bottom:14px">
-      <div class="card-label">&#129302; Tier 2 &mdash; agentic analysis &amp; ranked shortlist</div>
+      <div class="card-label">&#129302; Tier 2 &mdash; relevance screen &amp; ranked shortlist</div>
       <div class="info-box" style="border-color:#a78bfa44;color:var(--ev-ai-text);background:var(--ev-surface-ai)">
-        A systematic search pools <b>everything</b> &mdash; often thousands of records (that&rsquo;s tier&nbsp;1, the Results tab). Here the AI agent reads each paper in depth (full text where available), judges its <b>relevance to your question</b>, appraises <b>study quality</b>, and produces the ranked shortlist below &mdash; highest-triage papers are analysed first, and nothing is excluded for you: every verdict links back to the full record for a human decision.
+        A systematic search pools <b>everything</b> &mdash; often thousands of records (tier&nbsp;1, the Results tab). The <b>quick screen</b> reads every <b>title + abstract</b> against your review question and sorts the pool into <b style="color:var(--ev-ok-text)">relevant</b> / <b style="color:#f59e0b">unclear</b> / <b style="color:var(--ev-danger-text)">off-topic</b> with a ranked score. Tick the records that don&rsquo;t belong and remove them from the pool &mdash; nothing is ever excluded for you automatically.
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <label for="ranked-question" style="font-size:12px;font-weight:600;color:var(--ev-text-2);white-space:nowrap">Review question</label>
+        <input id="ranked-question" type="text" aria-label="Review question for the relevance screen" placeholder="e.g. Does dexmedetomidine reduce postoperative delirium in adults after cardiac surgery?" style="flex:1;min-width:260px;font-size:12px;padding:8px 11px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button class="agent-btn" id="agent-run-btn" data-evclick="h90" disabled title="Add your OpenAI, Anthropic, Google Gemini or xAI Grok API key in Settings to enable">🤖 Agent analysis</button>
+        <button class="agent-btn" id="quick-screen-btn" data-evclick="h182" title="Fast pass: every title + abstract judged against the review question — verdicts and a ranked shortlist, no full-text fetching">&#9889; Quick relevance screen</button>
+        <button class="btn" id="agent-run-btn" data-evclick="h90" disabled style="font-size:12px" title="Deep pass (slower): full text where available, quality appraisal, risk of bias — add an API key in Settings to enable">🤖 Deep agent analysis</button>
         <button class="btn btn-blue" id="rob2-viz-btn" data-evclick="h91" style="display:none" title="Generate robvis-style Risk of Bias charts from agent assessments">📊 RoB2 visualisation</button>
       </div>
       <div id="agent-fetch-note" style="display:none;font-size:11px;color:#f59e0b;margin-top:6px">⏳ Background PDF fetching in progress — you can run the agent now, papers not yet fetched will use abstract only.</div>
@@ -1633,10 +1638,21 @@ button:not(:disabled):active { filter: brightness(0.95); }
       </div>
       <div id="agent-counters" style="font-size:11px;color:var(--ev-text-dim);margin-top:6px"></div>
     </div>
+    <!-- Sift toolbar: selection + remove-from-pool. Hidden until the shortlist exists. -->
+    <div id="ranked-sift-bar" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding:9px 13px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)">
+      <span id="ranked-verdict-summary" style="font-size:12px"></span>
+      <span style="flex:1"></span>
+      <span style="font-size:11px;color:var(--ev-text-dim)">Select:</span>
+      <button class="btn btn-ghost" data-evclick="h183" style="font-size:11px;padding:4px 10px" title="Tick every record the screen judged off-topic">✗ Off-topic</button>
+      <button class="btn btn-ghost" data-evclick="h184" style="font-size:11px;padding:4px 10px">All</button>
+      <button class="btn btn-ghost" data-evclick="h185" style="font-size:11px;padding:4px 10px">None</button>
+      <span id="ranked-sel-count" style="font-size:11px;color:var(--ev-link);font-weight:600;min-width:70px;text-align:right"></span>
+      <button class="btn" id="ranked-remove-btn" data-evclick="h186" disabled style="font-size:11px;padding:5px 12px;background:var(--ev-danger-bg);color:var(--ev-danger-text);border:1px solid #ef4444" title="Remove the ticked records from this session's pool (projects are never affected)">🗑 Remove selected</button>
+    </div>
     <div id="ranked-empty" class="empty">
-      <div class="empty-icon">&#129302;</div>
-      <div style="margin-bottom:6px">No agentic analysis yet.</div>
-      <div style="font-size:12px;color:var(--ev-text-dim);margin-bottom:14px">Pool your search results first (Workbench &rarr; Results), then run the agent here &mdash; each paper gets a relevance verdict, a quality score and its place in the ranked shortlist.</div>
+      <div class="empty-icon">&#9889;</div>
+      <div style="margin-bottom:6px">No relevance screen yet.</div>
+      <div style="font-size:12px;color:var(--ev-text-dim);margin-bottom:14px">Pool your search results first (Workbench &rarr; Results), then run the <b>quick relevance screen</b> above &mdash; every title + abstract is judged against your question and ranked below.</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn btn-green" data-evclick="h6" style="font-size:12px;padding:8px 20px">&#128269; Go to Workbench</button>
         <button class="btn" data-evclick="h7" style="font-size:12px;padding:8px 20px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-muted)">View pooled results</button>
@@ -12294,6 +12310,11 @@ function evNormalisePaper(p) {
   out.agentScoreReasoning = evClampStr(p.agentScoreReasoning, 2000);
   out.agentTextSource = evClampStr(p.agentTextSource, 200);
   out.queryMatchReasoning = evClampStr(p.queryMatchReasoning, 2000);
+  // Quick relevance screen (tier-2 Ranked Results): verdict enum fails closed
+  // to null (= not screened), score clamps 0–100, reason clamps.
+  out.relVerdict = evEnumOr(p.relVerdict, ['relevant', 'unclear', 'off'], null);
+  out.relScore = evNumOr(p.relScore, 0, 100, null);
+  out.relReason = evClampStr(p.relReason, 500);
   out.retractionInfo = evNormaliseRetraction(p.retractionInfo);
   // structured / nested
   out.checklists = evNormaliseChecklists(p.checklists);
@@ -12786,6 +12807,9 @@ function serialisePaper(p, source) {
     agentPopulation:     p.agentPopulation || '',
     queryMatch:          p.queryMatch || null,
     queryMatchReasoning: p.queryMatchReasoning || '',
+    relVerdict:          p.relVerdict || null,   // quick relevance screen (tier 2)
+    relScore:            (p.relScore != null ? p.relScore : null),
+    relReason:           p.relReason || '',
     manualTags:          p.manualTags || [],
     notes:               p.notes || '',
     extraction:          p.extraction || {},   // structured data-extraction values, keyed by template field id
@@ -18294,51 +18318,258 @@ function updateAgentCounters() {
 
 // ── Ranked Results tab (tier 2) ──────────────────────────────────────────────
 // The Results tab is tier 1: the full deduplicated pool with keyword triage.
-// This renders tier 2: every agent-analysed paper as a lean ranked row —
-// relevance verdict first (matches > unassessed > off-topic), then agent
-// quality score. Rows use the SAME delegated actions as the full cards
-// (document-level data-ev* delegation works in any container), and every
+// Tier 2 = (a) a QUICK RELEVANCE SCREEN — titles+abstracts judged in batches
+// against the review question (fast, cheap; verdicts relevant/unclear/off) —
+// then (b) the ranked, grouped shortlist below with tick-box SIFTING: selected
+// records can be removed from the session pool. The full agentic appraisal
+// (quality scores, RoB) remains available as the optional deep step. Every
 // dynamic value is esc()'d / Number-coerced per the render-sink policy.
-function rankedVerdictRank(p) { return p.queryMatch === true ? 2 : p.queryMatch == null ? 1 : 0; }
+var screenRunning = false;
+
+// Unified verdict: the quick screen's relVerdict wins; a deep-analysed paper
+// without one maps its question-relevance verdict onto the same scale.
+function rankedVerdictOf(p) {
+  if (p.relVerdict === 'relevant' || p.relVerdict === 'unclear' || p.relVerdict === 'off') return p.relVerdict;
+  if (p.agentAnalysed) return p.queryMatch === true ? 'relevant' : p.queryMatch === false ? 'off' : 'unclear';
+  return null;   // not screened yet
+}
+function rankedScoreOf(p) {
+  if (p.relScore != null && isFinite(Number(p.relScore))) return Math.max(0, Math.min(100, Number(p.relScore)));
+  return Math.max(0, Math.min(100, Number(p.agentScore) || 0));
+}
+function evRelVerdict(v) { return (v === 'relevant' || v === 'unclear' || v === 'off') ? v : 'unclear'; }
+
+// Pure: the batched screening prompt. Abstracts truncated so a 20-record batch
+// stays well inside every provider's context; the model must answer JSON only.
+function buildRelevanceScreenPrompt(question, items) {
+  const sys = 'You are screening records for a systematic review. For EACH numbered record (title + abstract) judge its RELEVANCE to the review question — relevance only, never methodological quality. '
+    + 'Reply with ONLY this JSON, one entry per record, same order: '
+    + '{"verdicts":[{"n":<record number>,"v":"relevant"|"unclear"|"off","s":<relevance 0-100>,"r":"<one short sentence>"}]} '
+    + '"off" = clearly does not address the question; "unclear" = cannot tell from title/abstract (keep for human review).';
+  const user = 'REVIEW QUESTION: ' + question + '\n\nRECORDS:\n' + items.map(function(p, i) {
+    return (i + 1) + '. TITLE: ' + (p.title || 'No title') + '\n   ABSTRACT: ' + String(p.abstract || '(no abstract)').slice(0, 1200);
+  }).join('\n');
+  return { systemPrompt: sys, userPrompt: user };
+}
+
+// One batched relevance call, all four providers. Prompt-JSON + the repair
+// parser (safeParseAgentJson) — verdict values are re-validated on apply.
+async function aiRelevanceBatch(question, items) {
+  const prompts = buildRelevanceScreenPrompt(question, items);
+  let raw = '';
+  if (aiProvider === 'gemini') {
+    raw = await geminiGenerate(prompts.systemPrompt, prompts.userPrompt, 8000, { json: true }) || '{}';
+  } else if (aiProvider === 'grok') {
+    raw = await grokGenerate(prompts.systemPrompt, prompts.userPrompt, 8000, { json: true }) || '{}';
+  } else if (aiProvider === 'anthropic') {
+    const response = await aiFetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: anthropicHeaders(),
+      body: JSON.stringify({ model: aiModelAnthropic, max_tokens: 8000, system: prompts.systemPrompt,
+        messages: [{ role: 'user', content: prompts.userPrompt }] })
+    });
+    if (!response.ok) { const e = await response.json().catch(function(){ return {}; }); throw new Error('Anthropic ' + response.status + ': ' + ((e.error && e.error.message) || 'unknown')); }
+    raw = anthropicExtractText(await response.json()) || '{}';
+  } else {
+    const response = await aiFetch('https://api.openai.com/v1/responses', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApiKey },
+      body: JSON.stringify({ model: aiModelOpenAI, max_output_tokens: 8000, reasoning: { effort: 'low' },
+        input: [{ role: 'user', content: [{ type: 'input_text', text: prompts.systemPrompt + '\n\n' + prompts.userPrompt }] }] })
+    });
+    if (!response.ok) { const e = await response.json().catch(function(){ return {}; }); throw new Error('OpenAI ' + response.status + ': ' + ((e.error && e.error.message) || 'unknown')); }
+    const data = await response.json();
+    if (data.output) data.output.forEach(function(b){ if (b.type === 'message' && b.content) b.content.forEach(function(c){ if (c.type === 'output_text') raw += c.text; }); });
+    if (!raw) raw = '{}';
+  }
+  raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
+  return safeParseAgentJson(raw);
+}
+
+// Apply one batch's parsed verdicts back onto the batch papers. Fail-closed:
+// junk verdicts become 'unclear', scores clamp 0–100, reasons clamp to 300
+// chars; an entry with an out-of-range n is ignored. Returns applied count.
+function applyRelevanceVerdicts(items, parsed) {
+  const list = (parsed && Array.isArray(parsed.verdicts)) ? parsed.verdicts : [];
+  let applied = 0;
+  list.forEach(function(v) {
+    if (!v || typeof v !== 'object') return;
+    const idx = parseInt(v.n, 10) - 1;
+    if (!(idx >= 0 && idx < items.length)) return;
+    const p = items[idx];
+    p.relVerdict = evRelVerdict(v.v);
+    p.relScore = Math.max(0, Math.min(100, parseInt(v.s, 10) || 0));
+    p.relReason = String(v.r == null ? '' : v.r).trim().slice(0, 300);
+    applied++;
+  });
+  return applied;
+}
+
+function rankedQuestion() {
+  const el = document.getElementById('ranked-question');
+  const q = el ? (el.value || '').trim() : '';
+  return q || (typeof currentQuery !== 'undefined' ? String(currentQuery || '').trim() : '');
+}
+
+// ⚡ The quick screen: batches of 20 titles+abstracts against the question.
+async function quickRelevanceScreen() {
+  if (!hasValidKey()) { showToast('⚠️ Add your ' + providerLabel() + ' API key in Settings (⚙ top right) first.', '#f59e0b'); return; }
+  if (typeof papers === 'undefined' || !papers.length) { showToast('No pooled results yet — run your searches first (Workbench)', '#f59e0b'); return; }
+  if (agentRunning || screenRunning) { showToast('An analysis is already running — stop it first', '#f59e0b'); return; }
+  if (!aiDisclosureGateOk()) { showAiDisclosureModal(function(ok){ if (ok) quickRelevanceScreen(); }); return; }
+  const question = rankedQuestion();
+  if (!question) { showToast('Enter your review question first — verdicts are judged against it', '#f59e0b'); const el = document.getElementById('ranked-question'); if (el) el.focus(); return; }
+
+  let todo = papers.filter(function(p){ return !p.relVerdict; });
+  if (!todo.length) {
+    if (!confirm('Every record already has a relevance verdict. Re-screen all ' + papers.length + ' against the current question?')) return;
+    todo = papers.slice();
+  }
+  screenRunning = true; agentStop = false;
+  const BATCH = 20, total = todo.length, batches = Math.ceil(total / BATCH);
+  let done = 0, failed = 0;
+  const wrap = document.getElementById('agent-progress-wrap');
+  const statusLine = document.getElementById('agent-status-line');
+  const fill = document.getElementById('agent-progress-bar-fill');
+  const counters = document.getElementById('agent-counters');
+  const btn = document.getElementById('quick-screen-btn');
+  if (btn) btn.disabled = true;
+  if (wrap) wrap.style.display = 'block';
+  try {
+    for (let b = 0; b < batches; b++) {
+      if (agentStop) break;
+      const items = todo.slice(b * BATCH, (b + 1) * BATCH);
+      if (statusLine) statusLine.textContent = '⚡ Quick relevance screen — batch ' + (b + 1) + ' of ' + batches + ' (' + items.length + ' records)…';
+      try {
+        const applied = applyRelevanceVerdicts(items, await aiRelevanceBatch(question, items));
+        done += applied; failed += items.length - applied;
+      } catch (e) {
+        failed += items.length;
+        if (typeof logIssue === 'function') logIssue('search', 'Quick relevance screen batch failed: ' + (describeAiError ? describeAiError(e) : e.message));
+      }
+      if (fill) fill.style.width = Math.round(((b + 1) / batches) * 100) + '%';
+      if (counters) counters.innerHTML = '⚡ ' + done + ' screened &nbsp;·&nbsp; ' + (failed ? '✗ ' + failed + ' failed &nbsp;·&nbsp; ' : '') + Math.max(0, total - done - failed) + ' remaining';
+      renderRankedResults();   // shortlist grows batch by batch
+    }
+  } finally {
+    screenRunning = false;
+    if (btn) btn.disabled = false;
+    if (wrap && !agentRunning) wrap.style.display = 'none';
+    renderRankedResults();
+    showToast(agentStop ? '⚡ Screen stopped — ' + done + ' screened' : '⚡ Relevance screen done — ' + done + ' screened' + (failed ? ', ' + failed + ' failed' : ''), agentStop ? '#f59e0b' : '#22c55e');
+  }
+}
+
+// ── Sifting: tick-box selection + remove-from-pool ───────────────────────────
+function rankedSelectedPmids() {
+  const out = [];
+  document.querySelectorAll('#ranked-list .ranked-cb:checked').forEach(function(cb){ out.push(cb.getAttribute('data-pmid')); });
+  return out;
+}
+function evRankedCbChanged() {
+  const n = rankedSelectedPmids().length;
+  const el = document.getElementById('ranked-sel-count');
+  if (el) el.textContent = n ? n + ' selected' : '';
+  const rm = document.getElementById('ranked-remove-btn');
+  if (rm) rm.disabled = !n;
+}
+function rankedSelect(mode) {
+  document.querySelectorAll('#ranked-list .ranked-cb').forEach(function(cb) {
+    if (mode === 'none') cb.checked = false;
+    else if (mode === 'all') cb.checked = true;
+    else if (mode === 'off') cb.checked = cb.getAttribute('data-verdict') === 'off';
+  });
+  evRankedCbChanged();
+}
+// Remove the selected records from the SESSION pool (papers + workbench pool
+// slices + imported records, so a pool recompute can't resurrect them).
+// Projects are copies and are never touched. Dup-review entries pointing at a
+// removed record no-op safely (lookups are id-guarded).
+function rankedRemoveSelected() {
+  const ids = rankedSelectedPmids();
+  if (!ids.length) return;
+  if (!confirm('Remove ' + ids.length + ' record' + (ids.length !== 1 ? 's' : '') + ' from the session pool?\n\nThis affects this session only — projects are unaffected. For a full PRISMA screening record, prefer sending records to a project and excluding them there.')) return;
+  const gone = {}; ids.forEach(function(id){ gone[id] = 1; });
+  const keep = function(p){ return !p || !gone[p.pmid]; };
+  papers = papers.filter(keep);
+  if (typeof poolMerged !== 'undefined' && Array.isArray(poolMerged)) poolMerged = poolMerged.filter(keep);
+  if (typeof importedRecords !== 'undefined' && Array.isArray(importedRecords)) importedRecords = importedRecords.filter(keep);
+  if (typeof poolSlices !== 'undefined' && poolSlices) {
+    Object.keys(poolSlices).forEach(function(k) {
+      if (poolSlices[k] && Array.isArray(poolSlices[k].results)) poolSlices[k].results = poolSlices[k].results.filter(keep);
+    });
+  }
+  if (typeof recomputePool === 'function') { try { recomputePool(); } catch (e) {} }
+  if (papers.length) { renderResults(); } else {
+    const rc = document.getElementById('results-content'); if (rc) rc.style.display = 'none';
+    const er = document.getElementById('empty-results'); if (er) er.style.display = 'block';
+    const rtb = document.getElementById('results-tab-btn'); if (rtb) rtb.textContent = 'Results';
+    renderRankedResults();
+  }
+  showToast('🗑 Removed ' + ids.length + ' record' + (ids.length !== 1 ? 's' : '') + ' from the pool', '#3b82f6');
+}
+
+const RANKED_SECTIONS = [
+  { v: 'relevant', icon: '✓', label: 'Relevant', colour: 'var(--ev-ok-text)' },
+  { v: 'unclear',  icon: '?', label: 'Unclear — human review', colour: '#f59e0b' },
+  { v: 'off',      icon: '✗', label: 'Off-topic', colour: 'var(--ev-danger-text)' },
+];
 function renderRankedResults() {
   const list = document.getElementById('ranked-list');
   const empty = document.getElementById('ranked-empty');
   const tabBtn = document.getElementById('ranked-tab-btn');
+  const sift = document.getElementById('ranked-sift-bar');
   if (!list || !empty) return;
-  const analysed = (typeof papers !== 'undefined' && Array.isArray(papers))
-    ? papers.filter(function(p){ return p && p.agentAnalysed; }) : [];
-  if (tabBtn) tabBtn.textContent = '🤖 Ranked Results' + (analysed.length ? ' (' + analysed.length + ')' : '');
-  if (!analysed.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+  const screened = (typeof papers !== 'undefined' && Array.isArray(papers))
+    ? papers.filter(function(p){ return p && rankedVerdictOf(p); }) : [];
+  if (tabBtn) tabBtn.textContent = '🤖 Ranked Results' + (screened.length ? ' (' + screened.length + ')' : '');
+  const qEl = document.getElementById('ranked-question');
+  if (qEl && !qEl.value && typeof currentQuery !== 'undefined' && currentQuery) qEl.value = String(currentQuery);
+  if (!screened.length) {
+    empty.style.display = 'block'; list.innerHTML = '';
+    if (sift) sift.style.display = 'none';
+    return;
+  }
   empty.style.display = 'none';
-  const ranked = analysed.slice().sort(function(a, b) {
-    const dv = rankedVerdictRank(b) - rankedVerdictRank(a);
-    if (dv) return dv;
-    return (Number(b.agentScore) || 0) - (Number(a.agentScore) || 0);
+  if (sift) sift.style.display = 'flex';
+  const summary = document.getElementById('ranked-verdict-summary');
+  if (summary) summary.innerHTML = RANKED_SECTIONS.map(function(s) {
+    const n = screened.filter(function(p){ return rankedVerdictOf(p) === s.v; }).length;
+    return '<span style="color:' + s.colour + ';font-weight:700">' + s.icon + ' ' + n + '</span> <span style="color:var(--ev-text-dim)">' + s.label.split(' —')[0].toLowerCase() + '</span>';
+  }).join(' <span style="color:var(--ev-border)">·</span> ');
+  let html = '', rank = 0;
+  RANKED_SECTIONS.forEach(function(sec) {
+    const group = screened.filter(function(p){ return rankedVerdictOf(p) === sec.v; })
+      .sort(function(a, b){ return rankedScoreOf(b) - rankedScoreOf(a); });
+    if (!group.length) return;
+    html += '<div style="display:flex;align-items:center;gap:8px;margin:' + (html ? '16px' : '2px') + ' 0 4px">'
+      + '<span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:' + sec.colour + '">' + sec.icon + ' ' + sec.label + '</span>'
+      + '<span style="font-size:11px;color:var(--ev-text-dim)">' + group.length + '</span>'
+      + '<span style="flex:1;border-top:1px solid var(--ev-border)"></span></div>';
+    html += group.map(function(p) {
+      rank++;
+      const score = rankedScoreOf(p);
+      const scoreColour = score >= 75 ? 'var(--ev-ok-text)' : score >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
+      const reason = p.relReason || p.queryMatchReasoning || '';
+      const meta = [p.year && p.year !== 'N/A' ? p.year : '', p.studyType && p.studyType !== 'Other' ? p.studyType : '', p.journal || '']
+        .filter(Boolean).map(function(s){ return esc(String(s)); }).join(' · ');
+      return '<div style="display:flex;gap:11px;align-items:flex-start;padding:10px 13px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)' + (p.retracted ? ';border-color:#ef444488' : '') + '">'
+        + '<input type="checkbox" class="ranked-cb" data-pmid="' + esc(String(p.pmid)) + '" data-verdict="' + esc(sec.v) + '" ' + evAttr('change', 'evRankedCbChanged', []) + ' aria-label="Select record" style="margin-top:4px;accent-color:#3b82f6;cursor:pointer">'
+        + '<div style="min-width:30px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--ev-text-dim);font-family:\'IBM Plex Mono\',monospace">' + rank + '</div>'
+        + '<div style="font-size:12px;font-weight:700;color:' + scoreColour + ';font-family:\'IBM Plex Mono\',monospace" title="Relevance score">' + score + '</div></div>'
+        + '<div style="flex:1;min-width:0">'
+        + (p.retracted ? '<div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:0.05em">⚠️ RETRACTED</div>' : '')
+        + '<div style="font-size:13px;font-weight:600;color:var(--ev-text);line-height:1.4">' + esc(p.title || 'No title') + '</div>'
+        + (meta ? '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:2px">' + meta + '</div>' : '')
+        + (reason ? '<div style="font-size:11px;color:var(--ev-text-muted);margin-top:4px">' + esc(reason) + '</div>' : '')
+        + (p.agentAnalysed ? '<div style="font-size:10px;color:var(--ev-ai-text);margin-top:3px">🤖 deep-analysed · quality ' + (Number(p.agentScore) || 0) + '/100' + (p.agentKeyFinding ? ' — <i>' + esc(p.agentKeyFinding) + '</i>' : '') + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">'
+        + '<button class="btn btn-green" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'openAddToProjModal', [p.pmid, 'search']) + ' title="Send this paper to a project for screening">&#128193; Add to project</button>'
+        + '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'evRankedViewCard', [p.pmid]) + ' title="Open the full record card on the Results tab">&#128269; Full record</button>'
+        + '</div></div>';
+    }).join('');
   });
-  list.innerHTML = ranked.map(function(p, i) {
-    const score = Number(p.agentScore) || 0;
-    const scoreColour = score >= 75 ? 'var(--ev-ok-text)' : score >= 50 ? '#f59e0b' : 'var(--ev-danger-text)';
-    const vIcon = p.queryMatch === true ? '✓' : p.queryMatch === false ? '✗' : '?';
-    const vColour = p.queryMatch === true ? 'var(--ev-ok-text)' : p.queryMatch === false ? 'var(--ev-danger-text)' : 'var(--ev-text-dim)';
-    const vLabel = p.queryMatch === true ? 'Matches question' : p.queryMatch === false ? 'Off-topic' : 'Not assessed';
-    const meta = [p.year && p.year !== 'N/A' ? p.year : '', p.studyType && p.studyType !== 'Other' ? p.studyType : '', p.journal || '']
-      .filter(Boolean).map(function(s){ return esc(String(s)); }).join(' · ');
-    return '<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 14px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)' + (p.retracted ? ';border-color:#ef444488' : '') + '">'
-      + '<div style="min-width:34px;text-align:center"><div style="font-size:15px;font-weight:700;color:var(--ev-text-dim);font-family:\'IBM Plex Mono\',monospace">' + (i + 1) + '</div>'
-      + '<div style="font-size:12px;font-weight:700;color:' + scoreColour + ';font-family:\'IBM Plex Mono\',monospace" title="Agent quality score">' + score + '</div></div>'
-      + '<div style="flex:1;min-width:0">'
-      + (p.retracted ? '<div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:0.05em">⚠️ RETRACTED</div>' : '')
-      + '<div style="font-size:13px;font-weight:600;color:var(--ev-text);line-height:1.4">' + esc(p.title || 'No title') + '</div>'
-      + (meta ? '<div style="font-size:11px;color:var(--ev-text-dim);margin-top:2px">' + meta + '</div>' : '')
-      + '<div style="font-size:11px;color:' + vColour + ';margin-top:4px"><b>' + vIcon + ' ' + vLabel + '</b>'
-      + (p.queryMatchReasoning ? ' — ' + esc(p.queryMatchReasoning) : '') + '</div>'
-      + (p.agentKeyFinding ? '<div style="font-size:11px;color:var(--ev-ai-text);font-style:italic;margin-top:3px">' + esc(p.agentKeyFinding) + '</div>' : '')
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">'
-      + '<button class="btn btn-green" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'openAddToProjModal', [p.pmid, 'search']) + ' title="Send this paper to a project for screening">&#128193; Add to project</button>'
-      + '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px" ' + evAttr('click', 'evRankedViewCard', [p.pmid]) + ' title="Open the full record card on the Results tab">&#128269; Full record</button>'
-      + '</div></div>';
-  }).join('');
+  list.innerHTML = html;
+  evRankedCbChanged();
 }
 
 // Jump from a ranked row to its full card on the Results tab.
@@ -19673,6 +19904,11 @@ evOn('h8', function (event) { switchTab('history'); });   // switchTab('history'
 evOn('h9', function (event) { switchTab('uploader'); });   // switchTab('uploader')
 evOn('h10', function (event) { switchTab('projects'); });   // switchTab('projects')
 evOn('h181', function (event) { switchTab('ranked'); });   // switchTab('ranked') — tier-2 Ranked Results tab
+evOn('h182', function (event) { quickRelevanceScreen(); });   // ⚡ quick title+abstract relevance screen
+evOn('h183', function (event) { rankedSelect('off'); });      // sift: select all off-topic
+evOn('h184', function (event) { rankedSelect('all'); });      // sift: select all
+evOn('h185', function (event) { rankedSelect('none'); });     // sift: clear selection
+evOn('h186', function (event) { rankedRemoveSelected(); });   // sift: remove selected from pool
 evOn('h11', function (event) { setAiProvider(this.value); });   // setAiProvider(this.value)
 evOn('h12', function (event) { toggleSettings(); });   // toggleSettings()
 evOn('h13', function (event) { toggleIssuesPanel(); });   // toggleIssuesPanel()
@@ -19896,7 +20132,7 @@ var EV_CALLABLE_DYNAMIC = [
   'updateChecklistItem', 'updateProjClItem', 'updateRobDomainJudgement', 'updateProjClDomain',
   'updateGradeDomain', 'updateGradeUpgrade', 'updateGradeField'
 ];
-var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedViewCard","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
+var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedCbChanged","evRankedViewCard","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
 EV_CALLABLE_LITERALS.concat(EV_CALLABLE_DYNAMIC).forEach(function (name) {
   const f = (typeof window !== 'undefined') ? window[name] : undefined;
   if (typeof f === 'function') EV_CALLABLE[name] = f;
