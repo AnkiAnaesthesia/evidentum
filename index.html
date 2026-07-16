@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-viQ+K5we8rEZET1gstq5t3sSoTumA+2OZLo9qYvorqo='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-R09t73c4tcnfNse53LbIe+Ts6XAEw9wySPVrUJZdjWE='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -6999,6 +6999,11 @@ function sendStrategyToWorkbench() {
 var poolSlices = {};   // dbId -> { query, results[], count, time }
 var wbQueries = {};    // gid -> current query string (survives re-renders)
 var poolMerged = [];   // deduplicated union, ready to screen
+// Records removed from the session pool by the quick-scan cull — the PRISMA
+// "records excluded at title/abstract screening" tier. Snapshotted onto the
+// project's search event at "send to project" time (then reset), so the
+// project PRISMA can report the full identified → screened → excluded flow.
+var scanCullRemoved = 0;
 
 // "Add all" — when a database matched more than your result limit retrieved, pull
 // the rest into the pool (capped, so "all" can't mean tens of thousands and freeze
@@ -7404,6 +7409,7 @@ function resetResults() {
   poolSlices = {}; poolMerged = [];
   importedRecords = [];              // drop imported Embase/CENTRAL exports too — a true fresh start
   possibleDuplicates = [];           // these pointed at now-cleared records
+  scanCullRemoved = 0;               // cull tally belongs to the cleared session
   expandedCards.clear();
   excludedSources.clear();
   lastSearchProvenance = null;
@@ -8345,22 +8351,52 @@ function buildPrismaSvg(prov, screening) {
   y = idBottom + 40;
 
   P.push(stage('SCREENING', y - 12));
-  const screenedN = screening ? screening.screened : (prov.uniqueRecords || 0);
+  const fullFlow = !!(prov.fullFlow && screening);
+  const screenedN = fullFlow ? (prov.uniqueRecords || 0) : (screening ? screening.screened : (prov.uniqueRecords || 0));
   const scrBox = boxSvg(leftX, y, leftW, ['Records screened', 'n = ' + screenedN]);
   P.push(scrBox.s);
   P.push(vArrow(leftX + leftW / 2, idBottom, y));
-  const scrBottom = y + scrBox.h;
+  let scrBottom = y + scrBox.h;
   let rowBottom = scrBottom;
+
+  // FULL FLOW (project with recorded search events): the title/abstract
+  // screening tier — records excluded from the SESSION pool (the quick-scan
+  // cull + anything not brought forward) — then the project eligibility tier.
+  let eligTop = null;
+  if (fullFlow) {
+    const excludedTA = Math.max(0, (prov.uniqueRecords || 0) - (prov.broughtForward || 0));
+    if (excludedTA > 0) {
+      const taLines = ['Records excluded', 'n = ' + excludedTA];
+      if (prov.culled > 0) taLines.push('• AI-assisted relevance cull: ' + Math.min(prov.culled, excludedTA));
+      const notFwd = excludedTA - Math.min(prov.culled || 0, excludedTA);
+      if (notFwd > 0) taLines.push('• Not brought into the project: ' + notFwd);
+      const taBox = boxSvg(rightX, y, rightW, taLines, '#fee2e2');
+      P.push(taBox.s);
+      P.push(hArrow(leftX + leftW, rightX, y + 24));
+      rowBottom = Math.max(scrBottom, y + taBox.h);
+    }
+    y = rowBottom + 40;
+    P.push(stage('ELIGIBILITY', y - 12));
+    const elLines = ['Records assessed in project', 'n = ' + screening.total];
+    Object.keys(screening.bySource || {}).forEach(function(k){ elLines.push('• ' + k + ': ' + screening.bySource[k]); });
+    const elBox = boxSvg(leftX, y, leftW, elLines);
+    P.push(elBox.s);
+    P.push(vArrow(leftX + leftW / 2, scrBottom, y));
+    eligTop = y;
+    scrBottom = y + elBox.h;
+    rowBottom = scrBottom;
+  }
 
   // When project screening decisions are supplied, render the downstream stages:
   // records excluded (with reasons) and studies included — completing PRISMA 2020.
   if (screening) {
+    const exY = fullFlow ? eligTop : y;
     const exLines = ['Records excluded', 'n = ' + screening.excluded];
     Object.keys(screening.byReason).forEach(function(r){ exLines.push('• ' + r + ': ' + screening.byReason[r]); });
-    const exBox = boxSvg(rightX, y, rightW, exLines, '#fee2e2');
+    const exBox = boxSvg(rightX, exY, rightW, exLines, '#fee2e2');
     P.push(exBox.s);
-    P.push(hArrow(leftX + leftW, rightX, y + 24));
-    rowBottom = Math.max(scrBottom, y + exBox.h);
+    P.push(hArrow(leftX + leftW, rightX, exY + 24));
+    rowBottom = Math.max(scrBottom, exY + exBox.h);
     y = rowBottom + 40;
 
     P.push(stage('INCLUDED', y - 12));
@@ -8377,7 +8413,7 @@ function buildPrismaSvg(prov, screening) {
 
   P.push('<text x="'+leftX+'" y="'+y+'" font-size="10" fill="#475569">' + (screening ? 'Compiled: ' : 'Search date: ') + x2((prov.searchedAt || '').slice(0, 10) || '—') + (resolveDesign(prov.design) ? '   ·   Design restriction: ' + x2(resolveDesign(prov.design).label) : '') + '</text>');
   y += 16;
-  P.push('<text x="'+leftX+'" y="'+y+'" font-size="9" fill="#94a3b8">Generated by Evidentum — PRISMA 2020 flow.' + (screening ? ' Screening, exclusion reasons and inclusion counts from this project’s decisions.' : ' Identification &amp; de-duplication; screening / inclusion counts are recorded per project.') + '</text>');
+  P.push('<text x="'+leftX+'" y="'+y+'" font-size="9" fill="#94a3b8">Generated by Evidentum — PRISMA 2020 flow.' + (prov.fullFlow ? ' Identification &amp; screening from the recorded search events; eligibility &amp; inclusion from this project’s decisions.' : screening ? ' Screening, exclusion reasons and inclusion counts from this project’s decisions.' : ' Identification &amp; de-duplication; screening / inclusion counts are recorded per project.') + '</text>');
   const H = y + 18;
 
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">' +
@@ -8422,12 +8458,53 @@ function computeProjectScreening(projectId) {
   return s;
 }
 
+// Pure: aggregate a project's recorded search events into the PRISMA
+// identification + screening tiers. Every bulk send snapshots the session
+// provenance (per-DB identified counts, duplicates removed, unique records,
+// quick-scan culls, records brought in), so the project carries the FULL
+// 2000 → screened → culled → n-sent story, accumulated across update
+// searches. Returns null when no event carries identification counts
+// (legacy projects / upload-only projects) — callers fall back to the
+// records-in-project view.
+function aggregateProjectProv(events) {
+  const evs = (events || []).filter(function(ev){ return ev && (ev.totalIdentified || 0) > 0; });
+  if (!evs.length) return null;
+  const perSource = {};
+  let identified = 0, dupes = 0, unique = 0, culled = 0, brought = 0;
+  let latest = '';
+  evs.forEach(function(ev) {
+    identified += ev.totalIdentified || 0;
+    dupes += ev.duplicatesRemoved || 0;
+    unique += ev.uniqueRecords || 0;
+    culled += ev.culled || 0;
+    brought += ev.added || 0;
+    Object.keys(ev.perSource || {}).forEach(function(k) {
+      if (ev.perSource[k] > 0) perSource[k] = (perSource[k] || 0) + ev.perSource[k];
+    });
+    if ((ev.searchedAt || '') > latest) latest = ev.searchedAt || '';
+  });
+  return {
+    identLabel: 'Records identified from databases' + (evs.length > 1 ? ' (' + evs.length + ' searches incl. updates)' : ''),
+    perSource: perSource,
+    totalIdentified: identified,
+    duplicatesRemoved: dupes,
+    uniqueRecords: unique,
+    culled: culled,
+    broughtForward: brought,
+    fullFlow: true,
+    searchedAt: latest || new Date().toISOString(),
+    design: (evs[evs.length - 1].design || '')
+  };
+}
+
 function exportProjectPrisma() {
   if (!currentProjectId) return;
   const proj = projects.find(function(p){ return p.id === currentProjectId; });
   if (!(projectPapers[currentProjectId] || []).length) { showToast('No papers to chart', '#f59e0b'); return; }
   const screening = computeProjectScreening(currentProjectId);
-  const prov = {
+  // Full flow when the project's search events carry identification counts;
+  // otherwise the legacy records-in-project view.
+  const prov = aggregateProjectProv(proj && proj.searchEvents) || {
     identLabel: 'Records imported into project',
     perSource: screening.bySource,
     totalIdentified: screening.total,
@@ -13898,8 +13975,13 @@ function recordProjectSearchEvent(projectId, info) {
     limits: (typeof searchLimitDescriptions === 'function') ? searchLimitDescriptions() : [],
     totalIdentified: prov.totalIdentified || 0,
     duplicatesRemoved: prov.duplicatesRemoved || 0,
-    uniqueRecords: prov.uniqueRecords || 0
+    uniqueRecords: prov.uniqueRecords || 0,
+    // Quick-scan cull removals since the last snapshot — PRISMA's "records
+    // excluded at title/abstract screening". Reset after capture so a later
+    // update-search event reports only its own culls.
+    culled: (typeof scanCullRemoved !== 'undefined' ? scanCullRemoved : 0)
   });
+  if (typeof scanCullRemoved !== 'undefined') scanCullRemoved = 0;
   if (proj.searchEvents.length > 50) proj.searchEvents = proj.searchEvents.slice(-50);
   saveProjects();
 }
@@ -18558,6 +18640,7 @@ function rankedRemoveSelected() {
   if (!confirm('Remove ' + ids.length + ' record' + (ids.length !== 1 ? 's' : '') + ' from the session pool?\n\nThis affects this session only — projects are unaffected. For a full PRISMA screening record, prefer sending records to a project and excluding them there.')) return;
   const gone = {}; ids.forEach(function(id){ gone[id] = 1; });
   const keep = function(p){ return !p || !gone[p.pmid]; };
+  if (typeof scanCullRemoved !== 'undefined') scanCullRemoved += ids.length;   // PRISMA screening-exclusion tally
   papers = papers.filter(keep);
   if (typeof poolMerged !== 'undefined' && Array.isArray(poolMerged)) poolMerged = poolMerged.filter(keep);
   if (typeof importedRecords !== 'undefined' && Array.isArray(importedRecords)) importedRecords = importedRecords.filter(keep);
