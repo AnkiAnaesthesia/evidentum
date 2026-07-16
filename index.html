@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-ksEXhdFzy+P+IAfBsEs50oiqUKbuun8CwT0dOvueWVw='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-Ij9n6AkJfsA+EFsu5P4rbXosG8Iy3m+l1rCuS78/4cA='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com https://thingproxy.freeboard.io">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -5490,6 +5490,57 @@ function normalizeRole(r) {
   return 'other';
 }
 
+// ── ClinicalTrials.gov truncation expansion ──────────────────────────────────
+// Essie (the CT.gov query engine) supports NO truncation at all — verified live
+// 2026-07-16: 'confus*' and the bare stem 'confus' both match ZERO trials while
+// 'confusion' matches 1,503; Essie does no stemming, and its COVERAGE/EXPANSION
+// operators are word-level (COVERAGE[Contains]confus = 0; EXPANSION[Lossy] only
+// resolves known UMLS abbreviations like 'surg'). So a PubMed-style truncated
+// stem is mechanically expanded to its common English word-forms. Over-generated
+// non-words are harmless — an OR branch matching nothing changes nothing
+// (verified live: a 33-variant group returns exactly the union of its real
+// words) — while an unexpanded stem silently loses EVERY variant.
+var CTGOV_TRUNC_SUFFIXES = ['', 's', 'es', 'e', 'ed', 'ing', 'ings',
+  'ion', 'ions', 'ional', 'ation', 'ations', 'ment', 'ments', 'ance', 'ence',
+  'ancy', 'ency', 'ism', 'ist', 'ists', 'er', 'ers', 'or', 'ors', 'ery', 'eries',
+  'eon', 'eons', 'ity', 'ities', 'um', 'a', 'ae', 'us', 'y', 'ies',
+  'al', 'als', 'ally', 'ic', 'ics', 'ical', 'ically', 'ive', 'ively', 'ous', 'ously',
+  'ly', 'ant', 'ent', 'ants', 'ents',
+  'ise', 'ize', 'ised', 'ized', 'ising', 'izing', 'isation', 'ization', 'isations', 'izations'];
+
+// 'stem*' (or a phrase ending in one) → a parenthesised OR-group of literal
+// word-form variants. Returns '' when the truncation is inexpressible (internal
+// wildcard, or a stem too short to expand meaningfully).
+function ctgovTruncationGroup(raw) {
+  var m = String(raw || '').replace(/"/g, '').trim().match(/^([^*?]+)[*?]+$/);
+  if (!m) return '';                                   // internal wildcard — inexpressible
+  var words = m[1].trim().split(/\s+/);
+  var stem = words.pop();
+  if (stem.length < 3) return '';                      // 1–2 char stem → garbage expansion
+  var out = CTGOV_TRUNC_SUFFIXES.map(function(sfx) {
+    var w = words.concat([stem + sfx]).join(' ');
+    return /\s/.test(w) ? '"' + w + '"' : w;
+  });
+  return '(' + out.join(' OR ') + ')';
+}
+
+// Expand truncated tokens inside a plain keyword query (the role-less fallback
+// path) — applied at fetch time, so recorded protocol strings are unchanged.
+// Terms that can't be expanded are left as-is (a dud token inside an OR group
+// is syntactically safe; rewriting to '' would leave dangling operators).
+function ctgovExpandWildcards(q) {
+  if (!q) return q;
+  // quoted phrase ending in a truncated word: "cognitive impair*"
+  q = q.replace(/"([^"]*[^\s"*?])[*?]+\s*"/g, function(m0, base) {
+    return ctgovTruncationGroup(base + '*') || m0;
+  });
+  // bare token with TRAILING truncation (internal wildcards left untouched)
+  q = q.replace(/([A-Za-z0-9][\w'\-]*)[*?]+(?![\w*?])/g, function(m0, stem) {
+    return ctgovTruncationGroup(stem + '*') || m0;
+  });
+  return q;
+}
+
 // Deterministic: build a ClinicalTrials.gov expert query from role-tagged blocks.
 // Returns null when no block carries a structured role (condition/intervention/
 // outcome/comparator) — the caller then falls back to the legacy keyword path, so
@@ -5502,15 +5553,24 @@ function ctgovExpertQuery(blocks, pico) {
     if (!term) return '';
     return /\s/.test(term) ? '"' + term.replace(/"/g, '') + '"' : term;   // quote phrases for exact match
   }
-  // v2 (pico.ctgovLogic >= 2): route through the SAME methodology core as every other
-  // engine (conceptGroupsWith), so the Intervention-OR-Comparator merge and the
-  // outcome-not-searched default can never disagree with the PubMed strategy. The
-  // old path AND-ed I and C as separate AREA groups (recall collapse on head-to-head
-  // questions) and always searched the Outcome block. Legacy path (no marker on the
-  // pico) is kept byte-identical so previously-frozen protocols still re-assemble
-  // exactly for the offline re-test.
+  // v3 term renderer: like v2, but a truncated stem is expanded to its literal
+  // word-form variants (Essie has no truncation — see CTGOV_TRUNC_SUFFIXES).
+  function ctgovTermStrV3(t) {
+    var raw = (t.term || '').trim();
+    if (!raw) return '';
+    if (!/[*?]/.test(raw)) return /\s/.test(raw) ? '"' + raw.replace(/"/g, '') + '"' : raw;
+    return ctgovTruncationGroup(raw);   // '' (dropped) when inexpressible
+  }
+  // v2+ (pico.ctgovLogic >= 2): route through the SAME methodology core as every
+  // other engine (conceptGroupsWith), so the Intervention-OR-Comparator merge and
+  // the outcome-not-searched default can never disagree with the PubMed strategy.
+  // The pre-v2 path AND-ed I and C as separate AREA groups (recall collapse on
+  // head-to-head questions) and always searched the Outcome block. v3 (>= 3) adds
+  // the truncation expansion. Each tier is kept byte-identical for picos frozen
+  // under it, so old protocols still re-assemble exactly for the offline re-test.
   if (pico && pico.ctgovLogic >= 2) {
-    var v2 = conceptGroupsWith(blocks, pico, ctgovTermStr).map(function(g){
+    var termStr = pico.ctgovLogic >= 3 ? ctgovTermStrV3 : ctgovTermStr;
+    var v2 = conceptGroupsWith(blocks, pico, termStr).map(function(g){
       return 'AREA[' + (CTGOV_AREA[g.role] || 'BasicSearch') + ']' + g.expr;
     });
     return v2.length ? v2.join(' AND ') : null;
@@ -5622,9 +5682,10 @@ function picoInputs() {
     searchOutcome: !!(document.getElementById('build-search-outcome') && document.getElementById('build-search-outcome').checked),
     // Generator-logic marker, frozen onto a protocol's pico: >=2 routes the
     // ClinicalTrials.gov expert query through conceptGroupsWith (I/C merge +
-    // outcome rule). Old frozen picos lack it, so their queries re-assemble
-    // byte-identically via the legacy path in ctgovExpertQuery.
-    ctgovLogic: 2
+    // outcome rule); >=3 also expands truncated stems to literal word-form
+    // variants (Essie supports no truncation). Old frozen picos keep their
+    // tier, so their queries re-assemble byte-identically.
+    ctgovLogic: 3
   };
 }
 
@@ -6893,7 +6954,7 @@ var WB_GROUPS = {
              members: ['semantic'],
              derive: function(q){ return deriveSecondaryQuery(q) || q; } },
   clinicaltrials: { title: '\ud83e\uddea ClinicalTrials.gov', syntax: 'expert search (AREA[\u2026])',
-             hint: 'A trial REGISTRY (not a bibliographic database) \u2014 finds ongoing, unpublished and completed trials. When you tag concept blocks with PICO roles in Build, this becomes a field-targeted EXPERT search (AREA[ConditionSearch]/AREA[InterventionSearch]/AREA[OutcomeSearch]) \u2014 far more precise than a keyword dump. Untagged strategies fall back to a plain keyword search. Study-design terms are not used (every record is already a trial) and it is skipped for review-type designs.',
+             hint: 'A trial REGISTRY (not a bibliographic database) \u2014 finds ongoing, unpublished and completed trials. When you tag concept blocks with PICO roles in Build, this becomes a field-targeted EXPERT search (AREA[ConditionSearch]/AREA[InterventionSearch]/AREA[OutcomeSearch]) \u2014 far more precise than a keyword dump. Untagged strategies fall back to a plain keyword search. Truncation (term*) has no CT.gov equivalent, so truncated stems are expanded to common word-form variants automatically \u2014 review the expansion in this bar and add any missed variant as its own term. Study-design terms are not used (every record is already a trial) and it is skipped for review-type designs.',
              members: ['clinicaltrials'],
              derive: function(q){ return deriveSecondaryQuery(q) || q; } },
   openalex: { title: '\ud83c\udf10 OpenAlex', syntax: 'boolean keywords',
@@ -10389,7 +10450,11 @@ function clinicalTrialsQuery(raw) {
     var stripped = q.slice(0, trailing.index).trim();
     if (stripped) q = stripped;                 // never strip down to nothing
   }
-  return quoteMultiwordTerms(q);
+  // 3. Expand truncated stems to literal word-form variants — Essie matches a
+  //    bare stem ('confus*' OR even 'confus') against ZERO trials, so without
+  //    this every truncated synonym silently contributes nothing. Fetch-time
+  //    only: recorded protocol strings are unchanged.
+  return ctgovExpandWildcards(quoteMultiwordTerms(q));
 }
 
 function fetchClinicalTrials(query, maxResults, dateFrom, dateTo, design) {
