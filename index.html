@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-gdQqaadEzJARE/8mRo4Llbin7BNcTXQbHn3x1t/e568='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-lbNYFtjOynJ8eGgadZl6dmLyNlab040XyBIo19gTGbY='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -3380,13 +3380,23 @@ function getRob2RiskLabel(p) {
     oj = ((bd['__overall_judgement__'] || '') + '').toLowerCase().trim();
     if (!oj || oj === 'unclear' || oj === 'ni') {
       const dj = bd['__domain_judgements__'] || {};
-      const vals = Object.values(dj).map(function(v){ return (v+'').toLowerCase().trim(); });
+      const vals = Object.values(dj).map(function(v){ return (v+'').toLowerCase().trim().replace(/\s+/g, '_'); });
       if (vals.length === 0) return null;
-      const highs = vals.filter(function(v){ return v === 'high'; }).length;
-      const somes  = vals.filter(function(v){ return v === 'some_concerns' || v === 'some concerns' || v === 'some'; }).length;
-      if (highs >= 1)      oj = 'high';
-      else if (somes >= 1) oj = 'some_concerns';
-      else                 oj = 'low';
+      // Rank against THIS tool's own scale, worst domain wins. Counting only
+      // 'high'/'some_concerns' and defaulting to 'low' meant every ROBINS-I V2
+      // judgement (moderate/serious/critical) fell through the filters and a
+      // seriously-biased study was badged "Low risk" — the same off-scale
+      // masquerade that uploaderBiasBadgeHtml was fixed for. Unclear domains are
+      // not judgements: if that is all there is, show no badge rather than
+      // inventing a reassuring one.
+      const scale = (CHECKLISTS[biasKey] && CHECKLISTS[biasKey].judgements) || ['low', 'some_concerns', 'high'];
+      let worst = -1;
+      vals.forEach(function(v) {
+        const i = scale.indexOf(v);
+        if (i > worst) worst = i;
+      });
+      if (worst < 0) return null;
+      oj = scale[worst];
     }
   } else if (biasKey === 'NOS') {
     // Count one star per defined NOS item answered 'yes' (not every 'yes' value
@@ -3413,10 +3423,26 @@ function getRob2RiskLabel(p) {
     return                               { label: toolName + ': ' + jadScore + '/5 High risk',     colour: 'var(--ev-danger-text)', bg: 'var(--ev-danger-bg)', border: '#ef444444' };
   }
 
-  if (oj === 'low')           return { label: toolName + ': Low risk',      colour: 'var(--ev-ok-text)', bg: 'var(--ev-ok-bg)', border: '#22c55e44' };
-  if (oj === 'some_concerns' || oj === 'some') return { label: toolName + ': Some concerns', colour: 'var(--ev-warn-text)', bg: 'var(--ev-warn-bg)', border: '#f59e0b44' };
-  if (oj === 'high')          return { label: toolName + ': High risk',     colour: 'var(--ev-danger-text)', bg: 'var(--ev-danger-bg)', border: '#ef444444' };
-  return null;
+  // One badge vocabulary for every domain tool. ROBINS-I V2 judges on
+  // low/moderate/serious/critical, so a map that knew only RoB 2's three levels
+  // returned no badge at all for a serious or critical study — the reviewer saw
+  // nothing where the worst risk should be loudest. Colours are unchanged for the
+  // RoB 2 levels, so existing badges render exactly as before.
+  const RISK_WORD = {
+    low: 'Low risk', some_concerns: 'Some concerns', some: 'Some concerns', high: 'High risk',
+    moderate: 'Moderate risk', serious: 'Serious risk', critical: 'Critical risk'
+  };
+  const RISK_TONE = {
+    ok:     { colour: 'var(--ev-ok-text)',     bg: 'var(--ev-ok-bg)',     border: '#22c55e44' },
+    warn:   { colour: 'var(--ev-warn-text)',   bg: 'var(--ev-warn-bg)',   border: '#f59e0b44' },
+    danger: { colour: 'var(--ev-danger-text)', bg: 'var(--ev-danger-bg)', border: '#ef444444' }
+  };
+  const word = RISK_WORD[oj];
+  if (!word) return null;
+  const tone = (oj === 'low') ? 'ok'
+    : (oj === 'some_concerns' || oj === 'some' || oj === 'moderate') ? 'warn'
+    : 'danger';
+  return Object.assign({ label: toolName + ': ' + word }, RISK_TONE[tone]);
 }
 
 // AMSTAR 2 overall confidence rating (Shea 2017, BMJ 358:j4008). Unlike the other
@@ -3703,9 +3729,7 @@ function buildChecklistBody(p, ctx) {
   ctx = ctx || {};
   const itemFn = ctx.itemFn || 'updateChecklistItem';
   function domCall(pmid, domainId) {
-    return ctx.domFn
-      ? evAttr('change', ctx.domFn, [pmid, clKey, domainId], ['val', 'self'])
-      : evAttr('change', 'updateRobDomainJudgement', [pmid, domainId], ['val', 'self']);
+    return evAttr('change', ctx.domFn || 'updateRobDomainJudgement', [pmid, clKey, domainId], ['val', 'self']);
   }
 
   // ── RoB2 / ROBINS2: domain-based layout ─────────
@@ -3819,12 +3843,30 @@ function updateChecklistItem(pmid, clKey, itemId, val, selectEl) {
   refreshChecklistBadge(pmid);
 }
 
-function updateRobDomainJudgement(pmid, domainId, val, selectEl) {
+// Tool-scoped, mirroring the project view's updateProjClDomain. The Results-tab
+// checklist selector offers every domain tool (RoB 2, ROBINS-I V2, QUADAS-2), so
+// hardcoding 'ROB2' here was wrong both ways: with no ROB2 bucket the edit was
+// dropped on the floor (early return, while the select still showed the new
+// value), and with one present a ROBINS-I/QUADAS-2 judgement was written INTO the
+// ROB2 bucket — where an off-scale value like 'serious' is invisible to the RoB 2
+// aggregation and the badge then reads a reassuring "Low risk".
+function updateRobDomainJudgement(pmid, clKey, domainId, val, selectEl) {
   const p = papers.find(function(x){ return String(x.pmid) === String(pmid); });
-  if (!p || !p.checklists || !p.checklists['ROB2']) return;
-  p.checklists['ROB2']['__domain_judgements__'] = p.checklists['ROB2']['__domain_judgements__'] || {};
-  p.checklists['ROB2']['__domain_judgements__'][domainId] = val;
-  selectEl.className = 'rob-judgement-select rob-' + val;
+  if (!p) return;
+  const cl = CHECKLISTS[clKey];
+  if (!cl || !cl.domains) return;                       // not a domain-based tool
+  if (!evChecklistDomainIds(clKey)[domainId]) return;   // not a domain of THIS tool
+  // Store only this tool's own judgement vocabulary — never an off-scale value.
+  const scale = (cl.judgements || ['low','some_concerns','high']).concat(['unclear']);
+  if (scale.indexOf(val) === -1) return;
+  p.checklists = p.checklists || {};
+  p.checklists[clKey] = p.checklists[clKey] || {};
+  p.checklists[clKey]['__domain_judgements__'] = p.checklists[clKey]['__domain_judgements__'] || {};
+  p.checklists[clKey]['__domain_judgements__'][domainId] = val;
+  // Let the risk badge resolve against the tool the reviewer is actually editing
+  // instead of whichever bias bucket happens to come first in BIAS_TOOLS order.
+  if (BIAS_TOOL_KEYS.indexOf(clKey) !== -1) p.biasToolUsed = clKey;
+  if (selectEl) selectEl.className = 'rob-judgement-select rob-' + val;
   refreshChecklistBadge(pmid);
 }
 
@@ -5846,6 +5888,15 @@ function europePmcDateClause(from, to) {
   if (from) s += ' AND FIRST_PDATE:[' + isoFmt(from, false) + ' TO 3000-12-31]';
   if (to)   s += ' AND FIRST_PDATE:[1000-01-01 TO ' + isoFmt(to, true) + ']';
   return s;
+}
+// OpenAlex filters on publication_year — an INTEGER year range, not dates. The
+// date inputs are <input type="date">, so a bound arrives as YYYY-MM-DD; passing
+// it through built 'publication_year:2020-01-01-2024-12-31', which OpenAlex
+// answers with HTTP 200 and count 0 — a silent empty result set that reads like
+// "no hits" and under-reports OpenAlex in the PRISMA identification count.
+// cleanYear reduces either bound to its four-digit year.
+function openAlexYearFilter(from, to) {
+  return 'publication_year:' + (cleanYear(from) || '1000') + '-' + (cleanYear(to) || '3000');
 }
 
 // Ticked study-type limiters (multi-select). Each value is its native filter
@@ -8011,10 +8062,18 @@ function importProtocolFile(input) {
     try {
       const data = JSON.parse(reader.result);
       if (!data || data.format !== PROTOCOL_FORMAT || !data.protocol) throw new Error('Not an Evidentum protocol file');
+      // A protocol file is designed to travel between machines, so treat it as
+      // hostile input: rebuild it to the frozen shape rather than storing it
+      // verbatim. Unnormalised, a crafted version string reached innerHTML in
+      // renderProtocolPanel, and a missing queries/results map threw mid-render
+      // AFTER saveProjects had already persisted it — leaving the Build tab's
+      // protocol panel broken on every subsequent load.
+      const sp = evNormaliseSearchProtocol(data.protocol);
+      if (!sp) throw new Error('Not an Evidentum protocol file');
       const proj = ensureProtocolProject();
-      proj.searchProtocol = data.protocol;
-      proj.protocolVersions = data.protocolVersions || [];
-      proj.runs = data.runs || [];
+      proj.searchProtocol = sp;
+      proj.protocolVersions = evNormaliseProtocolVersions(data.protocolVersions);
+      proj.runs = evNormaliseProtocolRuns(data.runs);
       if (data.project && data.project.name) proj.name = data.project.name;
       saveProjects();
       showToast('\ud83d\udce5 Imported protocol "' + proj.name + '"', '#22c55e');
@@ -8040,7 +8099,7 @@ function renderProtocolPanel() {
   let html = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">';
   html += '<span class="step-num">5</span>';
   html += '<div class="card-label" style="margin-bottom:0">Reproducible search protocol</div>';
-  if (sp) html += '<span style="font-size:11px;color:var(--ev-ai-text);border:1px solid #a78bfa44;border-radius:10px;padding:2px 8px">v' + sp.version + ' \u00b7 ' + new Date(sp.created).toLocaleDateString() + '</span>';
+  if (sp) html += '<span style="font-size:11px;color:var(--ev-ai-text);border:1px solid #a78bfa44;border-radius:10px;padding:2px 8px">v' + esc(sp.version) + ' \u00b7 ' + esc(new Date(sp.created).toLocaleDateString()) + '</span>';
   if (proj) html += '<span style="font-size:11px;color:var(--ev-text-dim)">' + esc(proj.name) + '</span>';
   html += '</div>';
 
@@ -8052,22 +8111,24 @@ function renderProtocolPanel() {
     html += '</div>';
   } else {
     html += '<div style="font-size:11px;color:var(--ev-text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Frozen query strings</div>';
+    const spq = (sp.queries && typeof sp.queries === 'object') ? sp.queries : {};
     ['pubmed','epmc','scopus','keyword','clinicaltrials','openalex'].forEach(function(gid){
-      if (!sp.queries[gid]) return;
+      if (!spq[gid]) return;
       const gm = (sp.groupProvenance && sp.groupProvenance[gid] && sp.groupProvenance[gid].method) || 'deterministic';
       const badge = (gm === 'ai' || gm === 'ai-edited')
         ? ' <span style="font-size:10px;color:var(--ev-ai-text);border:1px solid #a78bfa55;border-radius:4px;padding:0 5px">\u2728 ' + (gm === 'ai-edited' ? 'AI, edited' : 'AI') + '</span>'
         : (gm === 'manual' ? ' <span style="font-size:10px;color:var(--ev-warn-text);border:1px solid #fbbf2455;border-radius:4px;padding:0 5px">manual</span>' : '');
       html += '<div style="margin-bottom:8px"><div style="font-size:11px;color:var(--ev-link);margin-bottom:2px">' + PROTOCOL_GROUP_LABEL[gid] + badge + '</div>';
-      html += '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--ev-text-2);background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:7px 9px;word-break:break-word;line-height:1.55">' + esc(sp.queries[gid]) + '</div></div>';
+      html += '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--ev-text-2);background:var(--ev-surface);border:1px solid var(--ev-border-soft);border-radius:6px;padding:7px 9px;word-break:break-word;line-height:1.55">' + esc(spq[gid]) + '</div></div>';
     });
 
     const runs = proj.runs || [];
     html += '<div style="font-size:11px;color:var(--ev-text-dim);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px">Run snapshots (' + runs.length + ')</div>';
     if (!runs.length) html += '<div style="font-size:12px;color:var(--ev-text-dim)">No runs captured yet \u2014 the first snapshot becomes your reproducibility baseline.</div>';
     runs.slice().reverse().slice(0,5).forEach(function(r){
-      const tot = Object.keys(r.results).reduce(function(s,k){ const c=r.results[k].count; return s + (typeof c==='number'?c:0); }, 0);
-      html += '<div style="font-size:12px;color:var(--ev-text-2);margin-bottom:3px">\ud83d\udcf8 ' + new Date(r.ranAt).toLocaleString() + ' \u00b7 protocol v' + r.protocolVersion + ' \u00b7 ' + tot + ' records</div>';
+      const rres = (r.results && typeof r.results === 'object') ? r.results : {};
+      const tot = Object.keys(rres).reduce(function(s,k){ const c = rres[k] && rres[k].count; return s + (typeof c==='number'?c:0); }, 0);
+      html += '<div style="font-size:12px;color:var(--ev-text-2);margin-bottom:3px">\ud83d\udcf8 ' + esc(new Date(r.ranAt).toLocaleString()) + ' \u00b7 protocol v' + esc(r.protocolVersion) + ' \u00b7 ' + tot + ' records</div>';
     });
 
     html += '<div id="protocol-status" style="margin:12px 0 6px;font-size:12px;color:var(--ev-text-muted);min-height:6px"></div>';
@@ -9767,13 +9828,13 @@ function fetchOpenAlex(query, maxResults, dateFrom, dateTo, design) {
     // references — both inappropriate for a reproducible SR search.
     const filterParts = concepts.map(function(c){ return 'title_and_abstract.search:' + encodeURIComponent(c); });
     if (typeFilter) filterParts.push(typeFilter);
-    if (dateFrom || dateTo) filterParts.push('publication_year:' + (dateFrom || '1000') + '-' + (dateTo || '3000'));
+    if (dateFrom || dateTo) filterParts.push(openAlexYearFilter(dateFrom, dateTo));
     queryPart = '&filter=' + filterParts.join(',');   // commas AND the conditions together
   } else {
     queryPart = '&search=' + encodeURIComponent(openAlexSearchTerms(query));
     const f = [];
     if (typeFilter) f.push(typeFilter);
-    if (dateFrom || dateTo) f.push('publication_year:' + (dateFrom || '1000') + '-' + (dateTo || '3000'));
+    if (dateFrom || dateTo) f.push(openAlexYearFilter(dateFrom, dateTo));
     if (f.length) queryPart += '&filter=' + f.join(',');
   }
 
@@ -11393,9 +11454,14 @@ function fetchClinicalTrials(query, maxResults, dateFrom, dateTo, design) {
   });
 
   // Build date filter in filter.advanced (separate param — no duplicate query.term)
+  // CT.gov RANGE wants a full YYYY-MM-DD bound. The date inputs are <input
+  // type="date">, so dateFrom/dateTo already arrive as YYYY-MM-DD — appending
+  // '-01-01' produced '2020-01-01-01-01' and the API rejected the whole search
+  // with HTTP 400 "Unknown date format". isoFmt passes a full date through and
+  // pads a legacy year-only bound to Jan 1 / Dec 31.
   const dateFilters = [];
-  if (dateFrom) dateFilters.push('AREA[StartDate]RANGE[' + dateFrom + '-01-01,MAX]');
-  if (dateTo)   dateFilters.push('AREA[StartDate]RANGE[MIN,' + dateTo + '-12-31]');
+  if (dateFrom) dateFilters.push('AREA[StartDate]RANGE[' + isoFmt(dateFrom, false) + ',MAX]');
+  if (dateTo)   dateFilters.push('AREA[StartDate]RANGE[MIN,' + isoFmt(dateTo, true) + ']');
   if (dateFilters.length > 0) params.set('filter.advanced', dateFilters.join(' AND '));
 
   const url = 'https://clinicaltrials.gov/api/v2/studies?' + params.toString();
@@ -13216,6 +13282,54 @@ function evNormalisePressReview(pr) {
     guideline: evClampStr(pr.guideline, 500)
   };
 }
+// The frozen search protocol (04d) and its run snapshots. These arrive from two
+// untrusted paths — a full backup restore and the portable protocol JSON file,
+// which is explicitly meant to be shared between machines — and evDeepClean only
+// bounds shape, not content. renderProtocolPanel interpolates version numbers
+// into HTML and indexes queries/results without guards, so rebuild both to the
+// exact shape freezeProtocolFromBuild and snapshotProtocolRun write: versions are
+// NUMBERS (never markup), timestamps ISO, and queries/results always objects so a
+// missing key can't throw mid-render and leave the panel permanently broken.
+var PROTOCOL_GROUP_IDS = ['pubmed', 'epmc', 'scopus', 'keyword', 'clinicaltrials', 'openalex'];
+function evNormaliseSearchProtocol(sp) {
+  if (!sp || typeof sp !== 'object' || Array.isArray(sp)) return null;
+  const isGroup = function(k) { return PROTOCOL_GROUP_IDS.indexOf(k) !== -1; };
+  return {
+    id: evClampStr(sp.id, 200),
+    version: evNumOr(sp.version, 0, 1e6, 1, true),
+    created: evIsoTimestamp(sp.created) || new Date().toISOString(),
+    pico: evDeepClean(sp.pico, 0) || {},
+    blocks: Array.isArray(sp.blocks) ? (evDeepClean(sp.blocks, 0) || []) : [],
+    queries: evCleanMap(sp.queries, function(v) { return evClampStr(v, EV_LIMITS.maxFieldChars); }, isGroup, 20),
+    groupProvenance: evCleanMap(sp.groupProvenance, function(v) {
+      return {
+        method: evEnumOr(v && v.method, ['deterministic', 'manual', 'ai', 'ai-edited'], 'deterministic'),
+        at: evIsoTimestamp(v && v.at),
+        notes: evClampStr(v && v.notes, 2000)
+      };
+    }, isGroup, 20),
+    provenance: evDeepClean(sp.provenance, 0) || {}
+  };
+}
+function evNormaliseProtocolRun(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const res = evDeepClean(r.results, 0);
+  return {
+    id: evClampStr(r.id, 200),
+    protocolId: evClampStr(r.protocolId, 200),
+    protocolVersion: evNumOr(r.protocolVersion, 0, 1e6, 0, true),
+    ranAt: evIsoTimestamp(r.ranAt) || '',
+    results: (res && typeof res === 'object' && !Array.isArray(res)) ? res : {}
+  };
+}
+function evNormaliseProtocolRuns(runs) {
+  if (!Array.isArray(runs)) return [];
+  return runs.slice(-200).map(evNormaliseProtocolRun).filter(Boolean);
+}
+function evNormaliseProtocolVersions(vs) {
+  if (!Array.isArray(vs)) return [];
+  return vs.slice(-50).map(evNormaliseSearchProtocol).filter(Boolean);
+}
 function evNormaliseProject(pr) {
   if (!pr || typeof pr !== 'object') return null;
   const cleaned = evDeepClean(pr, 0) || {};
@@ -13240,6 +13354,12 @@ function evNormaliseProject(pr) {
     const npr = evNormalisePressReview(out.pressReview);
     if (npr) out.pressReview = npr; else delete out.pressReview;
   }
+  if ('searchProtocol' in out) {
+    const nsp = evNormaliseSearchProtocol(out.searchProtocol);
+    if (nsp) out.searchProtocol = nsp; else delete out.searchProtocol;
+  }
+  if ('protocolVersions' in out) out.protocolVersions = evNormaliseProtocolVersions(out.protocolVersions);
+  if ('runs' in out) out.runs = evNormaliseProtocolRuns(out.runs);
   return out;
 }
 // Assessment records enter IndexedDB from two import paths (full backup restore
@@ -20524,13 +20644,18 @@ var EVVAL_TOOLS = {
 function evValNormaliseJudgement(s) {
   const v = String(s == null ? '' : s).trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (!v) return '';
-  const map = {
+  // Null-prototype: a plain object literal inherits from Object.prototype, so a
+  // reference cell reading "constructor" or "__proto__" resolved through the
+  // prototype chain and passed the truthiness gate below. That let a non-judgement
+  // be stored as a domain value, inflating the kept-row count and polluting the
+  // kappa marginals with a category no reviewer ever chose.
+  const map = Object.assign(Object.create(null), {
     low: 'low', low_risk: 'low', low_risk_of_bias: 'low',
     some_concerns: 'some_concerns', some_concern: 'some_concerns', some: 'some_concerns', concerns: 'some_concerns',
     high: 'high', high_risk: 'high', high_risk_of_bias: 'high',
     moderate: 'moderate', serious: 'serious', critical: 'critical',
     unclear: 'unclear', no_information: 'unclear', ni: 'unclear'
-  };
+  });
   return map[v] || '';
 }
 
@@ -20584,7 +20709,8 @@ function evValWeightedKappa(pairs, scale) {
 // no-auto-escalation convention as the in-app RoB 2 suggestion).
 function evValAiJudgements(p, toolKey) {
   const tool = EVVAL_TOOLS[toolKey];
-  const dj = p && p.checklists && p.checklists[toolKey] && p.checklists[toolKey]['__domain_judgements__'];
+  const cl = p && p.checklists && p.checklists[toolKey];
+  const dj = cl && cl['__domain_judgements__'];
   if (!tool || !dj) return null;
   let out = {}, any = false;
   tool.domains.forEach(function(d) {
@@ -20592,7 +20718,17 @@ function evValAiJudgements(p, toolKey) {
     if (v) { out[d.id] = v; any = true; }
   });
   if (!any) return null;
-  let ov = evValNormaliseJudgement(dj.overall);
+  // The overall judgement lives in __overall_judgement__: that is where
+  // applyAgentResults records the model's own overall call, and where a
+  // reviewer's manual override lands (setProjClOverall). Reading only
+  // dj.overall missed both — applyAgentResults deliberately keeps 'overall'
+  // OUT of the domain map — so the harness silently scored its headline
+  // Overall row against a worst-domain value nobody had actually stated.
+  // Absent or 'unclear' still derives, matching getRob2RiskLabel so the
+  // harness, the card badge and the RoB figure agree on one number.
+  // dj.overall stays as a fallback for legacy stored appraisals.
+  let ov = evValNormaliseJudgement(cl['__overall_judgement__']) || evValNormaliseJudgement(dj.overall);
+  if (ov === 'unclear') ov = '';
   if (!ov) {
     let worst = -1;
     tool.domains.forEach(function(d) {
@@ -21260,7 +21396,7 @@ var EV_CALLABLE_DYNAMIC = [
   'updateChecklistItem', 'updateProjClItem', 'updateRobDomainJudgement', 'updateProjClDomain',
   'updateGradeDomain', 'updateGradeUpgrade', 'updateGradeField'
 ];
-var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedCbChanged","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","savePressSignoff","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateRobDomainJudgement","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
+var EV_CALLABLE_LITERALS = /*@@EV_CALLABLE_NAMES@@*/["acceptSuggestion","addAllForDb","addAllProjScannedRefs","addBuildTerm","addProjScannedRef","addToExistingProject","analyseProjScannedRef","analyseRefPaper","analyseSinglePaper","applyAllBuildSuggestions","applyBuildSuggestion","applyMeshSuggestion","changeChecklist","checkAlertForNew","drawerRemoveCriterion","evClickSuppFile","evEnterAddBuildTerm","evEnterRunWbGroup","evOpenExternal","evRankedCbChanged","evSetCritKeywords","evSetCritKeywordsSync","evSetCritLabelPrev","evSetCritLabelSync","evSetCritType","evSetCritTypeOnly","evSetWbQuery","evSuppDrop","evSuppFile","exportUploaderCSV","fillBlockSynonymsFromMesh","findProjPaperPdf","homeRemoveCriterion","insertSetRef","loadCitedBy","loadRelated","openAddToProjModal","openProjDetail","prefillWb","projRefsToggle","reRunAgentWithSupp","removeBuildBlock","removeBuildTerm","removeCriterion","removeGradeOutcome","removePaperFromProject","removeProjExtractionField","removePubmedSet","removeSuppFile","renameBuildBlock","rerunSearch","resolveDupPair","retryRefResolve","runProjPaperAgent","runWbGroup","savePressSignoff","scanProjPaperRefs","setActiveReviewer","setBuildBlockRole","setProjChecklist","setProjClOverall","setProjPaperDecision","setProjPaperExclusionReason","setProjPaperReason","suggestSynonyms","toggleAlert","toggleBuildBlockSearch","toggleChecklist","toggleExpand","toggleProjPaperDetail","toggleSourceFilter","updateGradeField","updateNotes","updateProjExtraction","updateProjPaperNotes","updateProtocolField","updateUploaderDomainJudgement","updateUploaderItem"];   // build.js replaces [] with the scanned evAttr targets
 EV_CALLABLE_LITERALS.concat(EV_CALLABLE_DYNAMIC).forEach(function (name) {
   const f = (typeof window !== 'undefined') ? window[name] : undefined;
   if (typeof f === 'function') EV_CALLABLE[name] = f;
