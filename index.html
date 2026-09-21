@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-lbNYFtjOynJ8eGgadZl6dmLyNlab040XyBIo19gTGbY='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-F/xJ+vGxzb59lbVGv1fo4diVGkOxyjOSLbVyIkXS1UE='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -982,6 +982,10 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div class="settings-section-title">&#128300; NCBI / PubMed API Key <span style="font-size:10px;background:var(--ev-surface-2);border:1px solid var(--ev-border);padding:1px 7px;border-radius:10px;color:var(--ev-text-dim);font-weight:400;text-transform:none;letter-spacing:0">Optional</span></div>
       <input type="password" id="ncbi-api-key" aria-label="NCBI API key" placeholder="NCBI API key (free)" autocomplete="off"
         style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;margin-bottom:6px" data-evinput="h30" />
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <button id="ncbi-key-test-btn" data-evclick="h192" title="Ask NCBI whether this key is accepted and what rate limit it grants" style="font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-surface);color:var(--ev-link-2);cursor:pointer;white-space:nowrap">Test key</button>
+        <span id="ncbi-key-status" aria-live="polite" style="font-size:11px;color:var(--ev-text-dim)"></span>
+      </div>
       <div style="font-size:11px;color:var(--ev-text-dim)">Raises PubMed's rate limit from 3 to 10 requests/sec — recommended for large searches (e.g. 500/DB). Free from <a href="https://www.ncbi.nlm.nih.gov/account/" target="_blank" rel="noopener" style="color:var(--ev-text-dim)">your NCBI account → Settings → API Key Management</a>. Searches still work without it, just slower.</div>
     </div>
 
@@ -5144,6 +5148,10 @@ function fetchRetry(url, init, opts) {
   const base = opts.baseDelay || 600;
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   const isNcbi = typeof url === 'string' && url.indexOf('eutils.ncbi.nlm.nih.gov') !== -1;
+  // An eutils retry must re-enter the rate gate (ncbiGate), otherwise a retry
+  // fired on its own timer collides with the next gated request and the pair
+  // re-trips NCBI's per-second window.
+  function regate() { return (isNcbi && typeof ncbiGate === 'function') ? ncbiGate() : Promise.resolve(); }
   function attempt(n) {
     return fetch(url, init).then(function (r) {
       // Feed NCBI throttling back into the adaptive rate gate so the WHOLE eutils
@@ -5152,13 +5160,20 @@ function fetchRetry(url, init, opts) {
       if ((r.status === 429 || r.status >= 500) && n < max) {
         const ra = parseInt(r.headers && r.headers.get && r.headers.get('retry-after'), 10);
         const delay = (ra > 0 ? ra * 1000 : base * Math.pow(2, n)) + Math.floor(Math.random() * 250);
-        return wait(delay).then(function () { return attempt(n + 1); });
+        return wait(delay).then(regate).then(function () { return attempt(n + 1); });
       }
       if (isNcbi && r.ok && typeof ncbiNoteOk === 'function') ncbiNoteOk();
       return r;
     }).catch(function (err) {
+      // NCBI sends its 429 (throttled) and 400 (invalid api_key) responses WITHOUT
+      // an Access-Control-Allow-Origin header (verified live 2026-09-21), so the
+      // browser never exposes the status — every one of them surfaces here as a
+      // bare TypeError ("Failed to fetch" / "Load failed"). For eutils that is the
+      // ONLY way a throttle can ever be observed, so treat it as one: widen the
+      // gate + cool down, exactly as a visible 429 would.
+      if (isNcbi && err instanceof TypeError && typeof ncbiNote429 === 'function') ncbiNote429();
       if (n < max && err instanceof TypeError) {   // network error — retry
-        return wait(base * Math.pow(2, n) + Math.floor(Math.random() * 250)).then(function () { return attempt(n + 1); });
+        return wait(base * Math.pow(2, n) + Math.floor(Math.random() * 250)).then(regate).then(function () { return attempt(n + 1); });
       }
       throw err;
     });
@@ -5174,6 +5189,7 @@ function humanFetchError(e) {
   // The browser's generic network-failure strings ("Failed to fetch" in Chrome,
   // "Load failed" in Safari) tell the reviewer nothing — name the actual problem.
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'network unreachable — check your connection and retry';
+  if (/^PubMed /.test(m)) return m;         // ncbiOpaqueFailureText() — already actionable (checked before the HTTP-code rules it mentions)
   const mm = m.match(/HTTP (50[0234])/);
   if (mm) return 'server overloaded or down (HTTP ' + mm[1] + ') — usually transient; retry in a minute';
   if (/HTTP 429/.test(m)) return 'rate limited (HTTP 429) — wait a minute and retry';
@@ -5220,10 +5236,19 @@ function ncbiNote429() {
   _ncbiCooldownUntil = Date.now() + (ncbiApiKey ? 1200 : 3500);            // let the per-IP window reset
   if (!_ncbiThrottleLogged && typeof logIssue === 'function') {
     _ncbiThrottleLogged = true;
-    logIssue('search', 'PubMed is rate-limiting this network (HTTP 429) — Evidentum has automatically slowed its requests',
-      ncbiApiKey ? 'Retrieval will be slower than usual; re-run if a source came back partial.'
-                 : 'Retrieval will be slower. A free NCBI API key (⚙ Settings → NCBI) raises the limit 3×, or try again off a shared / VPN network.');
+    logIssue('search', 'PubMed rejected a request — Evidentum has automatically slowed its NCBI requests',
+      ncbiApiKey ? 'NCBI hides the reason from browsers: either this network is being throttled (HTTP 429) or the NCBI API key is invalid (HTTP 400). Use "Test key" in ⚙ Settings → NCBI to tell them apart; re-run if a source came back partial.'
+                 : 'This network is being throttled (HTTP 429). Retrieval will be slower. A free NCBI API key (⚙ Settings → NCBI) raises the limit 3×, or try again off a shared / VPN network.');
   }
+}
+// The one honest message for an eutils request the browser could not complete.
+// NCBI strips the CORS header from 429 AND 400 responses, so a keyed failure is
+// ambiguous (throttle vs rejected key) and the text must say so; an unkeyed
+// failure is a throttle (nothing else returns a header-less error on a GET).
+function ncbiOpaqueFailureText() {
+  return ncbiApiKey
+    ? 'PubMed rejected the request — NCBI hides the status from browsers, so this is either throttling (HTTP 429) or an invalid NCBI API key (HTTP 400). Use "Test key" in ⚙ Settings → NCBI, or remove the key to test.'
+    : 'PubMed rate-limited this network (HTTP 429, hidden from the browser by NCBI). Evidentum has slowed its requests — wait ~30 s and retry, or add a free NCBI API key in ⚙ Settings → NCBI to raise the limit to 10/sec.';
 }
 function ncbiNoteOk() {
   if (_ncbiGap > ncbiBaseGap()) _ncbiGap = Math.max(ncbiBaseGap(), Math.round(_ncbiGap * 0.8));
@@ -5299,6 +5324,9 @@ function fetchWithFallbackRaw(url, allowProxy) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.text().then(function (t) { return wrapText(t); });
   }).catch(function (directErr) {
+    // An eutils TypeError is a hidden 429/400 (see fetchRetry) — never report it
+    // as "network unreachable"; say what it is and what to do.
+    if (ncbiReq && directErr instanceof TypeError) throw new Error(ncbiOpaqueFailureText());
     // Only the explicitly opted-in engines (Semantic Scholar) may fall back to
     // a public proxy. Everything else fails directly rather than routing a
     // query through a third party.
@@ -6926,9 +6954,10 @@ async function checkSeedPapers() {
 // Turn that dead-end into an actionable message. Real syntax/parse errors pass through.
 function ncbiFriendlyError(e) {
   const m = (e && e.message) || 'request failed';
+  // fetchWithFallback already converts the hidden 429/400 into ncbiOpaqueFailureText();
+  // anything that still looks like a bare transport failure gets the same text.
   if (/load failed|failed to fetch|networkerror|http (429|50\d)/i.test(m)) {
-    return (typeof ncbiApiKey !== 'undefined' && ncbiApiKey)
-      ? 'PubMed didn’t respond (rate-limited or briefly unreachable) — wait a few seconds and retry.'
+    return (typeof ncbiOpaqueFailureText === 'function') ? ncbiOpaqueFailureText()
       : 'PubMed rate-limited the request. Add a free NCBI API key in ⚙ Settings → NCBI to raise the limit to 10/sec, or wait ~30 s and retry.';
   }
   return m;
@@ -11151,6 +11180,54 @@ function loadNcbiKey() {
   try { ncbiApiKey = credRead('pla_ncbi_apikey'); } catch(e) {}
   const el = document.getElementById('ncbi-api-key');
   if (el && ncbiApiKey) el.value = ncbiApiKey;
+}
+// ── "Test key" ───────────────────────────────────────────────────────────────
+// NCBI hides 400 (invalid key) and 429 (throttled) from browsers (no CORS header
+// on either), so a bad key is indistinguishable from throttling during a search.
+// It IS distinguishable here: NCBI exposes X-RateLimit-Limit on a 200, so a keyed
+// probe that answers 10 proves the key is active, and a keyed probe that fails
+// while an unkeyed one succeeds proves NCBI rejected the key.
+// ncbiKeyVerdict is pure (testable); testNcbiKey does the two probes.
+function ncbiKeyVerdict(r) {
+  r = r || {};
+  if (!r.keyed) {
+    return r.ok ? { ok: true,  text: 'No key entered — PubMed reachable at the default 3 requests/sec.' }
+                : { ok: false, text: 'No key entered, and PubMed is not answering this network right now (throttled or unreachable) — wait ~30 s and retry.' };
+  }
+  if (r.ok) {
+    if (r.limit === 10) return { ok: true,  text: 'Key active — NCBI confirms 10 requests/sec.' };
+    if (r.limit === 3)  return { ok: false, text: 'NCBI answered but ignored the key (limit still 3/sec) — check it is the API key from your NCBI account, not a different NCBI/NLM credential.' };
+    return { ok: true, text: 'Key accepted (NCBI did not report a rate limit).' };
+  }
+  if (r.unkeyedOk) return { ok: false, text: 'NCBI rejected this API key (HTTP 400, hidden from the browser) — PubMed works without it. Regenerate the key at your NCBI account → Settings → API Key Management, or clear the field.' };
+  return { ok: false, text: 'PubMed is not answering this network right now (throttled or unreachable) — the key could not be checked; wait ~30 s and retry.' };
+}
+async function testNcbiKey() {
+  saveNcbiKey();
+  const out = document.getElementById('ncbi-key-status');
+  const btn = document.getElementById('ncbi-key-test-btn');
+  if (out) { out.textContent = 'checking…'; out.style.color = 'var(--ev-text-dim)'; }
+  if (btn) btn.disabled = true;
+  const probe = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmax=0&retmode=json&term=evidentum';
+  // Bare fetch, not fetchRetry: a rejected key must fail ONCE, not spend 25 s retrying.
+  async function once(url) {
+    try {
+      const r = await fetch(url);
+      const lim = parseInt(r.headers && r.headers.get && r.headers.get('x-ratelimit-limit'), 10);
+      return { ok: !!r.ok, limit: isNaN(lim) ? null : lim };
+    } catch (e) { return { ok: false, limit: null }; }
+  }
+  const keyed = !!ncbiApiKey;
+  const res = await once(ncbiAugmentUrl(probe));
+  let unkeyedOk = null;
+  if (keyed && !res.ok) {
+    const saved = ncbiApiKey; ncbiApiKey = '';
+    try { unkeyedOk = (await once(ncbiAugmentUrl(probe))).ok; } finally { ncbiApiKey = saved; }
+  }
+  const v = ncbiKeyVerdict({ keyed: keyed, ok: res.ok, limit: res.limit, unkeyedOk: unkeyedOk });
+  if (out) { out.textContent = (v.ok ? '✓ ' : '✕ ') + v.text; out.style.color = v.ok ? 'var(--ev-ok-text)' : 'var(--ev-warn-text)'; }
+  if (btn) btn.disabled = false;
+  return v;
 }
 
 // Semantic Scholar API key (x-api-key header) — optional; moves calls off the shared
@@ -21347,6 +21424,7 @@ evOn('h190', function (event) { runPressReview(); });      // Build tab — PRES
 // (fires on blur, not per keystroke) so the review panel never shows a verdict
 // computed from an older question.
 evOn('h191', function (event) { assembleBuildQuery(); });
+evOn('h192', function (event) { testNcbiKey(); });         // Settings — NCBI "Test key" probe
 
 // ── Handlers that closed over runtime data (hand-written) ─────────────────────
 //
