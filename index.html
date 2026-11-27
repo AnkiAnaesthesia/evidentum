@@ -10,7 +10,7 @@
      connect-src is an allowlist of the scholarly-database + AI-provider APIs the app
      calls — an injected script cannot beacon a stolen key to an arbitrary host. Inline
      STYLES stay allowed (thousands are generated at runtime; not a script vector). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-WCYu9JqNR3jA5LY+34i+SXqw4ELxkbJXsrecG2AOQ94='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'sha256-VUURLyC2WvkGJbNw3DY6/M76BN8UgbT46oOkTbLXnfQ=' 'sha256-E/BspeE1shni030m+g+35Knjv+pk83FaqShP+dNyNaw='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.ncbi.nlm.nih.gov https://europepmc.org https://www.ebi.ac.uk https://api.crossref.org https://api.openalex.org https://openalex.org https://api.semanticscholar.org https://api.elsevier.com https://clinicaltrials.gov https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.unpaywall.org https://api.openaccessbutton.org https://libkey.io https://api.libkey.io https://doi.org https://retractionwatch.com https://api.allorigins.win https://api.codetabs.com">
 <title>Evidentum — Systematic Review Workbench</title>
 <meta name="theme-color" content="#0a0f1c">
 <!-- Theme init — set data-theme on <html> BEFORE first paint to avoid a flash.
@@ -899,13 +899,17 @@ button:not(:disabled):active { filter: brightness(0.95); }
       <div id="anthropic-key-hint" style="font-size:11px;margin-bottom:6px;min-height:14px"></div>
       <select id="anthropic-model-select" aria-label="Anthropic model" data-evchange="h22"
         style="width:100%;box-sizing:border-box;padding:6px 10px;font-size:11px;color:var(--ev-text-body);background:var(--ev-surface);border:1px solid var(--ev-border-strong);border-radius:6px;margin-bottom:4px" title="Anthropic model">
-        <option value="claude-opus-5">Claude Opus 5 — flagship (default)</option>
-        <option value="claude-fable-5-1">Claude Fable 5.1 — most capable frontier model</option>
-        <option value="claude-fable-5">Claude Fable 5 — previous frontier model</option>
-        <option value="claude-opus-4-8">Claude Opus 4.8 — previous flagship</option>
-        <option value="claude-sonnet-5">Claude Sonnet 5 — near-Opus capability, lower cost</option>
-        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — faster, cheaper</option>
-        <option value="claude-haiku-4-5">Claude Haiku 4.5 — fastest, cheapest</option>
+        <option value="claude-opus-5-5">Claude Opus 5.5 — flagship (default)</option>
+        <option value="claude-fable-5-2">Claude Fable 5.2 — most capable frontier model</option>
+        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — near-Opus capability, lower cost</option>
+        <option value="claude-haiku-5-5">Claude Haiku 5.5 — fastest, cheapest</option>
+        <option value="claude-opus-5">Claude Opus 5 — previous flagship</option>
+        <option value="claude-fable-5-1">Claude Fable 5.1 — previous frontier model</option>
+        <option value="claude-fable-5">Claude Fable 5 — older frontier model</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 — older flagship</option>
+        <option value="claude-sonnet-5">Claude Sonnet 5 — previous Sonnet</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — older Sonnet</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5 — previous Haiku</option>
         <option value="__custom__">Custom model ID…</option>
       </select>
       <input type="text" id="anthropic-model-input" aria-label="Anthropic custom model ID" placeholder="enter exact model id" data-evinput="h20" autocomplete="off" spellcheck="false"
@@ -1563,7 +1567,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
          Run those searches externally, export RIS/CSV, import here → deduplicated into the pool. -->
     <div id="import-bar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border:1px solid var(--ev-border);border-radius:10px;background:var(--ev-surface-2)">
       <span style="font-size:12px;font-weight:600;color:var(--ev-text-2)">&#8593; Import records</span>
-      <span style="font-size:11px;color:var(--ev-text-dim);flex:1;min-width:180px">Bring in <b>Embase</b>, <b>CENTRAL</b> or other exports (RIS or CSV) &mdash; deduplicated against your results, screened alongside them.</span>
+      <span style="font-size:11px;color:var(--ev-text-dim);flex:1;min-width:180px">Bring in <b>Embase</b>, <b>CENTRAL</b> or other exports (RIS, PubMed .nbib, CSV or tab-delimited) &mdash; deduplicated against your results, screened alongside them.</span>
       <label for="import-source" style="font-size:11px;color:var(--ev-text-muted)">Source</label>
       <select id="import-source" aria-label="Source database for imported records" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--ev-border-strong);background:var(--ev-surface);color:var(--ev-text-body)">
         <option value="Embase">Embase (Ovid)</option>
@@ -1574,7 +1578,7 @@ button:not(:disabled):active { filter: brightness(0.95); }
         <option value="Scopus (manual)">Scopus (manual export)</option>
         <option value="Imported">Other database</option>
       </select>
-      <label style="font-size:11px;padding:6px 13px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-surface);color:var(--ev-link-2);cursor:pointer;white-space:nowrap" title="Choose one or more RIS or CSV files exported from the selected database">&#8595; Choose RIS/CSV file(s)<input type="file" accept=".ris,.nbib,.txt,.csv" multiple data-evchange="h179" style="display:none"></label>
+      <label style="font-size:11px;padding:6px 13px;border-radius:6px;border:1px solid #3b82f655;background:var(--ev-surface);color:var(--ev-link-2);cursor:pointer;white-space:nowrap" title="Choose one or more RIS, PubMed .nbib, CSV or tab-delimited files exported from the selected database">&#8595; Choose RIS/CSV file(s)<input type="file" accept=".ris,.nbib,.txt,.csv,.tsv" multiple data-evchange="h179" style="display:none"></label>
     </div>
 
     <div id="empty-results" class="empty">
@@ -3216,7 +3220,7 @@ async function reRunAgentWithSupp(pmid) {
   const origFullText = p.fullText;
   const origScanDepth = p.scanDepth;
   p.fullText = combinedText;
-  p.agentTextSource = 'full text + supplementary';
+  p.agentTextSource = (origFullText && origFullText.length > 300 ? 'full text' : 'abstract') + ' + supplementary';
   p.scanDepth = 'agent-processing';
   refreshCardChecklist(p);
   try {
@@ -4835,7 +4839,10 @@ function makeImportedPaper(rec, sourceLabel, seq) {
   const ym = String(rec.year || '').match(/\d{4}/);
   return {
     // Synthetic, non-numeric id → never false-matches a real PubMed PMID in dedup.
-    pmid: 'imp_' + Date.now().toString(36) + '_' + seq,
+    // (A PubMed/NBIB export carries the real PMID — keep it, so the record merges
+    // with the same paper found by the PubMed search.)
+    pmid: /^\d{1,9}$/.test(String(rec.pmid || '')) ? String(rec.pmid) : 'imp_' + Date.now().toString(36) + '_' + seq,
+    pmcid: /^PMC\d+$/i.test(String(rec.pmcid || '')) ? String(rec.pmcid).toUpperCase() : '',
     title: String(rec.title || '').replace(/\s+/g, ' ').trim(),
     authors: authors,
     year: ym ? ym[0] : '',
@@ -4880,12 +4887,61 @@ function parseRisRecords(text) {
   return evBoundImportRecords(out.filter(function(r){ return r.title || (r.authors && r.authors.length) || r.doi; }));
 }
 
-// Parse a CSV export (Ovid, Cochrane, most databases) via fuzzy column detection.
+// Parse a PubMed / MEDLINE export (.nbib, or "PubMed" format saved as .txt).
+// NOT RIS: tags are 2–4 letters padded to four ("PMID- ", "TI  - "), there is no
+// TY/ER — each record starts at its PMID line — and wrapped lines are indented.
+function parseNbibRecords(text) {
+  let out = [], cur = null, lastTag = null;
+  function push() {
+    if (!cur) return;
+    cur.authors = cur.fau.length ? cur.fau : cur.au;
+    delete cur.fau; delete cur.au;
+    out.push(cur);
+  }
+  String(text || '').replace(/^\uFEFF/, '').split(/\r\n|\r|\n/).forEach(function(line) {
+    const m = line.match(/^([A-Z]{2,4})\s*-\s?(.*)$/);
+    if (m) {
+      const tag = m[1], val = m[2].trim();
+      if (tag === 'PMID') { push(); cur = { fau: [], au: [], pmid: val }; lastTag = tag; return; }
+      if (!cur) cur = { fau: [], au: [] };
+      if (tag === 'TI') cur.title = val;
+      else if (tag === 'AB') cur.abstract = val;
+      else if (tag === 'FAU') { if (val) cur.fau.push(val); }
+      else if (tag === 'AU') { if (val) cur.au.push(val); }
+      else if (tag === 'DP') { if (!cur.year) cur.year = val; }
+      else if (tag === 'JT') cur.journal = val;
+      else if (tag === 'TA') { if (!cur.journal) cur.journal = val; }
+      else if (tag === 'PMC') cur.pmcid = val;
+      else if (tag === 'LID' || tag === 'AID') {
+        const d = val.match(/^(10\.\S+)\s*\[doi\]/i);
+        if (d && !cur.doi) cur.doi = d[1];
+      }
+      lastTag = tag;
+    } else if (cur && lastTag && /^\s+\S/.test(line)) {
+      // Indented continuation of the previous field.
+      if (lastTag === 'TI') cur.title = (cur.title ? cur.title + ' ' : '') + line.trim();
+      else if (lastTag === 'AB') cur.abstract = (cur.abstract ? cur.abstract + ' ' : '') + line.trim();
+      else if (lastTag === 'JT') cur.journal = (cur.journal ? cur.journal + ' ' : '') + line.trim();
+    }
+  });
+  push();
+  return evBoundImportRecords(out.filter(function(r){ return r.title || (r.authors && r.authors.length) || r.doi; }));
+}
+
+// Parse a CSV / tab-delimited export (Ovid, Cochrane, Web of Science, most
+// databases) via fuzzy column detection.
 function parseTabularRecords(text) {
   const rows = evValParseCsv(text);
   if (!rows.length) return [];
   const keys = Object.keys(rows[0]);
-  function pick(cands) {
+  // `tags`: exact-match-only short field tags (Web of Science tab-delimited
+  // exports head their columns TI / AU / PY / SO / DI / AB). Never substring-
+  // matched — 'di' or 'ab' would hit unrelated columns.
+  function pick(cands, tags) {
+    for (let t = 0; t < (tags || []).length; t++) {
+      const tagHit = keys.filter(function(h){ return h.trim().toUpperCase() === tags[t]; })[0];
+      if (tagHit) return tagHit;
+    }
     for (let i = 0; i < cands.length; i++) {
       const exact = keys.filter(function(h){ return h.toLowerCase().replace(/[^a-z]/g, '') === cands[i]; })[0];
       if (exact) return exact;
@@ -4896,12 +4952,12 @@ function parseTabularRecords(text) {
     }
     return null;
   }
-  const kTitle = pick(['title', 'articletitle', 'primarytitle']);
-  const kAuth  = pick(['authors', 'author', 'authornames', 'creator']);
-  const kYear  = pick(['year', 'publicationyear', 'pubyear', 'yearofpublication', 'date']);
-  const kJourn = pick(['journal', 'sourcetitle', 'source', 'publicationtitle', 'publication']);
-  const kDoi   = pick(['doi']);
-  const kAbs   = pick(['abstract']);
+  const kTitle = pick(['title', 'articletitle', 'primarytitle'], ['TI']);
+  const kAuth  = pick(['authors', 'author', 'authornames', 'creator'], ['AU', 'AF']);
+  const kYear  = pick(['year', 'publicationyear', 'pubyear', 'yearofpublication', 'date'], ['PY']);
+  const kJourn = pick(['journal', 'sourcetitle', 'source', 'publicationtitle', 'publication'], ['SO']);
+  const kDoi   = pick(['doi'], ['DI']);
+  const kAbs   = pick(['abstract'], ['AB']);
   const kUrl   = pick(['url', 'link', 'doilink']);
   // P9 — cap record count + clamp field lengths before anything downstream trusts them.
   return evBoundImportRecords(rows.map(function(r) {
@@ -4922,6 +4978,17 @@ function parseTabularRecords(text) {
 function importPairKey(pair) {
   const a = String((pair.a && pair.a.pmid) || ''), b = String((pair.b && pair.b.pmid) || '');
   return a < b ? a + '|' + b : b + '|' + a;
+}
+
+// Pure: which parser an import file needs — 'nbib' (PubMed/MEDLINE tagged),
+// 'ris', or 'table' (CSV / tab-delimited). Content beats extension for .txt/.nbib.
+function evImportFormat(name, head) {
+  name = String(name || ''); head = String(head || '').replace(/^\uFEFF/, '');
+  if (/\.csv$/i.test(name)) return 'table';
+  if (/(^|\n)PMID\s*-\s*\d/.test(head)) return 'nbib';
+  if (/\.nbib$/i.test(name)) return 'nbib';
+  if (/\.ris$/i.test(name) || /(^|\n)\s*TY\s{0,3}-\s/.test(head)) return 'ris';
+  return 'table';
 }
 
 // File-input handler: read each chosen file, sniff RIS vs CSV, parse, tag source, merge.
@@ -4950,9 +5017,9 @@ function importResultRecords(input) {
       try {
         const textData = String(reader.result || '');
         const head = textData.slice(0, 2000);
-        const isRis = /\.(ris|nbib)$/i.test(file.name) ||
-                    (!/\.csv$/i.test(file.name) && /(^|\n)\s*TY\s{0,3}-\s/.test(head));
-        const recs = isRis ? parseRisRecords(textData) : parseTabularRecords(textData);
+        const fmt = evImportFormat(file.name, head);
+        const recs = fmt === 'nbib' ? parseNbibRecords(textData)
+                   : fmt === 'ris' ? parseRisRecords(textData) : parseTabularRecords(textData);
         recs.forEach(function(rec){ collected.push(makeImportedPaper(rec, sourceLabel, seq++)); });
       } catch (e) {
         logIssue('search', 'Could not parse ' + file.name + ' — ' + (e && e.message || 'unreadable'),
@@ -11846,7 +11913,7 @@ function exportCSV() {
   });
 
   const csv = [headers.map(csvCell).join(',')].concat(rows.map(function(r){ return r.join(','); })).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url;
   a.download = 'pubmed_' + new Date().toISOString().slice(0,10) + '.csv';
@@ -15310,7 +15377,7 @@ function exportProjectCSV() {
   const papers = projectPapers[currentProjectId] || [];
   if (!papers.length) { showToast('No papers to export', '#f59e0b'); return; }
 
-  const BIAS_TOOLS = { ROB2:'RoB2', ROBINS2:'ROBINS-I', QUADAS2:'QUADAS-2', NOS:'Newcastle-Ottawa', JADAD:'Jadad' };
+  const BIAS_TOOLS = { ROB2:'RoB2', ROBINS2:'ROBINS-I', QUADAS2:'QUADAS-2', NOS:'Newcastle-Ottawa', JADAD:'Jadad', AMSTAR2:'AMSTAR 2' };
   // Reviewer A/B columns appear only when the project actually carries dual-
   // reviewer votes — single-reviewer exports keep their original schema.
   const dualCols = !!(proj && proj.dualReviewer) ||
@@ -15355,7 +15422,7 @@ function exportProjectCSV() {
   });
 
   const csv = rows.map(function(r){ return r.map(csvCell).join(','); }).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (proj ? proj.name.replace(/[^a-z0-9]/gi,'_') : 'project') + '_papers.csv';
@@ -15482,8 +15549,10 @@ var ROB_JUDGEMENT_STYLE = {
   moderate:      { c: '#f59e0b', sym: '!', label: 'Moderate' },
   high:          { c: '#ef4444', sym: '−', label: 'High risk' },
   serious:       { c: '#ef4444', sym: '−', label: 'Serious' },
-  critical:      { c: 'var(--ev-danger-bg)', sym: '×', label: 'Critical' },
-  unclear:       { c: 'var(--ev-text-muted)', sym: '?', label: 'Unclear' }
+  // LITERAL colours only: these style the standalone exported HTML, which has no
+  // --ev-* theme variables (a var() here rendered the dot invisible).
+  critical:      { c: '#7f1d1d', sym: '×', label: 'Critical' },
+  unclear:       { c: '#94a3b8', sym: '?', label: 'Unclear' }
 };
 function robStyleFor(judgement) {
   return ROB_JUDGEMENT_STYLE[judgement] || ROB_JUDGEMENT_STYLE.unclear;
@@ -15544,7 +15613,10 @@ function exportProjectRoB() {
       domLegend;
   }).join('');
 
-  const legendItems = ['low','some_concerns','high','critical','unclear'].map(function(j) {
+  const robinsUsed = !!buckets.ROBINS2;
+  const legendItems = ['low','some_concerns','moderate','high','serious','critical','unclear'].filter(function(j) {
+    return robinsUsed || (j !== 'moderate' && j !== 'serious' && j !== 'critical');
+  }).map(function(j) {
     const s = robStyleFor(j);
     return '<span class="rob-legend-item">' + robCircle(j) + ' ' + esc(s.label) + '</span>';
   }).join('');
@@ -15979,7 +16051,7 @@ function exportProjectExtractionCSV() {
     rows.push(base.concat(ext));
   });
   const csv = rows.map(function(r){ return r.map(csvCell).join(','); }).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (proj ? proj.name.replace(/[^a-z0-9]/gi, '_') : 'project') + '_extraction.csv';
@@ -16715,7 +16787,10 @@ async function runProjPaperAgent(projectId, pmid, force) {
     doi: p.doi,
     abstract: p.abstract || (p.title + '. ' + p.journal + ' ' + p.year),
     studyType: p.studyType,
-    fullText: haveFull ? fullText : (p.abstract || ''),
+    // Never pass the abstract off as full text: analyseOneWithAgent labels whatever
+    // is in fullText as extracted full text, so abstract-only appraisals were being
+    // stamped "PDF (extracted)" and counted as full text by the validation harness.
+    fullText: haveFull ? fullText : '',
     fullTextUrl: p.fullTextUrl || p.url || '',
     pmcid: p.pmcid || '',
     checklists: p.checklists || {},
@@ -16743,7 +16818,7 @@ async function runProjPaperAgent(projectId, pmid, force) {
     finally { _assessForceFresh = false; }
     projCopyAgentResults(p, fakePaper, haveFull);
     saveProjects();
-    showToast('🤖 ' + (haveFull ? 'Full-text' : 'Abstract') + ' analysis complete for "' + (p.title || 'paper').slice(0,40) + '…"', 'var(--ev-ai-text)');
+    showToast('🤖 ' + (p.appraisalDepth === 'full-text' ? 'Full-text' : 'Abstract') + ' analysis complete for "' + (p.title || 'paper').slice(0,40) + '…"', 'var(--ev-ai-text)');
     renderProjDetail(); // re-render to show results
   } catch(e) {
     // Typed cause (timeout / cancelled / rate-limit / invalid key / malformed)
@@ -16772,7 +16847,11 @@ function projCopyAgentResults(p, shim, haveFull) {
   p.retracted        = shim.retracted || p.retracted;
   p.retractionInfo   = shim.retractionInfo || p.retractionInfo;
   p.retractionChecked = shim.retractionChecked || p.retractionChecked;
-  p.appraisalDepth   = haveFull ? 'full-text' : 'abstract';   // record what it read
+  // Record what the model actually read. The text-source label set at appraisal
+  // time is authoritative (it also covers a server-fetched PDF or a cached
+  // appraisal); the caller's haveFull is only the fallback.
+  const _src = String(shim.agentTextSource || '');
+  p.appraisalDepth   = _src ? (/abstract/i.test(_src) ? 'abstract' : 'full-text') : (haveFull ? 'full-text' : 'abstract');
   p.agentTextSource  = shim.agentTextSource || p.agentTextSource || '';
   // Provenance stamps travel with the appraisal they describe.
   p.agentModel         = shim.agentModel || p.agentModel || '';
@@ -17400,7 +17479,7 @@ function exportUploaderCSV(ck) {
     return r.map(csvCell).join(',');
   }).join('\n');
 
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (p.title || 'paper').replace(/[^a-z0-9]/gi,'_').slice(0,40) + '_' + ck + '_checklist.csv';
@@ -17537,7 +17616,7 @@ function updateKeyFieldHints() {
 // Custom / older ids remain first-class: effectiveModel() reads the free-text box
 // and modelShortName() falls back to the raw id, so nothing here restricts what a
 // user can type or what a saved id can be.
-var MODEL_CATALOG_UPDATED = '2026-09-02';
+var MODEL_CATALOG_UPDATED = '2026-11-27';
 var MODEL_CATALOG = {
   openai: { label: 'OpenAI', 'default': 'gpt-5.6', models: [
     { id: 'gpt-5.6',      name: 'GPT-5.6',      note: 'flagship, most capable (default)' },
@@ -17549,14 +17628,18 @@ var MODEL_CATALOG = {
     { id: 'gpt-5.4-nano', name: 'GPT-5.4 nano', note: 'fastest, cheapest' },
     { id: 'gpt-5',        name: 'GPT-5',        note: 'previous flagship (legacy)' }
   ]},
-  anthropic: { label: 'Anthropic', 'default': 'claude-opus-5', models: [
-    { id: 'claude-opus-5',     name: 'Claude Opus 5',     note: 'flagship (default)' },
-    { id: 'claude-fable-5-1',  name: 'Claude Fable 5.1',  note: 'most capable frontier model' },
-    { id: 'claude-fable-5',    name: 'Claude Fable 5',    note: 'previous frontier model' },
-    { id: 'claude-opus-4-8',   name: 'Claude Opus 4.8',   note: 'previous flagship' },
-    { id: 'claude-sonnet-5',   name: 'Claude Sonnet 5',   note: 'near-Opus capability, lower cost' },
-    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', note: 'faster, cheaper' },
-    { id: 'claude-haiku-4-5',  name: 'Claude Haiku 4.5',  note: 'fastest, cheapest' }
+  anthropic: { label: 'Anthropic', 'default': 'claude-opus-5-5', models: [
+    { id: 'claude-opus-5-5',   name: 'Claude Opus 5.5',   note: 'flagship (default)' },
+    { id: 'claude-fable-5-2',  name: 'Claude Fable 5.2',  note: 'most capable frontier model' },
+    { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', note: 'near-Opus capability, lower cost' },
+    { id: 'claude-haiku-5-5',  name: 'Claude Haiku 5.5',  note: 'fastest, cheapest' },
+    { id: 'claude-opus-5',     name: 'Claude Opus 5',     note: 'previous flagship' },
+    { id: 'claude-fable-5-1',  name: 'Claude Fable 5.1',  note: 'previous frontier model' },
+    { id: 'claude-fable-5',    name: 'Claude Fable 5',    note: 'older frontier model' },
+    { id: 'claude-opus-4-8',   name: 'Claude Opus 4.8',   note: 'older flagship' },
+    { id: 'claude-sonnet-5',   name: 'Claude Sonnet 5',   note: 'previous Sonnet' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', note: 'older Sonnet' },
+    { id: 'claude-haiku-4-5',  name: 'Claude Haiku 4.5',  note: 'previous Haiku' }
   ]},
   gemini: { label: 'Google Gemini', 'default': 'gemini-2.5-pro', models: [
     { id: 'gemini-2.5-pro',   name: 'Gemini 2.5 Pro',   note: 'most capable (default)' },
@@ -18788,7 +18871,12 @@ async function _analyseOneWithAgentInner(p, questionOverride) {
   // ── PATH A: Already have locally-extracted full text (PMC XML or pdf.js) ──
   // Check this BEFORE overwriting scanDepth so the label is accurate
   if (p.fullText && p.fullText.length > 300) {
-    const textSource = p.agentTextSource || (p.pmcid ? 'PMC full text' : 'PDF (extracted)');
+    // A prior label is reused only when it describes locally-held full text. A stale
+    // 'abstract' / '… from memory' / 'PDF (server-fetched)' stamp from an earlier run
+    // must not relabel the full text we are about to send (or vice versa).
+    const _prior = String(p.agentTextSource || '');
+    const textSource = (_prior && !/^abstract$|from memory|server-fetched/i.test(_prior))
+      ? _prior : (p.pmcid ? 'PMC full text' : 'PDF (extracted)');
     const prompts = buildAnalysisPrompts(p, questionOverride);
     const result = await callOpenAIWithText(p.fullText, prompts, p, textSource);
     try { applyAgentResults(p, result, p.fullText, textSource); } catch(e) { console.warn('applyAgentResults error (PATH A):', e); }
@@ -18845,7 +18933,7 @@ async function _analyseOneWithAgentInner(p, questionOverride) {
     // ── PATH D: pdf.js failed (usually CORS) — let the AI provider fetch the PDF server-side ──
     try {
       const result = await callOpenAIWithPdfUrl(pdfUrl, prompts);
-      try { applyAgentResults(p, result, p.abstract || '', 'PDF (server-fetched)'); } catch(e) { console.warn('applyAgentResults error (PATH D - server PDF):', e); }
+      try { applyAgentResults(p, result, '', 'PDF (server-fetched)'); } catch(e) { console.warn('applyAgentResults error (PATH D - server PDF):', e); }
       return;
     } catch(e) {
       console.warn('Server-side PDF fetch also failed, falling back to abstract:', e.message);
@@ -18874,7 +18962,7 @@ async function _analyseOneWithAgentInner(p, questionOverride) {
   const abstract = p.abstract || '';
   if (!abstract) throw new Error('No text available for analysis');
   const result = await callOpenAIWithText(abstract, prompts, p, 'abstract');
-  try { applyAgentResults(p, result, abstract, 'abstract'); } catch(e) { console.warn('applyAgentResults error (PATH E - abstract):', e); }
+  try { applyAgentResults(p, result, '', 'abstract'); } catch(e) { console.warn('applyAgentResults error (PATH E - abstract):', e); }
 }
 
 // Robustly parse agent JSON — handles truncation by closing open structures
@@ -19312,6 +19400,10 @@ function evAssessRefreshUI() {
 }
 
 function applyAgentResults(p, result, fullText, textSource) {
+  // Only genuine full text is ever stored in p.fullText. The abstract-only and
+  // server-fetched paths pass '' — storing the abstract here made a later
+  // Re-analyse treat it as extracted full text (wrong label, and it skipped the
+  // PMC/PDF fetch for good).
   p.fullText = p.fullText || fullText;
   p.scanDepth = 'agent';
   p.agentAnalysed = true;
@@ -19364,7 +19456,10 @@ function applyAgentResults(p, result, fullText, textSource) {
   if (!CHECKLISTS[checklistKey]) checklistKey = guessChecklistFromType(result.study_type || p.studyType);
   if (checklistKey && result.checklist) {
     if (!p.checklists) p.checklists = {};
-    p.checklists[checklistKey] = p.checklists[checklistKey] || {};
+    // A new appraisal REPLACES the previous one for this checklist: merging left
+    // any item the new model omitted carrying the earlier model's answer under the
+    // new model's provenance stamp.
+    p.checklists[checklistKey] = {};
     // Apply-time id/value validation (mirrors evNormaliseChecklists at the import
     // boundary): a cached assessment rehydrated from IndexedDB may have entered via
     // a crafted backup/pack, so pollution keys, unknown item ids and off-vocabulary
@@ -19411,7 +19506,9 @@ function applyAgentResults(p, result, fullText, textSource) {
 
   if (biasToolKey && biasData && CHECKLISTS[biasToolKey]) {
     if (!p.checklists) p.checklists = {};
-    p.checklists[biasToolKey] = p.checklists[biasToolKey] || {};
+    // Fresh bucket for the same reason as the checklist above (unless this tool IS
+    // the reporting checklist just written — never wipe that).
+    if (biasToolKey !== checklistKey || !p.checklists[biasToolKey]) p.checklists[biasToolKey] = {};
     // Same apply-time discipline as the checklist block above: only registry item
     // ids and domain ids for THIS tool may be written, values forced onto the
     // status/judgement vocabularies (a cached assessment is untrusted input).
@@ -20889,15 +20986,25 @@ function evValAiJudgements(p, toolKey) {
 
 // RFC-4180ish CSV: quoted fields, doubled quotes, CRLF tolerant. Returns
 // array of row objects keyed by the header cells.
+// Pure: pick the delimiter from the header line — tab (Web of Science / Excel
+// "Text (Tab delimited)"), semicolon (Excel CSV in comma-decimal locales) or comma.
+function evCsvDelimiter(text) {
+  const head = String(text || '').split(/\r\n|\r|\n/)[0] || '';
+  const tabs = head.split('\t').length - 1, semis = head.split(';').length - 1, commas = head.split(',').length - 1;
+  if (tabs > 0 && tabs >= commas && tabs >= semis) return '\t';
+  if (semis > commas) return ';';
+  return ',';
+}
 function evValParseCsv(text) {
-  let rows = [], row = [], cell = '', inQ = false, s = String(text || '');
+  let rows = [], row = [], cell = '', inQ = false, s = String(text || '').replace(/^\uFEFF/, '');
+  const delim = evCsvDelimiter(s);
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
     if (inQ) {
       if (ch === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
       else cell += ch;
-    } else if (ch === '"') inQ = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
+    } else if (ch === '"' && cell === '') inQ = true;   // a quote only opens a field at its start
+    else if (ch === delim) { row.push(cell); cell = ''; }
     else if (ch === '\n' || ch === '\r') {
       if (ch === '\r' && s[i + 1] === '\n') i++;
       row.push(cell); cell = '';
@@ -20965,8 +21072,13 @@ function evValModelLabel(p) {
 // to the copy-back's appraisalDepth; legacy appraisals may have neither.
 function evValTextSourceClass(p) {
   const src = String((p && p.agentTextSource) || '');
-  if (src) return /abstract/i.test(src) ? 'abstract' : 'fulltext';
   const d = (p && p.appraisalDepth) || '';
+  // Either marker saying "abstract" wins. Project appraisals made before the
+  // text-source fix carry a wrong "PDF (extracted)" label but a correct
+  // appraisalDepth of 'abstract' — this repairs them without a re-run, and errs
+  // toward under- (never over-) claiming full-text appraisal.
+  if (d === 'abstract' || /abstract/i.test(src)) return 'abstract';
+  if (src) return 'fulltext';
   return d === 'full-text' ? 'fulltext' : d === 'abstract' ? 'abstract' : 'unknown';
 }
 
@@ -21125,7 +21237,7 @@ function evValDownloadTemplate() {
   const toolKey = evValToolKey();
   const papersArr = evValEligiblePapers(proj.id, toolKey);
   if (!papersArr.length) { showToast('No papers with AI ' + EVVAL_TOOLS[toolKey].label + ' judgements in this project yet', '#f59e0b'); return; }
-  const blob = new Blob([evValTemplateCsvText(papersArr, toolKey)], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + evValTemplateCsvText(papersArr, toolKey)], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'evidentum-validation-template-' + packetSlug(proj.name) + '.csv';
@@ -21158,7 +21270,7 @@ function evValDownloadResults() {
   const report = evValCurrentReport();
   if (!report) return;
   const proj = projects.find(function(x) { return x.id === currentProjectId; });
-  const blob = new Blob([evValResultsCsvText(report)], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + evValResultsCsvText(report)], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'evidentum-validation-results-' + packetSlug(proj ? proj.name : 'project') + '.csv';
